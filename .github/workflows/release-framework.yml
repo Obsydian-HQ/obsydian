@@ -15,6 +15,7 @@ jobs:
     runs-on: macos-14
     permissions:
       contents: write
+      id-token: write
     
     steps:
       - name: Checkout obsydian
@@ -73,7 +74,7 @@ jobs:
           cp dist/manifest.json frameworks-repo/releases/v${VERSION}/
       
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v2.5.0
         with:
           repository: Obsydian-HQ/obsydian-frameworks
           tag_name: v${VERSION}
