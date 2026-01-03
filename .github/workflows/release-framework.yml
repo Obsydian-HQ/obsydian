@@ -1,0 +1,103 @@
+name: Build and Release Framework
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Framework version (e.g., 1.0.0)'
+        required: true
+
+jobs:
+  build-and-release:
+    runs-on: macos-14
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout obsydian
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Bazel
+        uses: bazel-contrib/setup-bazel@v0.7.1
+        with:
+          bazelisk-version: 'latest'
+      
+      - name: Build XCFramework
+        run: |
+          chmod +x scripts/build-xcframework.sh
+          export VERSION=${GITHUB_REF#refs/tags/v}
+          export OUTPUT_DIR=$(pwd)/dist
+          ./scripts/build-xcframework.sh
+      
+      - name: Create Archive
+        run: |
+          cd dist
+          zip -r Obsydian.xcframework.zip Obsydian.xcframework
+          shasum -a 256 Obsydian.xcframework.zip > Obsydian.xcframework.zip.sha256
+      
+      - name: Create Manifest
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          if [ "$VERSION" == "$GITHUB_REF" ]; then
+            VERSION=${{ github.event.inputs.version }}
+          fi
+          
+          cat > dist/manifest.json <<EOF
+          {
+            "version": "${VERSION}",
+            "framework": "Obsydian.xcframework",
+            "download_url": "https://github.com/Obsydian-HQ/obsydian-frameworks/releases/download/v${VERSION}/Obsydian.xcframework.zip",
+            "checksum": "$(cat dist/Obsydian.xcframework.zip.sha256 | cut -d' ' -f1)",
+            "size": $(stat -f%z dist/Obsydian.xcframework.zip),
+            "created_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
+          EOF
+      
+      - name: Checkout frameworks repo
+        uses: actions/checkout@v4
+        with:
+          repository: Obsydian-HQ/obsydian-frameworks
+          path: frameworks-repo
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Copy Framework to Frameworks Repo
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          if [ "$VERSION" == "$GITHUB_REF" ]; then
+            VERSION=${{ github.event.inputs.version }}
+          fi
+          
+          mkdir -p frameworks-repo/releases/v${VERSION}
+          cp dist/Obsydian.xcframework.zip frameworks-repo/releases/v${VERSION}/
+          cp dist/Obsydian.xcframework.zip.sha256 frameworks-repo/releases/v${VERSION}/
+          cp dist/manifest.json frameworks-repo/releases/v${VERSION}/
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          repository: Obsydian-HQ/obsydian-frameworks
+          tag: v${VERSION}
+          name: Obsydian Framework v${VERSION}
+          body: |
+            Pre-built Obsydian XCFramework v${VERSION}
+            
+            ## Installation
+            
+            Download and extract the framework, then add it to your Xcode project.
+            
+            ## Files
+            
+            - `Obsydian.xcframework.zip` - Framework archive
+            - `manifest.json` - Version metadata
+          files: |
+            dist/Obsydian.xcframework.zip
+            dist/manifest.json
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

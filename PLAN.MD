@@ -1,6 +1,6 @@
-# Obsidian Development Status
+# Obsidian Development Status Remaining Tasks
 
-Remaining Tasks
+
 
 ## Additional UI Components
 

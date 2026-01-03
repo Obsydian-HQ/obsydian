@@ -1,0 +1,5 @@
+framework module Obsydian {
+    umbrella header "Obsydian.h"
+    export *
+    module * { export * }
+}
