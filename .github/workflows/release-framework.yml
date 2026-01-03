@@ -59,7 +59,7 @@ jobs:
         with:
           repository: Obsydian-HQ/obsydian-frameworks
           path: frameworks-repo
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.FRAMEWORKS_REPO_TOKEN }}
       
       - name: Copy Framework to Frameworks Repo
         run: |
