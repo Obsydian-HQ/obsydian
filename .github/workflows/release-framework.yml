@@ -73,10 +73,10 @@ jobs:
           cp dist/manifest.json frameworks-repo/releases/v${VERSION}/
       
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           repository: Obsydian-HQ/obsydian-frameworks
-          tag: v${VERSION}
+          tag_name: v${VERSION}
           name: Obsydian Framework v${VERSION}
           body: |
             Pre-built Obsydian XCFramework v${VERSION}
