@@ -23,13 +23,19 @@ jobs:
         with:
           fetch-depth: 0
       
-      - name: Build XCFramework
+      - name: Set Version
+        id: version
         run: |
-          chmod +x scripts/build-xcframework.sh
-          export VERSION=${GITHUB_REF#refs/tags/v}
+          VERSION=${GITHUB_REF#refs/tags/v}
           if [ "$VERSION" == "$GITHUB_REF" ]; then
             VERSION=${{ github.event.inputs.version }}
           fi
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+      
+      - name: Build XCFramework
+        run: |
+          chmod +x scripts/build-xcframework.sh
           export OUTPUT_DIR=$(pwd)/dist
           ./scripts/build-xcframework.sh
       
@@ -41,16 +47,11 @@ jobs:
       
       - name: Create Manifest
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          if [ "$VERSION" == "$GITHUB_REF" ]; then
-            VERSION=${{ github.event.inputs.version }}
-          fi
-          
           cat > dist/manifest.json <<EOF
           {
-            "version": "${VERSION}",
+            "version": "${{ env.VERSION }}",
             "framework": "Obsydian.xcframework",
-            "download_url": "https://github.com/Obsydian-HQ/obsydian-frameworks/releases/download/v${VERSION}/Obsydian.xcframework.zip",
+            "download_url": "https://github.com/Obsydian-HQ/obsydian-frameworks/releases/download/v${{ env.VERSION }}/Obsydian.xcframework.zip",
             "checksum": "$(cat dist/Obsydian.xcframework.zip.sha256 | cut -d' ' -f1)",
             "size": $(stat -f%z dist/Obsydian.xcframework.zip),
             "created_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -66,24 +67,19 @@ jobs:
       
       - name: Copy Framework to Frameworks Repo
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          if [ "$VERSION" == "$GITHUB_REF" ]; then
-            VERSION=${{ github.event.inputs.version }}
-          fi
-          
-          mkdir -p frameworks-repo/releases/v${VERSION}
-          cp dist/Obsydian.xcframework.zip frameworks-repo/releases/v${VERSION}/
-          cp dist/Obsydian.xcframework.zip.sha256 frameworks-repo/releases/v${VERSION}/
-          cp dist/manifest.json frameworks-repo/releases/v${VERSION}/
+          mkdir -p frameworks-repo/releases/v${{ env.VERSION }}
+          cp dist/Obsydian.xcframework.zip frameworks-repo/releases/v${{ env.VERSION }}/
+          cp dist/Obsydian.xcframework.zip.sha256 frameworks-repo/releases/v${{ env.VERSION }}/
+          cp dist/manifest.json frameworks-repo/releases/v${{ env.VERSION }}/
       
       - name: Create Release
         uses: softprops/action-gh-release@v2.5.0
         with:
           repository: Obsydian-HQ/obsydian-frameworks
           tag_name: v${{ env.VERSION }}
-          name: Obsydian Framework v${VERSION}
+          name: Obsydian Framework v${{ env.VERSION }}
           body: |
-            Pre-built Obsydian XCFramework v${VERSION}
+            Pre-built Obsydian XCFramework v${{ env.VERSION }}
             
             ## Installation
             
