@@ -1,0 +1,93 @@
+# Obsidian Bazel Configuration
+# Production-grade settings for multi-platform builds
+
+# Common build options
+build --incompatible_use_python_toolchains
+build --enable_platform_specific_config
+build --experimental_platform_in_output_dir
+
+# C/C++ compilation settings
+build --cxxopt=-std=c++20
+build --copt=-Wall
+build --copt=-Wextra
+
+# Apple platform settings
+build --apple_platform_type=macos
+build --macos_minimum_os=11.0
+build --ios_minimum_os=13.0
+
+# Android settings
+build --android_platforms=//platforms:android_arm64
+
+# Remote caching (can be configured later)
+# build --remote_cache=...
+
+# Build performance
+build --jobs=8
+build --loading_phase_threads=8
+
+# Production build configuration (optimized)
+build:opt --compilation_mode=opt
+build:opt --copt=-O3
+build:opt --copt=-DNDEBUG
+build:opt --linkopt=-Wl,-dead_strip
+
+# Debug build configuration (default for development)
+build:dbg --compilation_mode=dbg
+build:dbg --copt=-g
+build:dbg --copt=-O0
+
+# Startup options (must come before commands)
+# Output base (for faster builds)
+# Note: /tmp may be cleared on reboot - consider using a persistent location
+startup --output_base=/tmp/bazel-output-base
+
+# Platform-specific configurations
+build:macos --cpu=darwin_arm64
+build:macos --host_cpu=darwin_arm64
+build:macos --apple_platform_type=macos
+# Apple CC toolchain configuration (required for objc_library targets)
+build:macos --apple_crosstool_top=@local_config_apple_cc//:toolchain
+build:macos --crosstool_top=@local_config_apple_cc//:toolchain
+build:macos --host_crosstool_top=@local_config_apple_cc//:toolchain
+
+build:ios --cpu=ios_arm64
+build:ios --apple_platform_type=ios
+build:ios --ios_minimum_os=13.0
+
+build:android --cpu=arm64-v8a
+build:android --android_platforms=//platforms:android_arm64
+
+build:windows --cpu=x64_windows
+build:windows --host_cpu=x64_windows
+
+build:linux --cpu=k8
+build:linux --host_cpu=k8
+
+# Sanitizer configurations for memory leak detection
+# AddressSanitizer (ASan) - detects memory errors, use-after-free, buffer overflows
+build:asan --copt=-fsanitize=address
+build:asan --copt=-fno-omit-frame-pointer
+build:asan --linkopt=-fsanitize=address
+build:asan --copt=-g
+build:asan --strip=never
+build:asan --copt=-Wno-macro-redefined
+
+# ThreadSanitizer (TSan) - detects data races
+build:tsan --copt=-fsanitize=thread
+build:tsan --linkopt=-fsanitize=thread
+build:tsan --copt=-g
+build:tsan --strip=never
+
+# MemorySanitizer (MSan) - detects uninitialized memory reads
+build:msan --copt=-fsanitize=memory
+build:msan --linkopt=-fsanitize=memory
+build:msan --copt=-g
+build:msan --strip=never
+
+# UndefinedBehaviorSanitizer (UBSan) - detects undefined behavior
+build:ubsan --copt=-fsanitize=undefined
+build:ubsan --linkopt=-fsanitize=undefined
+build:ubsan --copt=-g
+build:ubsan --strip=never
+

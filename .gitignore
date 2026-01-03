@@ -1,0 +1,25 @@
+# Bazel
+bazel-*
+.bazelrc.user
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.a
+*.o
+*.dylib
+*.so
+
+# Coverage
+coverage/
+*.profraw
+*.profdata

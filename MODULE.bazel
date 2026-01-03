@@ -1,0 +1,57 @@
+# Obsidian - Cross-platform native framework
+# Multi-year production-grade build system configuration
+
+module(
+    name = "obsidian",
+    version = "0.1.0",
+    compatibility_level = 1,
+)
+
+# Bazel version requirement
+bazel_dep(name = "platforms", version = "1.0.0")
+
+# Apple platform support (iOS, macOS, watchOS, tvOS)
+bazel_dep(name = "apple_support", version = "1.24.4")
+bazel_dep(name = "rules_apple", version = "4.3.3")
+bazel_dep(name = "rules_swift", version = "3.4.1")
+bazel_dep(name = "rules_xcodeproj", version = "3.5.1")
+
+# Android platform support
+bazel_dep(name = "rules_android", version = "0.6.6")
+bazel_dep(name = "rules_kotlin", version = "2.2.1")
+bazel_dep(name = "rules_java", version = "9.3.0")
+
+# C/C++ support
+bazel_dep(name = "rules_cc", version = "0.2.16")
+
+# Testing framework
+bazel_dep(name = "googletest", version = "1.17.0")
+
+# Performance benchmarking (via module extension - not in BCR)
+# Google Benchmark is fetched via http_archive in extensions.bzl
+
+# Python support (for CLI and tooling)
+bazel_dep(name = "rules_python", version = "1.7.0")
+
+# Node.js/TypeScript support (for CLI tool)
+bazel_dep(name = "aspect_rules_js", version = "2.0.0")
+
+# Configure npm package management
+npm = use_extension("@aspect_rules_js//npm:extensions.bzl", "npm")
+npm.npm_translate_lock(
+    name = "npm",
+    pnpm_lock = "//:pnpm-lock.yaml",
+)
+use_repo(npm, "npm")
+
+# Google Benchmark extension (not available in BCR, using http_archive)
+google_benchmark = use_extension("//:extensions.bzl", "google_benchmark_extension")
+use_repo(google_benchmark, "com_github_google_benchmark")
+
+# Apple CC toolchain setup (required for objc_library targets)
+# This exposes the local_config_apple_cc repository needed for Apple platform builds
+apple_cc_configure = use_extension("@apple_support//crosstool:setup.bzl", "apple_cc_configure_extension")
+use_repo(apple_cc_configure, "local_config_apple_cc")
+
+# Register the Apple CC toolchains
+register_toolchains("@local_config_apple_cc//:all")
