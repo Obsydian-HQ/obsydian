@@ -23,7 +23,7 @@ jobs:
           fetch-depth: 0
       
       - name: Setup Bazel
-        uses: bazel-contrib/setup-bazel@v0.7.1
+        uses: bazel-contrib/setup-bazel@v0.8.0
         with:
           bazelisk-version: 'latest'
       
