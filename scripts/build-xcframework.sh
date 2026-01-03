@@ -75,8 +75,12 @@ echo "🔨 Building frameworks for each platform..."
 # Build for macOS arm64
 echo "Building for macOS (arm64)..."
 MACOS_ARM64_DIR="$ARCHIVE_DIR/macos-arm64"
-mkdir -p "$MACOS_ARM64_DIR/${FRAMEWORK_NAME}.framework/Headers"
-mkdir -p "$MACOS_ARM64_DIR/${FRAMEWORK_NAME}.framework/Modules"
+FRAMEWORK_DIR="$MACOS_ARM64_DIR/${FRAMEWORK_NAME}.framework"
+
+# Create versioned bundle structure for macOS (required for validation)
+mkdir -p "$FRAMEWORK_DIR/Versions/A/Headers"
+mkdir -p "$FRAMEWORK_DIR/Versions/A/Resources"
+mkdir -p "$FRAMEWORK_DIR/Versions/A/Modules"
 
 # Compile all sources into object files
 OBJECT_FILES=()
@@ -111,10 +115,10 @@ for src in "${SOURCES[@]}"; do
     OBJECT_FILES+=("$obj_file")
 done
 
-# Link into framework binary
+# Link into framework binary (in Versions/A/)
 if [ ${#OBJECT_FILES[@]} -gt 0 ]; then
     clang++ "${OBJECT_FILES[@]}" \
-        -o "$MACOS_ARM64_DIR/${FRAMEWORK_NAME}.framework/${FRAMEWORK_NAME}" \
+        -o "$FRAMEWORK_DIR/Versions/A/${FRAMEWORK_NAME}" \
         -arch arm64 \
         -isysroot $(xcrun --show-sdk-path --sdk macosx) \
         -framework AppKit \
@@ -127,15 +131,15 @@ if [ ${#OBJECT_FILES[@]} -gt 0 ]; then
         echo "⚠️  Failed to link macOS arm64 framework"
     }
     
-    # Copy headers
+    # Copy headers to Versions/A/Headers
     for header in "${HEADERS[@]}"; do
         rel_path=$(echo "$header" | sed "s|^include/||" | sed "s|^core/||" | sed "s|^packages/apple/||")
-        mkdir -p "$MACOS_ARM64_DIR/${FRAMEWORK_NAME}.framework/Headers/$(dirname "$rel_path")"
-        cp "$REPO_ROOT/$header" "$MACOS_ARM64_DIR/${FRAMEWORK_NAME}.framework/Headers/$rel_path"
+        mkdir -p "$FRAMEWORK_DIR/Versions/A/Headers/$(dirname "$rel_path")"
+        cp "$REPO_ROOT/$header" "$FRAMEWORK_DIR/Versions/A/Headers/$rel_path"
     done
     
-    # Create module map
-    cat > "$MACOS_ARM64_DIR/${FRAMEWORK_NAME}.framework/Modules/module.modulemap" << MODULEMAP_EOF
+    # Create module map in Versions/A/Modules
+    cat > "$FRAMEWORK_DIR/Versions/A/Modules/module.modulemap" << MODULEMAP_EOF
 framework module ${FRAMEWORK_NAME} {
     umbrella header "${FRAMEWORK_NAME}.h"
     export *
@@ -143,8 +147,8 @@ framework module ${FRAMEWORK_NAME} {
 }
 MODULEMAP_EOF
     
-    # Create Info.plist
-    cat > "$MACOS_ARM64_DIR/${FRAMEWORK_NAME}.framework/Info.plist" << INFOPLIST_EOF
+    # Create Info.plist in Versions/A/Resources (required for versioned bundles)
+    cat > "$FRAMEWORK_DIR/Versions/A/Resources/Info.plist" << INFOPLIST_EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -170,6 +174,21 @@ MODULEMAP_EOF
 </dict>
 </plist>
 INFOPLIST_EOF
+    
+    # Create Versions/Current symlink
+    (cd "$FRAMEWORK_DIR/Versions" && ln -sf A Current)
+    
+    # Create root-level symlinks for versioned bundle structure
+    (cd "$FRAMEWORK_DIR" && ln -sf Versions/Current/${FRAMEWORK_NAME} ${FRAMEWORK_NAME})
+    (cd "$FRAMEWORK_DIR" && ln -sf Versions/Current/Headers Headers)
+    (cd "$FRAMEWORK_DIR" && ln -sf Versions/Current/Resources Resources)
+    (cd "$FRAMEWORK_DIR" && ln -sf Versions/Current/Modules Modules)
+    
+    # Remove any root-level Info.plist (for versioned bundles, Info.plist should ONLY be in Versions/A/Resources/)
+    # Having it in the root causes "unsealed contents" code signing errors
+    if [ -f "$FRAMEWORK_DIR/Info.plist" ]; then
+        rm -f "$FRAMEWORK_DIR/Info.plist"
+    fi
 fi
 
 # Build for iOS arm64 (device)
@@ -240,9 +259,9 @@ if [ ${#OBJECT_FILES[@]} -gt 0 ]; then
     done
     
     # Create module map and Info.plist (same as macOS)
-    cp "$MACOS_ARM64_DIR/${FRAMEWORK_NAME}.framework/Modules/module.modulemap" \
+    cp "$FRAMEWORK_DIR/Versions/A/Modules/module.modulemap" \
        "$IOS_ARM64_DIR/${FRAMEWORK_NAME}.framework/Modules/module.modulemap"
-    cp "$MACOS_ARM64_DIR/${FRAMEWORK_NAME}.framework/Info.plist" \
+    cp "$FRAMEWORK_DIR/Versions/A/Resources/Info.plist" \
        "$IOS_ARM64_DIR/${FRAMEWORK_NAME}.framework/Info.plist"
 fi
 
@@ -314,9 +333,9 @@ if [ ${#OBJECT_FILES[@]} -gt 0 ]; then
     done
     
     # Create module map and Info.plist
-    cp "$MACOS_ARM64_DIR/${FRAMEWORK_NAME}.framework/Modules/module.modulemap" \
+    cp "$FRAMEWORK_DIR/Versions/A/Modules/module.modulemap" \
        "$IOS_SIM_ARM64_DIR/${FRAMEWORK_NAME}.framework/Modules/module.modulemap"
-    cp "$MACOS_ARM64_DIR/${FRAMEWORK_NAME}.framework/Info.plist" \
+    cp "$FRAMEWORK_DIR/Versions/A/Resources/Info.plist" \
        "$IOS_SIM_ARM64_DIR/${FRAMEWORK_NAME}.framework/Info.plist"
 fi
 
@@ -325,8 +344,8 @@ echo "📦 Creating XCFramework..."
 
 XCFRAMEWORK_ARGS=()
 
-if [ -f "$MACOS_ARM64_DIR/${FRAMEWORK_NAME}.framework/${FRAMEWORK_NAME}" ]; then
-    XCFRAMEWORK_ARGS+=("-framework" "$MACOS_ARM64_DIR/${FRAMEWORK_NAME}.framework")
+if [ -f "$FRAMEWORK_DIR/Obsydian" ] || [ -f "$FRAMEWORK_DIR/Versions/A/Obsydian" ]; then
+    XCFRAMEWORK_ARGS+=("-framework" "$FRAMEWORK_DIR")
     echo "  ✓ Added macOS arm64 framework"
 fi
 
