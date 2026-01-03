@@ -27,6 +27,9 @@ jobs:
         run: |
           chmod +x scripts/build-xcframework.sh
           export VERSION=${GITHUB_REF#refs/tags/v}
+          if [ "$VERSION" == "$GITHUB_REF" ]; then
+            VERSION=${{ github.event.inputs.version }}
+          fi
           export OUTPUT_DIR=$(pwd)/dist
           ./scripts/build-xcframework.sh
       
@@ -77,7 +80,7 @@ jobs:
         uses: softprops/action-gh-release@v2.5.0
         with:
           repository: Obsydian-HQ/obsydian-frameworks
-          tag_name: v${VERSION}
+          tag_name: v${{ env.VERSION }}
           name: Obsydian Framework v${VERSION}
           body: |
             Pre-built Obsydian XCFramework v${VERSION}
