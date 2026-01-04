@@ -51,6 +51,13 @@ bool obsidian_macos_window_is_valid(ObsidianWindowHandle handle);
  */
 void* obsidian_macos_window_get_content_view(ObsidianWindowHandle handle);
 
+/**
+ * Update window constraints to prevent shrinking in macOS 15+ (Sequoia)
+ * In macOS 15+, layout is computed more lazily, and the window may resize
+ * based on contentView's fittingSize. This function ensures constraints are updated.
+ */
+void obsidian_macos_window_update_constraints(ObsidianWindowHandle handle);
+
 #ifdef __cplusplus
 }
 #endif

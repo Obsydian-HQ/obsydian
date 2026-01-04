@@ -27,6 +27,7 @@ cc_library(
         "macos_process.h",
         "macos_process_list.h",
         "macos_layout.h",
+        "macos_vstack.h",
     ],
     aspect_hints = [":apple_c_headers_interop"],
     copts = ["-std=c++20"],
@@ -49,6 +50,7 @@ objc_library(
         "macos_process.mm",
         "macos_process_list.mm",
         "macos_layout.mm",
+        "macos_vstack.mm",
     ],
     hdrs = [
         "macos_button.h",
@@ -62,6 +64,7 @@ objc_library(
         "macos_process.h",
         "macos_process_list.h",
         "macos_layout.h",
+        "macos_vstack.h",
     ],
     copts = [
         "-std=c++20",

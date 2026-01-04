@@ -165,6 +165,22 @@ bool Button::isValid() const {
     return pImpl->valid;
 }
 
+void* Button::getNativeViewHandle() const {
+    if (!pImpl->valid) {
+        return nullptr;
+    }
+    
+#ifdef __APPLE__
+    void* buttonHandle = pImpl->macosButton.getHandle();
+    if (!buttonHandle) {
+        return nullptr;
+    }
+    return obsidian_macos_button_get_view(buttonHandle);
+#else
+    return nullptr;
+#endif
+}
+
 Button::Button(Button&& other) noexcept = default;
 Button& Button::operator=(Button&& other) noexcept = default;
 

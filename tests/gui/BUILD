@@ -42,3 +42,21 @@ cc_test(
         "@googletest//:gtest_main",
     ],
 )
+
+# macOS VStack GUI tests
+# These tests require NSApplication and a GUI environment
+cc_test(
+    name = "macos_vstack_test",
+    size = "medium",  # GUI tests - medium is sufficient for current test duration
+    srcs = ["macos_vstack_test.cpp"],
+    copts = ["-std=c++20"],
+    tags = [
+        "manual",  # Don't run automatically in CI
+        "requires-gui",  # Mark as requiring GUI - will be skipped in headless CI
+    ],
+    deps = [
+        "//src:obsidian",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)

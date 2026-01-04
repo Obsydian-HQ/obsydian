@@ -74,3 +74,17 @@ cc_test(
         "@googletest//:gtest_main",
     ],
 )
+
+# VStack API integration test
+cc_test(
+    name = "vstack_test",
+    size = "small",
+    srcs = ["vstack_test.cpp"],
+    copts = ["-std=c++20"],
+    deps = [
+        "//src:obsidian",
+        "//packages/apple:apple_ffi",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)

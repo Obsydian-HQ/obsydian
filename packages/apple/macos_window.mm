@@ -6,7 +6,10 @@
 
 #import "macos_window.h"
 #import <AppKit/AppKit.h>
+#import <Foundation/Foundation.h>
+#import <QuartzCore/QuartzCore.h>
 #import <memory>
+#import <float.h>
 
 // Internal window wrapper class
 @interface ObsidianWindowWrapper : NSObject {
@@ -47,6 +50,19 @@
             NSString* title = [NSString stringWithUTF8String:params.title];
             [_window setTitle:title];
         }
+        
+        // Set minimum and maximum content size to prevent window from shrinking
+        // This ensures the window maintains its specified size
+        NSSize minSize = NSMakeSize(params.width, params.height);
+        NSSize maxSize = NSMakeSize(FLT_MAX, FLT_MAX);
+        [_window setContentMinSize:minSize];
+        [_window setContentMaxSize:maxSize];
+        
+        // Set background color for window content view to visualize padding
+        NSView* contentView = [_window contentView];
+        [contentView setWantsLayer:YES];
+        NSColor* windowColor = [NSColor colorWithCalibratedRed:0.2 green:0.2 blue:0.25 alpha:1.0];
+        [contentView.layer setBackgroundColor:[windowColor CGColor]];
         
         // Center the window on screen
         [_window center];
@@ -130,6 +146,22 @@ void* obsidian_macos_window_get_content_view(ObsidianWindowHandle handle) {
         }
     }
     return nullptr;
+}
+
+void obsidian_macos_window_update_constraints(ObsidianWindowHandle handle) {
+    if (!handle) return;
+    
+    @autoreleasepool {
+        ObsidianWindowWrapper* wrapper = (__bridge ObsidianWindowWrapper*)handle;
+        if (wrapper && wrapper.window) {
+            // CRITICAL: In macOS 15+ (Sequoia), layout is computed more lazily
+            // We must explicitly update constraints to prevent window from shrinking
+            // based on contentView's fittingSize
+            // updateConstraintsIfNeeded is a method on NSWindow, not NSView
+            [wrapper.window updateConstraintsIfNeeded];
+            [wrapper.window.contentView layoutSubtreeIfNeeded];
+        }
+    }
 }
 
 } // extern "C"
