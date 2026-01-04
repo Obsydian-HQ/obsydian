@@ -1,8 +1,8 @@
 /**
  * Layout Showcase example application
  * 
- * Demonstrates VStack layout component with:
- * - Vertical stacking of buttons
+ * Demonstrates VStack and HStack layout components with:
+ * - Vertical and horizontal stacking of buttons
  * - Spacing configuration
  * - Alignment options
  * - Padding support
@@ -29,7 +29,7 @@ int main(int /* argc */, char* /* argv */[]) {
     std::cout << "Creating window...\n";
     Window window;
     
-    if (!window.create(800, 600, "Layout Showcase - VStack Demo")) {
+    if (!window.create(800, 600, "Layout Showcase - VStack & HStack Demo")) {
         std::cerr << "Failed to create window\n";
         app.shutdown();
         return 1;
@@ -37,50 +37,90 @@ int main(int /* argc */, char* /* argv */[]) {
     
     std::cout << "Window created successfully\n";
     
-    // Create a VStack
+    // Create a VStack for vertical layout (positioned at top)
     VStack vstack;
     vstack.setSpacing(10.0);
-    vstack.setAlignment(layout::Alignment::Center);
+    vstack.setAlignment(layout::Alignment::TopLeading);
     vstack.setPadding(Padding::all(20.0));
     
-    // Create buttons to add to the stack
-    Button button1;
-    button1.create("Button 1", 0, 0, 100, 30);
-    button1.setOnClick([]() {
-        std::cout << "Button 1 clicked!\n";
+    // Create buttons for VStack
+    Button vbutton1;
+    vbutton1.create("VButton 1", 0, 0, 100, 30);
+    vbutton1.setOnClick([]() {
+        std::cout << "VButton 1 clicked!\n";
     });
     
-    Button button2;
-    button2.create("Button 2", 0, 0, 100, 30);
-    button2.setOnClick([]() {
-        std::cout << "Button 2 clicked!\n";
+    Button vbutton2;
+    vbutton2.create("VButton 2", 0, 0, 100, 30);
+    vbutton2.setOnClick([]() {
+        std::cout << "VButton 2 clicked!\n";
     });
     
-    Button button3;
-    button3.create("Button 3", 0, 0, 100, 30);
-    button3.setOnClick([]() {
-        std::cout << "Button 3 clicked!\n";
-    });
-    
-    Button button4;
-    button4.create("Button 4", 0, 0, 100, 30);
-    button4.setOnClick([]() {
-        std::cout << "Button 4 clicked!\n";
+    Button vbutton3;
+    vbutton3.create("VButton 3", 0, 0, 100, 30);
+    vbutton3.setOnClick([]() {
+        std::cout << "VButton 3 clicked!\n";
     });
     
     // Add buttons to VStack
-    vstack.addChild(button1);
-    vstack.addChild(button2);
-    vstack.addChild(button3);
-    vstack.addChild(button4);
+    vstack.addChild(vbutton1);
+    vstack.addChild(vbutton2);
+    vstack.addChild(vbutton3);
     
-    // Add VStack to window
+    // Add VStack to window (positioned at top)
     vstack.addToWindow(window);
     
+    // Create an HStack for horizontal layout (positioned at bottom)
+    HStack hstack;
+    hstack.setSpacing(15.0);
+    hstack.setAlignment(layout::Alignment::BottomLeading);
+    hstack.setPadding(Padding::symmetric(10.0, 20.0));
+    
+    // Create buttons for HStack
+    Button hbutton1;
+    hbutton1.create("HButton 1", 0, 0, 80, 30);
+    hbutton1.setOnClick([]() {
+        std::cout << "HButton 1 clicked!\n";
+    });
+    
+    Button hbutton2;
+    hbutton2.create("HButton 2", 0, 0, 80, 30);
+    hbutton2.setOnClick([]() {
+        std::cout << "HButton 2 clicked!\n";
+    });
+    
+    Button hbutton3;
+    hbutton3.create("HButton 3", 0, 0, 80, 30);
+    hbutton3.setOnClick([]() {
+        std::cout << "HButton 3 clicked!\n";
+    });
+    
+    Button hbutton4;
+    hbutton4.create("HButton 4", 0, 0, 80, 30);
+    hbutton4.setOnClick([]() {
+        std::cout << "HButton 4 clicked!\n";
+    });
+    
+    // Add buttons to HStack
+    hstack.addChild(hbutton1);
+    hstack.addChild(hbutton2);
+    hstack.addChild(hbutton3);
+    hstack.addChild(hbutton4);
+    
+    // Add HStack to window
+    hstack.addToWindow(window);
+    
     window.show();
-    std::cout << "Window displayed with VStack layout\n";
-    std::cout << "Buttons should be arranged vertically with 10pt spacing\n";
-    std::cout << "VStack should have 20pt padding on all sides\n";
+    std::cout << "Window displayed with VStack and HStack layouts\n";
+    std::cout << "VStack (top): Buttons arranged vertically with 10pt spacing, 20pt padding, TopLeading alignment\n";
+    std::cout << "HStack (bottom): Buttons arranged horizontally with 15pt spacing, 10pt vertical/20pt horizontal padding, BottomLeading alignment\n";
+    std::cout << "\nManual Verification Checklist:\n";
+    std::cout << "  ✓ VStack: 3 buttons stacked vertically at top-left\n";
+    std::cout << "  ✓ HStack: 4 buttons arranged horizontally at bottom-left\n";
+    std::cout << "  ✓ HStack spacing: 15pt between buttons\n";
+    std::cout << "  ✓ HStack padding: 10pt top/bottom, 20pt left/right\n";
+    std::cout << "  ✓ HStack vertical alignment: buttons aligned at bottom\n";
+    std::cout << "  ✓ Window resize: layouts update correctly\n";
     
     // Set up application callbacks
     AppCallbacks callbacks;
