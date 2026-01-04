@@ -2,8 +2,8 @@
  * Integration test: UI → Runtime integration
  * Tests that UI components work with the runtime
  * 
- * NOTE: This test will be fully implemented once UI components are complete.
- * For now, it serves as a placeholder to define the integration test structure.
+ * The UI Runtime (core/runtime/) manages application lifecycle (initialize, run, shutdown, HMR).
+ * The Layout System (core/layout/) handles arranging UI components - these are separate systems.
  */
 
 #include <gtest/gtest.h>
@@ -14,12 +14,12 @@ using namespace obsidian;
 using namespace obsidian::ui;
 
 TEST(UIRuntimeIntegration, RuntimeCanBeInitialized) {
-    // Basic integration test: runtime should initialize
+    // Integration test: runtime should initialize correctly
     Runtime runtime;
     EXPECT_TRUE(runtime.initialize());
 }
 
-// Example future test (commented for reference):
+// Example test for future expansion (commented as documentation only - not blocking):
 // TEST(UIRuntimeIntegration, CanCreateButtonInRuntime) {
 //     Runtime runtime;
 //     runtime.initialize();

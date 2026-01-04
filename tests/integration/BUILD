@@ -23,7 +23,7 @@ cc_test(
 # UI to Runtime integration test
 cc_test(
     name = "ui_runtime_test",
-    size = "medium",
+    size = "small",
     srcs = ["ui_runtime_test.cpp"],
     copts = ["-std=c++20"],
     deps = [
