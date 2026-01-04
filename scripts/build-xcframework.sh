@@ -46,6 +46,12 @@ for file in core/ffi/*.cpp; do
     [ -f "$file" ] && SOURCES+=("$file")
 done
 
+for file in core/layout/*.cpp; do
+    # Exclude test files
+    [[ "$file" == *"_test.cpp" ]] && continue
+    [ -f "$file" ] && SOURCES+=("$file")
+done
+
 # Objective-C++ source files
 for file in packages/apple/*.mm; do
     [ -f "$file" ] && SOURCES+=("$file")
@@ -61,7 +67,7 @@ for file in include/obsidian/*.h; do
     [ -f "$file" ] && HEADERS+=("$file")
 done
 
-for file in core/runtime/*.h core/ffi/*.h; do
+for file in core/runtime/*.h core/ffi/*.h core/layout/*.h; do
     [ -f "$file" ] && HEADERS+=("$file")
 done
 
@@ -103,6 +109,7 @@ for src in "${SOURCES[@]}"; do
         -I"$REPO_ROOT/include" \
         -I"$REPO_ROOT/core/runtime" \
         -I"$REPO_ROOT/core/ffi" \
+        -I"$REPO_ROOT/core/layout" \
         -I"$REPO_ROOT/packages/apple" \
         -I"$REPO_ROOT" \
         $OBJC_FLAGS \
@@ -133,7 +140,7 @@ if [ ${#OBJECT_FILES[@]} -gt 0 ]; then
     
     # Copy headers to Versions/A/Headers
     for header in "${HEADERS[@]}"; do
-        rel_path=$(echo "$header" | sed "s|^include/||" | sed "s|^core/||" | sed "s|^packages/apple/||")
+        rel_path=$(echo "$header" | sed "s|^include/||" | sed "s|^packages/apple/||")
         mkdir -p "$FRAMEWORK_DIR/Versions/A/Headers/$(dirname "$rel_path")"
         cp "$REPO_ROOT/$header" "$FRAMEWORK_DIR/Versions/A/Headers/$rel_path"
     done
@@ -222,6 +229,7 @@ for src in "${SOURCES[@]}"; do
         -I"$REPO_ROOT/include" \
         -I"$REPO_ROOT/core/runtime" \
         -I"$REPO_ROOT/core/ffi" \
+        -I"$REPO_ROOT/core/layout" \
         -I"$REPO_ROOT/packages/apple" \
         -I"$REPO_ROOT" \
         $OBJC_FLAGS \
@@ -253,7 +261,7 @@ if [ ${#OBJECT_FILES[@]} -gt 0 ]; then
     
     # Copy headers (same as macOS)
     for header in "${HEADERS[@]}"; do
-        rel_path=$(echo "$header" | sed "s|^include/||" | sed "s|^core/||" | sed "s|^packages/apple/||")
+        rel_path=$(echo "$header" | sed "s|^include/||" | sed "s|^packages/apple/||")
         mkdir -p "$IOS_ARM64_DIR/${FRAMEWORK_NAME}.framework/Headers/$(dirname "$rel_path")"
         cp "$REPO_ROOT/$header" "$IOS_ARM64_DIR/${FRAMEWORK_NAME}.framework/Headers/$rel_path"
     done
@@ -296,6 +304,7 @@ for src in "${SOURCES[@]}"; do
         -I"$REPO_ROOT/include" \
         -I"$REPO_ROOT/core/runtime" \
         -I"$REPO_ROOT/core/ffi" \
+        -I"$REPO_ROOT/core/layout" \
         -I"$REPO_ROOT/packages/apple" \
         -I"$REPO_ROOT" \
         $OBJC_FLAGS \
@@ -327,7 +336,7 @@ if [ ${#OBJECT_FILES[@]} -gt 0 ]; then
     
     # Copy headers
     for header in "${HEADERS[@]}"; do
-        rel_path=$(echo "$header" | sed "s|^include/||" | sed "s|^core/||" | sed "s|^packages/apple/||")
+        rel_path=$(echo "$header" | sed "s|^include/||" | sed "s|^packages/apple/||")
         mkdir -p "$IOS_SIM_ARM64_DIR/${FRAMEWORK_NAME}.framework/Headers/$(dirname "$rel_path")"
         cp "$REPO_ROOT/$header" "$IOS_SIM_ARM64_DIR/${FRAMEWORK_NAME}.framework/Headers/$rel_path"
     done
@@ -361,7 +370,14 @@ fi
 
 if [ ${#XCFRAMEWORK_ARGS[@]} -eq 0 ]; then
     echo "❌ No frameworks built. Cannot create XCFramework."
+    echo "⚠️  Note: iOS builds may fail if iOS support is not yet implemented."
+    echo "    This is expected. At minimum, macOS framework should be built."
     exit 1
+fi
+
+echo ""
+if [ ${#XCFRAMEWORK_ARGS[@]} -eq 1 ]; then
+    echo "⚠️  Only macOS framework built (iOS support not yet implemented)."
 fi
 
 XCFRAMEWORK_PATH="$OUTPUT_DIR/${FRAMEWORK_NAME}.xcframework"
