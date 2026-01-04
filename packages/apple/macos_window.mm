@@ -51,9 +51,10 @@
             [_window setTitle:title];
         }
         
-        // Set minimum and maximum content size to prevent window from shrinking
-        // This ensures the window maintains its specified size
-        NSSize minSize = NSMakeSize(params.width, params.height);
+        // Set minimum and maximum content size for window resizing
+        // Minimum size allows testing resize behavior while keeping content visible
+        // 300x300 is a reasonable minimum for most UI content
+        NSSize minSize = NSMakeSize(300, 300);
         NSSize maxSize = NSMakeSize(FLT_MAX, FLT_MAX);
         [_window setContentMinSize:minSize];
         [_window setContentMaxSize:maxSize];

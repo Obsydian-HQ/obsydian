@@ -30,6 +30,7 @@ cc_library(
         "macos_vstack.h",
         "macos_hstack.h",
         "macos_zstack.h",
+        "macos_spacer.h",
     ],
     aspect_hints = [":apple_c_headers_interop"],
     copts = ["-std=c++20"],
@@ -55,6 +56,7 @@ objc_library(
         "macos_vstack.mm",
         "macos_hstack.mm",
         "macos_zstack.mm",
+        "macos_spacer.mm",
     ],
     hdrs = [
         "macos_button.h",
@@ -71,6 +73,7 @@ objc_library(
         "macos_vstack.h",
         "macos_hstack.h",
         "macos_zstack.h",
+        "macos_spacer.h",
     ],
     copts = [
         "-std=c++20",

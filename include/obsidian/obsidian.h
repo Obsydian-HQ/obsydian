@@ -38,6 +38,7 @@
 #include "obsidian/vstack.h"
 #include "obsidian/hstack.h"
 #include "obsidian/zstack.h"
+#include "obsidian/spacer.h"
 
 /**
  * @namespace obsidian

@@ -8,6 +8,7 @@
 #include "obsidian/vstack.h"
 #include "obsidian/window.h"
 #include "obsidian/button.h"
+#include "obsidian/spacer.h"
 #include <iostream>
 
 // Include internal headers (not exposed to users)
@@ -242,6 +243,40 @@ void VStack::addChild(Button& button) {
 #endif
 }
 
+void VStack::addChild(Spacer& spacer) {
+    if (!pImpl || !spacer.isValid()) {
+        return;
+    }
+    
+#ifdef __APPLE__
+    // Initialize VStack if not already created
+    if (!pImpl->valid) {
+        ObsidianVStackParams params;
+        pImpl->vstackHandle = obsidian_macos_create_vstack(params);
+        if (!pImpl->vstackHandle) {
+            return;
+        }
+        pImpl->valid = true;
+    }
+    
+    // Get spacer's native view handle
+    void* spacerView = spacer.getNativeViewHandle();
+    if (!spacerView) {
+        return;
+    }
+    
+    // Add child view to container
+    obsidian_macos_vstack_add_child_view(pImpl->vstackHandle, spacerView);
+    pImpl->childViewHandles.push_back(spacerView);
+    
+    // Update layout ONLY if container is already in window hierarchy
+    // Otherwise, layout will be updated when addToWindow is called
+    if (pImpl->parentView) {
+        updateLayout();
+    }
+#endif
+}
+
 void VStack::removeChild(Button& button) {
     if (!pImpl || !pImpl->valid || !button.isValid()) {
         return;
@@ -257,6 +292,29 @@ void VStack::removeChild(Button& button) {
     auto it = std::find(pImpl->childViewHandles.begin(), pImpl->childViewHandles.end(), buttonView);
     if (it != pImpl->childViewHandles.end()) {
         obsidian_macos_vstack_remove_child_view(pImpl->vstackHandle, buttonView);
+        pImpl->childViewHandles.erase(it);
+        
+        // Update layout
+        updateLayout();
+    }
+#endif
+}
+
+void VStack::removeChild(Spacer& spacer) {
+    if (!pImpl || !pImpl->valid || !spacer.isValid()) {
+        return;
+    }
+    
+#ifdef __APPLE__
+    void* spacerView = spacer.getNativeViewHandle();
+    if (!spacerView) {
+        return;
+    }
+    
+    // Find and remove from child handles
+    auto it = std::find(pImpl->childViewHandles.begin(), pImpl->childViewHandles.end(), spacerView);
+    if (it != pImpl->childViewHandles.end()) {
+        obsidian_macos_vstack_remove_child_view(pImpl->vstackHandle, spacerView);
         pImpl->childViewHandles.erase(it);
         
         // Update layout
@@ -439,8 +497,24 @@ void VStack::addToWindow(Window& window) {
             pImpl->containerBottomConstraint.activate();
         }
         
-        // Container's width and height come from intrinsic content size
-        // No need to pin trailing/bottom - the container sizes to its content + padding
+        // For layout showcase: Pin bottom edge to fill height so spacer can expand/contract
+        // When using TopLeading alignment, also pin bottom to window bottom
+        if (align == layout::Alignment::TopLeading) {
+            ObsidianLayoutConstraintParams bottomParams;
+            bottomParams.firstView = containerView;
+            bottomParams.firstAttribute = ObsidianLayoutAttributeBottom;
+            bottomParams.relation = ObsidianLayoutRelationEqual;
+            bottomParams.secondView = contentView;
+            bottomParams.secondAttribute = ObsidianLayoutAttributeBottom;
+            bottomParams.multiplier = 1.0;
+            bottomParams.constant = 0.0;
+            bottomParams.priority = 1000.0;
+            pImpl->containerBottomConstraint.create(bottomParams);
+            pImpl->containerBottomConstraint.activate();
+        }
+        
+        // Container's width comes from intrinsic content size
+        // Height is now constrained by top+bottom when using TopLeading
     }
     
     // CRITICAL: Update window constraints to prevent shrinking in macOS 15+ (Sequoia)

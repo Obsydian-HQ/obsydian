@@ -57,14 +57,19 @@ int main(int /* argc */, char* /* argv */[]) {
         std::cout << "VButton 2 clicked!\n";
     });
     
+    // Add a spacer between buttons (flexible space)
+    Spacer vspacer1;
+    vspacer1.create(0.0, 20.0, 0.0, 0.0);  // min height 20pt
+    
     Button vbutton3;
     vbutton3.create("VButton 3", 0, 0, 100, 30);
     vbutton3.setOnClick([]() {
         std::cout << "VButton 3 clicked!\n";
     });
     
-    // Add buttons to VStack
+    // Add buttons and spacer to VStack
     vstack.addChild(vbutton1);
+    vstack.addChild(vspacer1);  // Spacer will expand to fill available space
     vstack.addChild(vbutton2);
     vstack.addChild(vbutton3);
     
@@ -102,9 +107,14 @@ int main(int /* argc */, char* /* argv */[]) {
         std::cout << "HButton 4 clicked!\n";
     });
     
-    // Add buttons to HStack
+    // Add a spacer between buttons (flexible space)
+    Spacer hspacer1;
+    hspacer1.create(50.0, 0.0, 0.0, 0.0);  // min width 50pt
+    
+    // Add buttons and spacer to HStack
     hstack.addChild(hbutton1);
     hstack.addChild(hbutton2);
+    hstack.addChild(hspacer1);  // Spacer will expand to fill available space
     hstack.addChild(hbutton3);
     hstack.addChild(hbutton4);
     
@@ -151,17 +161,21 @@ int main(int /* argc */, char* /* argv */[]) {
     window.show();
     std::cout << "Window displayed with VStack and HStack layouts\n";
     std::cout << "VStack (top): Buttons arranged vertically with 10pt spacing, 20pt padding, TopLeading alignment\n";
+    std::cout << "  - Includes a Spacer between buttons 1 and 2 (expands to fill space)\n";
     std::cout << "HStack (bottom): Buttons arranged horizontally with 15pt spacing, 10pt vertical/20pt horizontal padding, BottomLeading alignment\n";
+    std::cout << "  - Includes a Spacer between buttons 2 and 3 (expands to fill space)\n";
     std::cout << "\nTo test ZStack: Comment out VStack/HStack addToWindow calls and uncomment ZStack code\n";
     std::cout << "ZStack: Overlays buttons at center alignment, last button on top\n";
     std::cout << "\nManual Verification Checklist:\n";
     std::cout << "  ✓ VStack: 3 buttons stacked vertically at top-left\n";
+    std::cout << "  ✓ VStack Spacer: Flexible space between buttons 1 and 2\n";
     std::cout << "  ✓ HStack: 4 buttons arranged horizontally at bottom-left\n";
+    std::cout << "  ✓ HStack Spacer: Flexible space between buttons 2 and 3\n";
     std::cout << "  ✓ HStack spacing: 15pt between buttons\n";
     std::cout << "  ✓ HStack padding: 10pt top/bottom, 20pt left/right\n";
     std::cout << "  ✓ HStack vertical alignment: buttons aligned at bottom\n";
     std::cout << "  ✓ ZStack: Buttons overlaid at center, last button on top (when enabled)\n";
-    std::cout << "  ✓ Window resize: layouts update correctly\n";
+    std::cout << "  ✓ Window resize: layouts update correctly, spacers expand/contract\n";
     
     // Set up application callbacks
     AppCallbacks callbacks;

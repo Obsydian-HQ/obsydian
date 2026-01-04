@@ -199,10 +199,10 @@
     // The custom container view will automatically invalidate its intrinsic content size
     [_containerView addSubview:childView];
     
-    // Force layout update to ensure constraints are applied immediately
-    // This prevents views from appearing at incorrect positions (like bottom-left)
+    // Mark container as needing layout update
+    // Constraints will be set up by updateLayout() from the C++ side
+    // Do NOT call layoutSubtreeIfNeeded here - it causes crashes when constraints haven't been set up yet
     [_containerView setNeedsLayout:YES];
-    [_containerView layoutSubtreeIfNeeded];
 }
 
 - (void)removeChildView:(void*)childViewHandle {

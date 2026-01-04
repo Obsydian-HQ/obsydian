@@ -88,3 +88,17 @@ cc_test(
         "@googletest//:gtest_main",
     ],
 )
+
+# Spacer API integration test
+cc_test(
+    name = "spacer_test",
+    size = "small",
+    srcs = ["spacer_test.cpp"],
+    copts = ["-std=c++20"],
+    deps = [
+        "//src:obsidian",
+        "//packages/apple:apple_ffi",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)

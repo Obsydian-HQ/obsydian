@@ -18,6 +18,7 @@ namespace obsidian {
 class Button;
 class TextField;
 class TextView;
+class Spacer;
 
 /**
  * Padding structure for layout containers
@@ -112,9 +113,19 @@ public:
     void addChild(Button& button);
     
     /**
+     * Add a spacer as a child
+     */
+    void addChild(Spacer& spacer);
+    
+    /**
      * Remove a button child
      */
     void removeChild(Button& button);
+    
+    /**
+     * Remove a spacer child
+     */
+    void removeChild(Spacer& spacer);
     
     /**
      * Clear all children
