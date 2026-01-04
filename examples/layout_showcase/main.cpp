@@ -1,8 +1,9 @@
 /**
  * Layout Showcase example application
  * 
- * Demonstrates VStack and HStack layout components with:
+ * Demonstrates VStack, HStack, and ZStack layout components with:
  * - Vertical and horizontal stacking of buttons
+ * - Overlay stacking (ZStack)
  * - Spacing configuration
  * - Alignment options
  * - Padding support
@@ -29,7 +30,7 @@ int main(int /* argc */, char* /* argv */[]) {
     std::cout << "Creating window...\n";
     Window window;
     
-    if (!window.create(800, 600, "Layout Showcase - VStack & HStack Demo")) {
+    if (!window.create(800, 600, "Layout Showcase - VStack, HStack & ZStack Demo")) {
         std::cerr << "Failed to create window\n";
         app.shutdown();
         return 1;
@@ -110,16 +111,56 @@ int main(int /* argc */, char* /* argv */[]) {
     // Add HStack to window
     hstack.addToWindow(window);
     
+    // ZStack demonstration
+    // Note: ZStack fills the parent view, so it will overlay VStack and HStack
+    // To see ZStack separately, comment out VStack and HStack addToWindow calls above
+    // and uncomment the ZStack code below
+    
+    /*
+    ZStack zstack;
+    zstack.setAlignment(layout::Alignment::Center);
+    
+    // Create overlapping buttons for ZStack
+    Button zbutton1;
+    zbutton1.create("ZButton 1 (Bottom)", 0, 0, 150, 50);
+    zbutton1.setOnClick([]() {
+        std::cout << "ZButton 1 clicked!\n";
+    });
+    
+    Button zbutton2;
+    zbutton2.create("ZButton 2 (Middle)", 0, 0, 120, 40);
+    zbutton2.setOnClick([]() {
+        std::cout << "ZButton 2 clicked!\n";
+    });
+    
+    Button zbutton3;
+    zbutton3.create("ZButton 3 (Top)", 0, 0, 100, 30);
+    zbutton3.setOnClick([]() {
+        std::cout << "ZButton 3 clicked!\n";
+    });
+    
+    // Add buttons to ZStack (last one will be on top)
+    zstack.addChild(zbutton1);
+    zstack.addChild(zbutton2);
+    zstack.addChild(zbutton3);
+    
+    // Add ZStack to window (fills the window)
+    zstack.addToWindow(window);
+    */
+    
     window.show();
     std::cout << "Window displayed with VStack and HStack layouts\n";
     std::cout << "VStack (top): Buttons arranged vertically with 10pt spacing, 20pt padding, TopLeading alignment\n";
     std::cout << "HStack (bottom): Buttons arranged horizontally with 15pt spacing, 10pt vertical/20pt horizontal padding, BottomLeading alignment\n";
+    std::cout << "\nTo test ZStack: Comment out VStack/HStack addToWindow calls and uncomment ZStack code\n";
+    std::cout << "ZStack: Overlays buttons at center alignment, last button on top\n";
     std::cout << "\nManual Verification Checklist:\n";
     std::cout << "  ✓ VStack: 3 buttons stacked vertically at top-left\n";
     std::cout << "  ✓ HStack: 4 buttons arranged horizontally at bottom-left\n";
     std::cout << "  ✓ HStack spacing: 15pt between buttons\n";
     std::cout << "  ✓ HStack padding: 10pt top/bottom, 20pt left/right\n";
     std::cout << "  ✓ HStack vertical alignment: buttons aligned at bottom\n";
+    std::cout << "  ✓ ZStack: Buttons overlaid at center, last button on top (when enabled)\n";
     std::cout << "  ✓ Window resize: layouts update correctly\n";
     
     // Set up application callbacks

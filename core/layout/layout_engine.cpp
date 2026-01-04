@@ -258,70 +258,40 @@ std::vector<LayoutEngine::ConstraintSpec> LayoutEngine::generateZStackConstraint
         return constraints;
     }
     
+    // Determine horizontal and vertical alignment attributes from combined alignment
+    ConstraintAttribute hAttr = alignmentToHorizontalAttribute(alignment);
+    ConstraintAttribute vAttr = alignmentToVerticalAttribute(alignment);
+    
     // For ZStack, overlay all children at the same position
-    // Alignment determines the positioning
+    // All children get the same constraints to align at the same point
     for (void* childView : childViews) {
         if (!childView) continue;
         
-        // Determine horizontal and vertical alignment from combined alignment
-        ConstraintAttribute hAttr = alignmentToHorizontalAttribute(alignment);
-        ConstraintAttribute vAttr = alignmentToVerticalAttribute(alignment);
+        // Create horizontal alignment constraint
+        ConstraintSpec hSpec;
+        hSpec.params.firstView = childView;
+        hSpec.params.firstAttribute = hAttr;
+        hSpec.params.relation = ConstraintRelation::Equal;
+        hSpec.params.secondView = parentView;
+        hSpec.params.secondAttribute = hAttr;
+        hSpec.params.multiplier = 1.0;
+        hSpec.params.constant = 0.0;
+        hSpec.params.priority = 1000.0;
+        hSpec.shouldActivate = true;
+        constraints.push_back(hSpec);
         
-        // Create horizontal constraint
-        if (hAttr != ConstraintAttribute::Leading) {
-            ConstraintSpec hSpec;
-            hSpec.params.firstView = childView;
-            hSpec.params.firstAttribute = hAttr;
-            hSpec.params.relation = ConstraintRelation::Equal;
-            hSpec.params.secondView = parentView;
-            hSpec.params.secondAttribute = hAttr;
-            hSpec.params.multiplier = 1.0;
-            hSpec.params.constant = 0.0;
-            hSpec.params.priority = 1000.0;
-            hSpec.shouldActivate = true;
-            constraints.push_back(hSpec);
-        } else {
-            // Leading: pin to leading edge
-            ConstraintSpec leadingSpec;
-            leadingSpec.params.firstView = childView;
-            leadingSpec.params.firstAttribute = ConstraintAttribute::Leading;
-            leadingSpec.params.relation = ConstraintRelation::Equal;
-            leadingSpec.params.secondView = parentView;
-            leadingSpec.params.secondAttribute = ConstraintAttribute::Leading;
-            leadingSpec.params.multiplier = 1.0;
-            leadingSpec.params.constant = 0.0;
-            leadingSpec.params.priority = 1000.0;
-            leadingSpec.shouldActivate = true;
-            constraints.push_back(leadingSpec);
-        }
-        
-        // Create vertical constraint
-        if (vAttr != ConstraintAttribute::Top) {
-            ConstraintSpec vSpec;
-            vSpec.params.firstView = childView;
-            vSpec.params.firstAttribute = vAttr;
-            vSpec.params.relation = ConstraintRelation::Equal;
-            vSpec.params.secondView = parentView;
-            vSpec.params.secondAttribute = vAttr;
-            vSpec.params.multiplier = 1.0;
-            vSpec.params.constant = 0.0;
-            vSpec.params.priority = 1000.0;
-            vSpec.shouldActivate = true;
-            constraints.push_back(vSpec);
-        } else {
-            // Top: pin to top edge
-            ConstraintSpec topSpec;
-            topSpec.params.firstView = childView;
-            topSpec.params.firstAttribute = ConstraintAttribute::Top;
-            topSpec.params.relation = ConstraintRelation::Equal;
-            topSpec.params.secondView = parentView;
-            topSpec.params.secondAttribute = ConstraintAttribute::Top;
-            topSpec.params.multiplier = 1.0;
-            topSpec.params.constant = 0.0;
-            topSpec.params.priority = 1000.0;
-            topSpec.shouldActivate = true;
-            constraints.push_back(topSpec);
-        }
+        // Create vertical alignment constraint
+        ConstraintSpec vSpec;
+        vSpec.params.firstView = childView;
+        vSpec.params.firstAttribute = vAttr;
+        vSpec.params.relation = ConstraintRelation::Equal;
+        vSpec.params.secondView = parentView;
+        vSpec.params.secondAttribute = vAttr;
+        vSpec.params.multiplier = 1.0;
+        vSpec.params.constant = 0.0;
+        vSpec.params.priority = 1000.0;
+        vSpec.shouldActivate = true;
+        constraints.push_back(vSpec);
     }
     
     return constraints;
