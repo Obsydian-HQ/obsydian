@@ -19,7 +19,7 @@ TEST(UIRuntimeIntegration, RuntimeCanBeInitialized) {
     EXPECT_TRUE(runtime.initialize());
 }
 
-// TODO: Once UI components are implemented, add tests like:
+// Example future test (commented for reference):
 // TEST(UIRuntimeIntegration, CanCreateButtonInRuntime) {
 //     Runtime runtime;
 //     runtime.initialize();

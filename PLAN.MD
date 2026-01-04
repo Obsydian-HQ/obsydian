@@ -2,7 +2,6 @@
 
 ## Additional UI Components
 
-- [ ] Layout system
 - [ ] Styling system (windows)
 
 ## Build and Package Manager
