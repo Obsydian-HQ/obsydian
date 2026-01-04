@@ -1,7 +1,5 @@
 # Obsidian Development Status Remaining Tasks
 
-
-
 ## Additional UI Components
 
 - [ ] Layout system
@@ -15,16 +13,6 @@
 
 - [ ] iOS FFI bindings
 - [ ] Android JNI bindings
-- [ ] Windows Win32 bindings
-- [ ] Linux system bindings
-
-## Platform-Specific Examples
-
-- [ ] macOS-specific features example
-- [ ] iOS-specific features example
-- [ ] Android-specific features example
-- [ ] Windows-specific features example
-- [ ] Linux-specific features example
 
 ## CI/CD Enhancements
 
