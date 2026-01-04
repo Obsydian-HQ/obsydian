@@ -17,7 +17,6 @@
 ## CI/CD Enhancements
 
 - ❌ Code coverage reporting (removed - not supported on macOS/Clang with Bazel)
-- [ ] Nightly builds for all platforms
 
 ## Testing Enhancements
 

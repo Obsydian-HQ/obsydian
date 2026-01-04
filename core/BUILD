@@ -61,6 +61,9 @@ cc_library(
     ],
 )
 
+# Layout engine (delegated to core/layout/BUILD)
+# This target is defined in core/layout/BUILD
+
 # Compiler (for Obsidian language features)
 cc_library(
     name = "compiler",

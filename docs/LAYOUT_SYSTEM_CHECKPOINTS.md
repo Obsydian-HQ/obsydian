@@ -65,20 +65,21 @@ core/BUILD (add layout targets)
 ### Implementation Tasks
 1. Create `core/layout/constraint.h/cpp` - Constraint data structure
 2. Create `core/layout/alignment.h` - Alignment enum and utilities
-3. Create `packages/apple/macos_layout.h` - C interface for NSLayoutConstraint
-4. Create `packages/apple/macos_layout.mm` - Objective-C++ implementation
-5. Create `packages/apple/macos_layout_ffi.h/cpp` - C++ wrapper
-6. Update BUILD files to include new targets
-7. Write unit tests for constraint creation and validation
+3. Create `core/layout/layout_engine.h/cpp` - Layout algorithm and constraint generation
+4. Create `packages/apple/macos_layout.h` - C interface for NSLayoutConstraint
+5. Create `packages/apple/macos_layout.mm` - Objective-C++ implementation
+6. Create `packages/apple/macos_layout_ffi.h/cpp` - C++ wrapper
+7. Update BUILD files to include new targets
+8. Write unit tests for constraint creation and validation
 
 ### Success Criteria
-- [ ] Constraint can be created with all parameters
-- [ ] Constraint can be activated/deactivated
-- [ ] Constraint lifecycle is properly managed (no leaks)
-- [ ] All unit tests pass
-- [ ] All builds succeed
-- [ ] CI passes
-- [ ] No memory leaks detected
+- [x] Constraint can be created with all parameters
+- [x] Constraint can be activated/deactivated
+- [x] Constraint lifecycle is properly managed (no leaks)
+- [x] All unit tests pass
+- [x] All builds succeed
+- [x] CI passes
+- [x] No memory leaks detected (verified with AddressSanitizer - all tests pass)
 
 ### Testing Requirements
 - Unit tests for constraint creation
@@ -90,10 +91,10 @@ core/BUILD (add layout targets)
 - None required (no GUI yet)
 
 ### Ready for Next Checkpoint When
-- All tests green
-- CI green
-- Code review ready
-- No TODOs or FIXMEs
+- [x] All tests green
+- [x] CI green
+- [x] Code review ready
+- [x] No TODOs or FIXMEs
 
 ---
 

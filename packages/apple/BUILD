@@ -26,6 +26,7 @@ cc_library(
         "macos_list.h",
         "macos_process.h",
         "macos_process_list.h",
+        "macos_layout.h",
     ],
     aspect_hints = [":apple_c_headers_interop"],
     copts = ["-std=c++20"],
@@ -47,6 +48,7 @@ objc_library(
         "macos_list.mm",
         "macos_process.mm",
         "macos_process_list.mm",
+        "macos_layout.mm",
     ],
     hdrs = [
         "macos_button.h",
@@ -59,6 +61,7 @@ objc_library(
         "macos_list.h",
         "macos_process.h",
         "macos_process_list.h",
+        "macos_layout.h",
     ],
     copts = [
         "-std=c++20",
@@ -95,6 +98,27 @@ cc_library(
         ":apple_objc_bridge",
         # Note: Does NOT depend on //core:ffi_base to avoid circular dependency
         # ffi_base depends on apple_ffi, not the other way around
+    ],
+)
+
+# Layout FFI wrapper (C++ interface for layout constraints)
+cc_library(
+    name = "apple_layout_ffi",
+    srcs = ["macos_layout_ffi.cpp"],
+    hdrs = ["macos_layout_ffi.h"],
+    copts = ["-std=c++20"],
+    includes = ["."],
+    linkopts = select({
+        "@platforms//os:osx": [
+            "-framework",
+            "AppKit",
+            "-framework",
+            "Foundation",
+        ],
+        "//conditions:default": [],
+    }),
+    deps = [
+        ":apple_objc_bridge",
     ],
 )
 

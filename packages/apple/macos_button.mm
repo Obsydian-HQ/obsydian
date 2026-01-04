@@ -298,5 +298,17 @@ bool obsidian_macos_button_is_valid(ObsidianButtonHandle handle) {
     }
 }
 
+void* obsidian_macos_button_get_view(ObsidianButtonHandle handle) {
+    if (!handle) return nullptr;
+    
+    @autoreleasepool {
+        ObsidianButtonWrapper* wrapper = (__bridge ObsidianButtonWrapper*)handle;
+        if (wrapper && wrapper.button) {
+            return (__bridge void*)wrapper.button;
+        }
+    }
+    return nullptr;
+}
+
 } // extern "C"
 
