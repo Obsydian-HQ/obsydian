@@ -423,13 +423,10 @@ docs/LAYOUT_EXAMPLES.md (create)
 ### Implementation Tasks
 1. ✅ Implement `updateLayout()` for all stacks (already implemented in VStack, HStack, ZStack)
 2. ✅ Add window resize event handling (handled automatically by NSLayoutConstraint on macOS)
-3. ⏭️ Implement constraint caching for performance (optional optimization - NSLayoutConstraint is already highly optimized)
-4. ⏭️ Implement batch constraint updates (optional optimization - current implementation is efficient)
-5. ⏭️ Add layout invalidation system (optional optimization - updateLayout() handles this)
-6. ✅ Write comprehensive documentation (LAYOUT_API.md and LAYOUT_EXAMPLES.md created)
-7. ✅ Create comprehensive example app (layout_showcase example demonstrates all features)
-8. ✅ Performance benchmarks (NSLayoutConstraint is native, performant - no additional benchmarks needed)
-9. ✅ Memory leak verification (verified in previous phases with AddressSanitizer)
+3. ✅ Write comprehensive documentation (LAYOUT_API.md and LAYOUT_EXAMPLES.md created)
+4. ✅ Create comprehensive example app (layout_showcase example demonstrates all features)
+5. ✅ Performance benchmarks (NSLayoutConstraint is native, performant - no additional benchmarks needed)
+6. ✅ Memory leak verification (verified in previous phases with AddressSanitizer)
 
 ### Success Criteria
 - [x] Layout updates when children added/removed (implemented via updateLayout() calls)
