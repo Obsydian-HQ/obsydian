@@ -22,6 +22,7 @@
 #include "macos_viewcontroller.h"
 #include "macos_splitviewcontroller.h"
 #include "macos_splitviewitem.h"
+#include "macos_toolbar.h"
 #include <cstring>
 #include <cstdlib>
 #include <vector>
@@ -1130,6 +1131,27 @@ bool ViewController::isValid() const {
     return obsidian_macos_viewcontroller_is_valid(handle_);
 }
 
+void ViewController::configureForSidebar() {
+    if (handle_) {
+        obsidian_macos_viewcontroller_configure_for_sidebar(handle_);
+    }
+}
+
+void ViewController::setPreferredContentSize(double width, double height) {
+    if (handle_) {
+        obsidian_macos_viewcontroller_set_preferred_content_size(handle_, width, height);
+    }
+}
+
+void ViewController::getPreferredContentSize(double* outWidth, double* outHeight) const {
+    if (handle_) {
+        obsidian_macos_viewcontroller_get_preferred_content_size(handle_, outWidth, outHeight);
+    } else {
+        if (outWidth) *outWidth = 0;
+        if (outHeight) *outHeight = 0;
+    }
+}
+
 ViewController::ViewController(ViewController&& other) noexcept : handle_(other.handle_) {
     other.handle_ = nullptr;
 }
@@ -1191,6 +1213,12 @@ bool SplitViewController::isValid() const {
         return false;
     }
     return obsidian_macos_splitviewcontroller_is_valid(handle_);
+}
+
+void SplitViewController::setViewFrameSize(double width, double height) {
+    if (handle_) {
+        obsidian_macos_splitviewcontroller_set_view_frame_size(handle_, width, height);
+    }
 }
 
 SplitViewController::SplitViewController(SplitViewController&& other) noexcept : handle_(other.handle_) {
@@ -1303,6 +1331,45 @@ bool SplitViewItem::isValid() const {
     return obsidian_macos_splitviewitem_is_valid(handle_);
 }
 
+void SplitViewItem::setAllowsFullHeightLayout(bool allowed) {
+    if (handle_) {
+        obsidian_macos_splitviewitem_set_allows_full_height_layout(handle_, allowed);
+    }
+}
+
+bool SplitViewItem::getAllowsFullHeightLayout() const {
+    if (!handle_) {
+        return false;
+    }
+    return obsidian_macos_splitviewitem_get_allows_full_height_layout(handle_);
+}
+
+void SplitViewItem::setCanCollapse(bool canCollapse) {
+    if (handle_) {
+        obsidian_macos_splitviewitem_set_can_collapse(handle_, canCollapse);
+    }
+}
+
+bool SplitViewItem::getCanCollapse() const {
+    if (!handle_) {
+        return false;
+    }
+    return obsidian_macos_splitviewitem_get_can_collapse(handle_);
+}
+
+void SplitViewItem::setHoldingPriority(float priority) {
+    if (handle_) {
+        obsidian_macos_splitviewitem_set_holding_priority(handle_, priority);
+    }
+}
+
+float SplitViewItem::getHoldingPriority() const {
+    if (!handle_) {
+        return 0.0f;
+    }
+    return obsidian_macos_splitviewitem_get_holding_priority(handle_);
+}
+
 SplitViewItem::SplitViewItem(SplitViewItem&& other) noexcept : handle_(other.handle_) {
     other.handle_ = nullptr;
 }
@@ -1311,6 +1378,125 @@ SplitViewItem& SplitViewItem::operator=(SplitViewItem&& other) noexcept {
     if (this != &other) {
         if (handle_) {
             obsidian_macos_destroy_splitviewitem(handle_);
+        }
+        handle_ = other.handle_;
+        other.handle_ = nullptr;
+    }
+    return *this;
+}
+
+// Toolbar implementation
+Toolbar::Toolbar() : handle_(nullptr) {}
+
+Toolbar::~Toolbar() {
+    if (handle_) {
+        obsidian_macos_destroy_toolbar(handle_);
+        handle_ = nullptr;
+    }
+}
+
+bool Toolbar::create(const std::string& identifier) {
+    if (handle_) {
+        return false; // Already created
+    }
+    
+    ObsidianToolbarParams params;
+    params.identifier = identifier.c_str();
+    params.displayMode = ObsidianToolbarDisplayModeIconOnly;
+    params.allowsUserCustomization = false;
+    params.autosavesConfiguration = false;
+    
+    handle_ = obsidian_macos_create_toolbar(params);
+    return handle_ != nullptr;
+}
+
+void Toolbar::setDisplayMode(ToolbarDisplayMode mode) {
+    if (handle_) {
+        ObsidianToolbarDisplayMode cMode;
+        switch (mode) {
+            case ToolbarDisplayMode::IconAndLabel:
+                cMode = ObsidianToolbarDisplayModeIconAndLabel;
+                break;
+            case ToolbarDisplayMode::IconOnly:
+                cMode = ObsidianToolbarDisplayModeIconOnly;
+                break;
+            case ToolbarDisplayMode::LabelOnly:
+                cMode = ObsidianToolbarDisplayModeLabelOnly;
+                break;
+            case ToolbarDisplayMode::Default:
+            default:
+                cMode = ObsidianToolbarDisplayModeDefault;
+                break;
+        }
+        obsidian_macos_toolbar_set_display_mode(handle_, cMode);
+    }
+}
+
+ToolbarDisplayMode Toolbar::getDisplayMode() const {
+    if (!handle_) {
+        return ToolbarDisplayMode::Default;
+    }
+    ObsidianToolbarDisplayMode cMode = obsidian_macos_toolbar_get_display_mode(handle_);
+    switch (cMode) {
+        case ObsidianToolbarDisplayModeIconAndLabel:
+            return ToolbarDisplayMode::IconAndLabel;
+        case ObsidianToolbarDisplayModeIconOnly:
+            return ToolbarDisplayMode::IconOnly;
+        case ObsidianToolbarDisplayModeLabelOnly:
+            return ToolbarDisplayMode::LabelOnly;
+        case ObsidianToolbarDisplayModeDefault:
+        default:
+            return ToolbarDisplayMode::Default;
+    }
+}
+
+void Toolbar::insertSidebarToggleItem(int index) {
+    if (handle_) {
+        obsidian_macos_toolbar_insert_sidebar_toggle_item(handle_, index);
+    }
+}
+
+void Toolbar::insertSidebarTrackingSeparator(int index) {
+    if (handle_) {
+        obsidian_macos_toolbar_insert_sidebar_tracking_separator(handle_, index);
+    }
+}
+
+void Toolbar::insertFlexibleSpace(int index) {
+    if (handle_) {
+        obsidian_macos_toolbar_insert_flexible_space(handle_, index);
+    }
+}
+
+int Toolbar::getItemCount() const {
+    if (!handle_) {
+        return 0;
+    }
+    return obsidian_macos_toolbar_get_item_count(handle_);
+}
+
+bool Toolbar::isValid() const {
+    if (!handle_) {
+        return false;
+    }
+    return obsidian_macos_toolbar_is_valid(handle_);
+}
+
+void* Toolbar::getNSToolbarHandle() const {
+    if (!handle_) {
+        return nullptr;
+    }
+    return obsidian_macos_toolbar_get_nstoolbar(handle_);
+}
+
+Toolbar::Toolbar(Toolbar&& other) noexcept : handle_(other.handle_) {
+    other.handle_ = nullptr;
+}
+
+Toolbar& Toolbar::operator=(Toolbar&& other) noexcept {
+    if (this != &other) {
+        if (handle_) {
+            obsidian_macos_destroy_toolbar(handle_);
         }
         handle_ = other.handle_;
         other.handle_ = nullptr;

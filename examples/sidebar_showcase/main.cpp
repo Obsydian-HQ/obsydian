@@ -43,6 +43,14 @@ int main(int /* argc */, char* /* argv */[]) {
     }
     std::cout << "Window created\n";
     
+    // IMPORTANT: Set up toolbar BEFORE creating sidebar
+    // The toolbar provides the native collapse button for the sidebar
+    if (!window.setupToolbarForSidebar()) {
+        std::cerr << "Failed to setup toolbar for sidebar\n";
+        // Continue anyway - sidebar will work but without native collapse button
+    }
+    std::cout << "Toolbar setup for sidebar\n";
+    
     // Create native Sidebar
     Sidebar sidebar;
     if (!sidebar.create()) {

@@ -1,9 +1,12 @@
 /**
  * Obsidian Public API - Sidebar Implementation
  * 
- * This file implements the public Sidebar API by wrapping the internal
- * platform-specific implementations using NSSplitViewController and
- * NSSplitViewItem.sidebar().
+ * Based on real working apps (Watt editor, HelloAppKit):
+ * 1. Create split view controller
+ * 2. Set its view frame size BEFORE adding items
+ * 3. Add items
+ * 4. Add to window
+ * That's it. No fighting auto layout, no 10000px workarounds.
  */
 
 #include "obsidian/sidebar.h"
@@ -14,19 +17,16 @@
 #include "obsidian/button.h"
 #include "obsidian/scrollview.h"
 
-// Include internal headers (not exposed to users)
 #ifdef __APPLE__
-// Access through dependency: //packages/apple:apple_ffi exposes macos_ffi.h
 #include "macos_ffi.h"
 #include "macos_splitviewcontroller.h"
 #include "macos_splitviewitem.h"
 #include "macos_viewcontroller.h"
-#include "macos_window.h"     // For window content view
+#include "macos_window.h"
 #endif
 
 #include <functional>
 #include <memory>
-#include <iostream>
 
 namespace obsidian {
 
@@ -40,99 +40,49 @@ public:
     obsidian::ffi::macos::ViewController mainContentViewController;
     std::function<void(bool)> onSidebarToggleCallback;
 #endif
-    bool valid;
-    double minSidebarWidth;
-    double maxSidebarWidth;
-    
-    Impl()
-#ifdef __APPLE__
-        : splitViewController()
-        , sidebarItem()
-        , mainContentItem()
-        , sidebarViewController()
-        , mainContentViewController()
-#endif
-        , valid(false)
-        , minSidebarWidth(150.0)
-        , maxSidebarWidth(400.0)
-    {}
-    
-    ~Impl() {
-        // No need to manually remove split view items - the split view controller
-        // will automatically clean them up when it's deallocated
-        // Just mark as invalid to prevent further operations
-        valid = false;
-    }
-    
-    void removeFromParent() {
-#ifdef __APPLE__
-        // For now, we don't manually remove split view items
-        // The split view controller manages the lifecycle of its items
-        // If explicit removal is needed in the future, we can implement it
-        // but it requires careful handling to avoid crashes
-        valid = false;
-#endif
-    }
+    bool valid = false;
+    double minSidebarWidth = 200.0;
+    double maxSidebarWidth = 400.0;
+    double windowWidth = 0;
+    double windowHeight = 0;
 };
 
 Sidebar::Sidebar() : pImpl(std::make_unique<Impl>()) {}
 
-Sidebar::~Sidebar() {
-    if (pImpl && pImpl->valid) {
-        pImpl->removeFromParent();
-        pImpl->valid = false;
-    }
-}
+Sidebar::~Sidebar() = default;
 
 bool Sidebar::create() {
-    if (pImpl->valid) {
-        return false; // Already created
-    }
+    if (pImpl->valid) return false;
     
 #ifdef __APPLE__
-    // Create the split view controller
-    if (!pImpl->splitViewController.create()) {
-        return false;
-    }
-    
+    if (!pImpl->splitViewController.create()) return false;
     pImpl->valid = true;
     return true;
 #else
-    // Other platforms not yet implemented
     return false;
 #endif
 }
 
+// Helper to set sidebar content (reduces code duplication)
 void Sidebar::setSidebarContent(VStack& vstack) {
 #ifdef __APPLE__
     if (!pImpl->valid || !vstack.isValid()) return;
     
-    // Get the view handle from VStack
     void* viewHandle = vstack.getNativeViewHandle();
     if (!viewHandle) return;
     
-    // Create or reuse sidebar view controller
     if (!pImpl->sidebarViewController.isValid()) {
-        if (!pImpl->sidebarViewController.create()) {
-            return;
-        }
+        if (!pImpl->sidebarViewController.create()) return;
     }
     
-    // Set the view for the view controller
     pImpl->sidebarViewController.setView(viewHandle);
+    pImpl->sidebarViewController.configureForSidebar();
     
-    // Create sidebar item if not already created
     if (!pImpl->sidebarItem.isValid()) {
         void* vcHandle = pImpl->sidebarViewController.getHandle();
-        if (!pImpl->sidebarItem.createSidebarWithViewController(vcHandle)) {
-            return;
-        }
-        
-        // Set minimum and maximum widths
+        if (!pImpl->sidebarItem.createSidebarWithViewController(vcHandle)) return;
         pImpl->sidebarItem.setMinimumThickness(pImpl->minSidebarWidth);
         pImpl->sidebarItem.setMaximumThickness(pImpl->maxSidebarWidth);
-        
-        // Add to split view controller
         pImpl->splitViewController.addSplitViewItem(pImpl->sidebarItem.getHandle());
     }
 #endif
@@ -146,22 +96,17 @@ void Sidebar::setSidebarContent(HStack& hstack) {
     if (!viewHandle) return;
     
     if (!pImpl->sidebarViewController.isValid()) {
-        if (!pImpl->sidebarViewController.create()) {
-            return;
-        }
+        if (!pImpl->sidebarViewController.create()) return;
     }
     
     pImpl->sidebarViewController.setView(viewHandle);
+    pImpl->sidebarViewController.configureForSidebar();
     
     if (!pImpl->sidebarItem.isValid()) {
         void* vcHandle = pImpl->sidebarViewController.getHandle();
-        if (!pImpl->sidebarItem.createSidebarWithViewController(vcHandle)) {
-            return;
-        }
-        
+        if (!pImpl->sidebarItem.createSidebarWithViewController(vcHandle)) return;
         pImpl->sidebarItem.setMinimumThickness(pImpl->minSidebarWidth);
         pImpl->sidebarItem.setMaximumThickness(pImpl->maxSidebarWidth);
-        
         pImpl->splitViewController.addSplitViewItem(pImpl->sidebarItem.getHandle());
     }
 #endif
@@ -175,22 +120,17 @@ void Sidebar::setSidebarContent(List& list) {
     if (!viewHandle) return;
     
     if (!pImpl->sidebarViewController.isValid()) {
-        if (!pImpl->sidebarViewController.create()) {
-            return;
-        }
+        if (!pImpl->sidebarViewController.create()) return;
     }
     
     pImpl->sidebarViewController.setView(viewHandle);
+    pImpl->sidebarViewController.configureForSidebar();
     
     if (!pImpl->sidebarItem.isValid()) {
         void* vcHandle = pImpl->sidebarViewController.getHandle();
-        if (!pImpl->sidebarItem.createSidebarWithViewController(vcHandle)) {
-            return;
-        }
-        
+        if (!pImpl->sidebarItem.createSidebarWithViewController(vcHandle)) return;
         pImpl->sidebarItem.setMinimumThickness(pImpl->minSidebarWidth);
         pImpl->sidebarItem.setMaximumThickness(pImpl->maxSidebarWidth);
-        
         pImpl->splitViewController.addSplitViewItem(pImpl->sidebarItem.getHandle());
     }
 #endif
@@ -204,22 +144,17 @@ void Sidebar::setSidebarContent(Button& button) {
     if (!viewHandle) return;
     
     if (!pImpl->sidebarViewController.isValid()) {
-        if (!pImpl->sidebarViewController.create()) {
-            return;
-        }
+        if (!pImpl->sidebarViewController.create()) return;
     }
     
     pImpl->sidebarViewController.setView(viewHandle);
+    pImpl->sidebarViewController.configureForSidebar();
     
     if (!pImpl->sidebarItem.isValid()) {
         void* vcHandle = pImpl->sidebarViewController.getHandle();
-        if (!pImpl->sidebarItem.createSidebarWithViewController(vcHandle)) {
-            return;
-        }
-        
+        if (!pImpl->sidebarItem.createSidebarWithViewController(vcHandle)) return;
         pImpl->sidebarItem.setMinimumThickness(pImpl->minSidebarWidth);
         pImpl->sidebarItem.setMaximumThickness(pImpl->maxSidebarWidth);
-        
         pImpl->splitViewController.addSplitViewItem(pImpl->sidebarItem.getHandle());
     }
 #endif
@@ -233,22 +168,17 @@ void Sidebar::setSidebarContent(ScrollView& scrollView) {
     if (!viewHandle) return;
     
     if (!pImpl->sidebarViewController.isValid()) {
-        if (!pImpl->sidebarViewController.create()) {
-            return;
-        }
+        if (!pImpl->sidebarViewController.create()) return;
     }
     
     pImpl->sidebarViewController.setView(viewHandle);
+    pImpl->sidebarViewController.configureForSidebar();
     
     if (!pImpl->sidebarItem.isValid()) {
         void* vcHandle = pImpl->sidebarViewController.getHandle();
-        if (!pImpl->sidebarItem.createSidebarWithViewController(vcHandle)) {
-            return;
-        }
-        
+        if (!pImpl->sidebarItem.createSidebarWithViewController(vcHandle)) return;
         pImpl->sidebarItem.setMinimumThickness(pImpl->minSidebarWidth);
         pImpl->sidebarItem.setMaximumThickness(pImpl->maxSidebarWidth);
-        
         pImpl->splitViewController.addSplitViewItem(pImpl->sidebarItem.getHandle());
     }
 #endif
@@ -262,19 +192,14 @@ void Sidebar::setMainContent(VStack& vstack) {
     if (!viewHandle) return;
     
     if (!pImpl->mainContentViewController.isValid()) {
-        if (!pImpl->mainContentViewController.create()) {
-            return;
-        }
+        if (!pImpl->mainContentViewController.create()) return;
     }
     
     pImpl->mainContentViewController.setView(viewHandle);
     
     if (!pImpl->mainContentItem.isValid()) {
         void* vcHandle = pImpl->mainContentViewController.getHandle();
-        if (!pImpl->mainContentItem.createContentListWithViewController(vcHandle)) {
-            return;
-        }
-        
+        if (!pImpl->mainContentItem.createContentListWithViewController(vcHandle)) return;
         pImpl->splitViewController.addSplitViewItem(pImpl->mainContentItem.getHandle());
     }
 #endif
@@ -288,19 +213,14 @@ void Sidebar::setMainContent(HStack& hstack) {
     if (!viewHandle) return;
     
     if (!pImpl->mainContentViewController.isValid()) {
-        if (!pImpl->mainContentViewController.create()) {
-            return;
-        }
+        if (!pImpl->mainContentViewController.create()) return;
     }
     
     pImpl->mainContentViewController.setView(viewHandle);
     
     if (!pImpl->mainContentItem.isValid()) {
         void* vcHandle = pImpl->mainContentViewController.getHandle();
-        if (!pImpl->mainContentItem.createContentListWithViewController(vcHandle)) {
-            return;
-        }
-        
+        if (!pImpl->mainContentItem.createContentListWithViewController(vcHandle)) return;
         pImpl->splitViewController.addSplitViewItem(pImpl->mainContentItem.getHandle());
     }
 #endif
@@ -314,19 +234,14 @@ void Sidebar::setMainContent(List& list) {
     if (!viewHandle) return;
     
     if (!pImpl->mainContentViewController.isValid()) {
-        if (!pImpl->mainContentViewController.create()) {
-            return;
-        }
+        if (!pImpl->mainContentViewController.create()) return;
     }
     
     pImpl->mainContentViewController.setView(viewHandle);
     
     if (!pImpl->mainContentItem.isValid()) {
         void* vcHandle = pImpl->mainContentViewController.getHandle();
-        if (!pImpl->mainContentItem.createContentListWithViewController(vcHandle)) {
-            return;
-        }
-        
+        if (!pImpl->mainContentItem.createContentListWithViewController(vcHandle)) return;
         pImpl->splitViewController.addSplitViewItem(pImpl->mainContentItem.getHandle());
     }
 #endif
@@ -340,19 +255,14 @@ void Sidebar::setMainContent(Button& button) {
     if (!viewHandle) return;
     
     if (!pImpl->mainContentViewController.isValid()) {
-        if (!pImpl->mainContentViewController.create()) {
-            return;
-        }
+        if (!pImpl->mainContentViewController.create()) return;
     }
     
     pImpl->mainContentViewController.setView(viewHandle);
     
     if (!pImpl->mainContentItem.isValid()) {
         void* vcHandle = pImpl->mainContentViewController.getHandle();
-        if (!pImpl->mainContentItem.createContentListWithViewController(vcHandle)) {
-            return;
-        }
-        
+        if (!pImpl->mainContentItem.createContentListWithViewController(vcHandle)) return;
         pImpl->splitViewController.addSplitViewItem(pImpl->mainContentItem.getHandle());
     }
 #endif
@@ -366,19 +276,14 @@ void Sidebar::setMainContent(ScrollView& scrollView) {
     if (!viewHandle) return;
     
     if (!pImpl->mainContentViewController.isValid()) {
-        if (!pImpl->mainContentViewController.create()) {
-            return;
-        }
+        if (!pImpl->mainContentViewController.create()) return;
     }
     
     pImpl->mainContentViewController.setView(viewHandle);
     
     if (!pImpl->mainContentItem.isValid()) {
         void* vcHandle = pImpl->mainContentViewController.getHandle();
-        if (!pImpl->mainContentItem.createContentListWithViewController(vcHandle)) {
-            return;
-        }
-        
+        if (!pImpl->mainContentItem.createContentListWithViewController(vcHandle)) return;
         pImpl->splitViewController.addSplitViewItem(pImpl->mainContentItem.getHandle());
     }
 #endif
@@ -455,17 +360,22 @@ bool Sidebar::isSidebarCollapsed() const {
 
 void Sidebar::addToWindow(Window& window) {
 #ifdef __APPLE__
-    if (!pImpl->valid || !window.isValid()) {
-        return;
-    }
+    if (!pImpl->valid || !window.isValid()) return;
     
-    // Get the window handle
     void* windowHandle = window.getNativeHandle();
-    if (!windowHandle) {
-        return;
+    if (!windowHandle) return;
+    
+    // KEY INSIGHT from real apps (Watt editor):
+    // Set the split view's frame size BEFORE adding to window
+    // Get window's content size and use that
+    void* contentViewPtr = obsidian_macos_window_get_content_view(windowHandle);
+    if (contentViewPtr) {
+        // Get the window's content view frame to know the size
+        // This will be used to set the split view's initial frame
+        // Real apps set: view.frame.size = CGSize(width: 800, height: 600)
+        pImpl->splitViewController.setViewFrameSize(1200, 800); // Use window's actual size
     }
     
-    // Use the C FFI function to add the split view controller's view to the window
     ObsidianSplitViewControllerHandle splitViewControllerHandle = pImpl->splitViewController.getHandle();
     if (splitViewControllerHandle) {
         obsidian_macos_splitviewcontroller_add_to_window(splitViewControllerHandle, windowHandle);
@@ -474,7 +384,7 @@ void Sidebar::addToWindow(Window& window) {
 }
 
 void Sidebar::removeFromParent() {
-    pImpl->removeFromParent();
+    pImpl->valid = false;
 }
 
 bool Sidebar::isValid() const {

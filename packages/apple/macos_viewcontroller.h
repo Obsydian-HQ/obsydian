@@ -66,6 +66,39 @@ void* obsidian_macos_viewcontroller_get_viewcontroller(ObsidianViewControllerHan
 bool obsidian_macos_viewcontroller_is_valid(ObsidianViewControllerHandle handle);
 
 /**
+ * Configure the view controller for use as a sidebar with proper visual effect background.
+ * This wraps the view in an NSVisualEffectView with the sidebar material to get
+ * the native macOS sidebar appearance (translucent, vibrancy effect).
+ * 
+ * IMPORTANT: Call this AFTER setting the view via obsidian_macos_viewcontroller_set_view.
+ * 
+ * @param handle View controller handle
+ */
+void obsidian_macos_viewcontroller_configure_for_sidebar(ObsidianViewControllerHandle handle);
+
+/**
+ * Set the preferred content size for the view controller.
+ * This is CRITICAL for NSSplitViewController to properly size its child items.
+ * NSSplitView uses the preferredContentSize of child view controllers to determine
+ * the layout of split view items.
+ * 
+ * @param handle View controller handle
+ * @param width Preferred width (use 0 for unconstrained)
+ * @param height Preferred height (use 0 for unconstrained)
+ */
+void obsidian_macos_viewcontroller_set_preferred_content_size(ObsidianViewControllerHandle handle,
+                                                               double width, double height);
+
+/**
+ * Get the preferred content size for the view controller.
+ * @param handle View controller handle
+ * @param outWidth Pointer to receive width (can be NULL)
+ * @param outHeight Pointer to receive height (can be NULL)
+ */
+void obsidian_macos_viewcontroller_get_preferred_content_size(ObsidianViewControllerHandle handle,
+                                                               double* outWidth, double* outHeight);
+
+/**
  * Destroy the view controller
  */
 void obsidian_macos_destroy_viewcontroller(ObsidianViewControllerHandle handle);

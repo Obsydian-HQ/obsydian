@@ -14,6 +14,17 @@
 namespace obsidian {
 
 /**
+ * Toolbar style enumeration (macOS 11+)
+ */
+enum class ToolbarStyle {
+    Automatic = 0,      // Automatic based on window
+    Expanded = 1,       // Expanded toolbar
+    Preference = 2,     // Preference window style
+    Unified = 3,        // Unified with title bar
+    UnifiedCompact = 4  // Compact unified with title bar (best for sidebars)
+};
+
+/**
  * Window class - Platform-agnostic window management
  * 
  * This class provides a clean, high-level interface for creating and managing
@@ -54,6 +65,33 @@ public:
      * Check if window is valid and open
      */
     bool isValid() const;
+    
+    /**
+     * Set up a toolbar with the native sidebar toggle button.
+     * This is REQUIRED for the native macOS sidebar collapse button.
+     * On macOS: Creates an NSToolbar with NSToolbarToggleSidebarItemIdentifier
+     * @return true if toolbar was created successfully
+     */
+    bool setupToolbarForSidebar();
+    
+    /**
+     * Check if the window has a toolbar
+     * @return true if a toolbar is configured
+     */
+    bool hasToolbar() const;
+    
+    /**
+     * Set the window's toolbar style (macOS 11+)
+     * For proper sidebar integration, use UnifiedCompact or Unified.
+     * @param style The toolbar style to set
+     */
+    void setToolbarStyle(ToolbarStyle style);
+    
+    /**
+     * Get the window's toolbar style
+     * @return Current toolbar style
+     */
+    ToolbarStyle getToolbarStyle() const;
     
     /**
      * Get the native platform handle (for internal use)

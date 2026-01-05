@@ -75,6 +75,17 @@ void obsidian_macos_splitviewcontroller_add_to_window(ObsidianSplitViewControlle
 bool obsidian_macos_splitviewcontroller_is_valid(ObsidianSplitViewControllerHandle handle);
 
 /**
+ * Set the NSSplitView's frame size
+ * CRITICAL: This MUST be called BEFORE adding any split view items.
+ * Real macOS apps (like Watt editor) set the split view frame size before adding items.
+ * @param handle Split view controller handle
+ * @param width Desired width
+ * @param height Desired height
+ */
+void obsidian_macos_splitviewcontroller_set_view_frame_size(ObsidianSplitViewControllerHandle handle,
+                                                            double width, double height);
+
+/**
  * Destroy the split view controller
  */
 void obsidian_macos_destroy_splitviewcontroller(ObsidianSplitViewControllerHandle handle);

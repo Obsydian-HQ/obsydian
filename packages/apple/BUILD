@@ -35,6 +35,7 @@ cc_library(
         "macos_viewcontroller.h",
         "macos_splitviewcontroller.h",
         "macos_splitviewitem.h",
+        "macos_toolbar.h",
     ],
     aspect_hints = [":apple_c_headers_interop"],
     copts = ["-std=c++20"],
@@ -65,6 +66,7 @@ objc_library(
         "macos_viewcontroller.mm",
         "macos_splitviewcontroller.mm",
         "macos_splitviewitem.mm",
+        "macos_toolbar.mm",
     ],
     hdrs = [
         "macos_button.h",
@@ -86,6 +88,7 @@ objc_library(
         "macos_viewcontroller.h",
         "macos_splitviewcontroller.h",
         "macos_splitviewitem.h",
+        "macos_toolbar.h",
     ],
     copts = [
         "-std=c++20",

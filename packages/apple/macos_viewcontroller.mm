@@ -1,150 +1,176 @@
 /**
  * macOS ViewController FFI - Objective-C++ Implementation
- * 
- * Bridges C++ calls to Objective-C NSViewController APIs
  */
 
 #import "macos_viewcontroller.h"
 #import <AppKit/AppKit.h>
-#import <objc/runtime.h>
-#import <memory>
 
-// Internal view controller wrapper class
-@interface ObsidianViewControllerWrapper : NSObject {
-    NSViewController* _viewController;
-}
-
+@interface ObsidianViewControllerWrapper : NSObject
 @property (nonatomic, strong) NSViewController* viewController;
-
-- (instancetype)initWithParams:(ObsidianViewControllerParams)params;
-- (void)setView:(void*)viewHandle;
-- (void*)getView;
-- (bool)isValid;
-
+@property (nonatomic, strong) NSVisualEffectView* visualEffectView;
+@property (nonatomic, strong) NSView* contentView;
+@property (nonatomic, assign) BOOL configuredForSidebar;
 @end
 
 @implementation ObsidianViewControllerWrapper
 
-- (instancetype)initWithParams:(ObsidianViewControllerParams)params {
+- (instancetype)init {
     self = [super init];
     if (self) {
-        // Create NSViewController
         _viewController = [[NSViewController alloc] init];
-        
-        // Initially, the view controller has no view
-        // The view will be set via setView:
+        _configuredForSidebar = NO;
     }
     return self;
 }
 
 - (void)setView:(void*)viewHandle {
-    if (!_viewController) return;
+    if (!_viewController || !viewHandle) return;
     
-    if (viewHandle) {
-        // The viewHandle should be a direct NSView* handle
-        // (obtained via obsidian_macos_vstack_get_view or similar)
-        NSView* view = (__bridge NSView*)viewHandle;
-        if (view) {
-            // CRITICAL: Remove view from its current parent if it has one
-            // Views can only have one parent at a time in AppKit
-            if ([view superview]) {
-                [view removeFromSuperview];
-            }
-            
-            // Set the view controller's view
-            [_viewController setView:view];
-        }
+    NSView* view = (__bridge NSView*)viewHandle;
+    if ([view superview]) {
+        [view removeFromSuperview];
     }
-    // Note: We don't explicitly clear the view with setView:nil
-    // because NSViewController manages its own view lifecycle
-    // If viewHandle is null, we simply don't set a new view
+    [_viewController setView:view];
 }
 
 - (void*)getView {
-    if (!_viewController) return nullptr;
-    
-    NSView* view = [_viewController view];
-    if (!view) return nullptr;
-    
-    // Return the view as an opaque handle
-    // Note: This is a borrowed reference, caller should not release it
-    return (__bridge void*)view;
+    return _viewController ? (__bridge void*)[_viewController view] : nullptr;
 }
 
-- (bool)isValid {
-    return _viewController != nil;
+- (void)configureForSidebar {
+    if (!_viewController || _configuredForSidebar) return;
+    
+    NSView* currentView = [_viewController view];
+    if (!currentView) return;
+    
+    _contentView = currentView;
+    [self makeViewTransparentForSidebar:_contentView];
+    
+    // Create vibrancy view with sidebar material
+    _visualEffectView = [[NSVisualEffectView alloc] init];
+    [_visualEffectView setMaterial:NSVisualEffectMaterialSidebar];
+    [_visualEffectView setBlendingMode:NSVisualEffectBlendingModeBehindWindow];
+    [_visualEffectView setState:NSVisualEffectStateFollowsWindowActiveState];
+    
+    [_contentView removeFromSuperview];
+    [_visualEffectView addSubview:_contentView];
+    
+    // Use constraints to fill
+    [_contentView setTranslatesAutoresizingMaskIntoConstraints:NO];
+    [NSLayoutConstraint activateConstraints:@[
+        [_contentView.leadingAnchor constraintEqualToAnchor:_visualEffectView.leadingAnchor],
+        [_contentView.trailingAnchor constraintEqualToAnchor:_visualEffectView.trailingAnchor],
+        [_contentView.topAnchor constraintEqualToAnchor:_visualEffectView.topAnchor],
+        [_contentView.bottomAnchor constraintEqualToAnchor:_visualEffectView.bottomAnchor]
+    ]];
+    
+    [_viewController setView:_visualEffectView];
+    _configuredForSidebar = YES;
 }
 
-- (NSViewController*)viewController {
-    return _viewController;
+- (void)makeViewTransparentForSidebar:(NSView*)view {
+    if (!view) return;
+    
+    if ([view isKindOfClass:[NSScrollView class]]) {
+        NSScrollView* scrollView = (NSScrollView*)view;
+        [scrollView setDrawsBackground:NO];
+        [scrollView setBorderType:NSNoBorder];
+        [[scrollView contentView] setDrawsBackground:NO];
+        [self makeViewTransparentForSidebar:[scrollView documentView]];
+    }
+    
+    if ([view isKindOfClass:[NSTableView class]]) {
+        NSTableView* tableView = (NSTableView*)view;
+        [tableView setBackgroundColor:[NSColor clearColor]];
+        [tableView setUsesAlternatingRowBackgroundColors:NO];
+        [tableView setSelectionHighlightStyle:NSTableViewSelectionHighlightStyleSourceList];
+        [tableView setFocusRingType:NSFocusRingTypeNone];
+    }
+    
+    for (NSView* subview in [view subviews]) {
+        [self makeViewTransparentForSidebar:subview];
+    }
 }
 
 @end
 
-// C interface implementation
+// C interface
 extern "C" {
 
 ObsidianViewControllerHandle obsidian_macos_create_viewcontroller(ObsidianViewControllerParams params) {
     @autoreleasepool {
-        ObsidianViewControllerWrapper* wrapper = [[ObsidianViewControllerWrapper alloc] initWithParams:params];
-        if (wrapper && wrapper.viewController) {
-            // Retain the wrapper and return as opaque handle
-            return (__bridge_retained void*)wrapper;
-        }
-        return nullptr;
+        ObsidianViewControllerWrapper* wrapper = [[ObsidianViewControllerWrapper alloc] init];
+        return wrapper.viewController ? (__bridge_retained void*)wrapper : nullptr;
     }
 }
 
-void obsidian_macos_viewcontroller_set_view(ObsidianViewControllerHandle viewControllerHandle,
-                                            void* viewHandle) {
-    if (!viewControllerHandle) return;
-    
+void obsidian_macos_viewcontroller_set_view(ObsidianViewControllerHandle handle, void* viewHandle) {
+    if (!handle) return;
     @autoreleasepool {
-        ObsidianViewControllerWrapper* wrapper = (__bridge ObsidianViewControllerWrapper*)viewControllerHandle;
+        ObsidianViewControllerWrapper* wrapper = (__bridge ObsidianViewControllerWrapper*)handle;
         [wrapper setView:viewHandle];
     }
 }
 
-void* obsidian_macos_viewcontroller_get_view(ObsidianViewControllerHandle viewControllerHandle) {
-    if (!viewControllerHandle) return nullptr;
-    
+void* obsidian_macos_viewcontroller_get_view(ObsidianViewControllerHandle handle) {
+    if (!handle) return nullptr;
     @autoreleasepool {
-        ObsidianViewControllerWrapper* wrapper = (__bridge ObsidianViewControllerWrapper*)viewControllerHandle;
-        return [wrapper getView];
+        return [(__bridge ObsidianViewControllerWrapper*)handle getView];
     }
 }
 
-void* obsidian_macos_viewcontroller_get_viewcontroller(ObsidianViewControllerHandle viewControllerHandle) {
-    if (!viewControllerHandle) return nullptr;
-    
+void* obsidian_macos_viewcontroller_get_viewcontroller(ObsidianViewControllerHandle handle) {
+    if (!handle) return nullptr;
     @autoreleasepool {
-        ObsidianViewControllerWrapper* wrapper = (__bridge ObsidianViewControllerWrapper*)viewControllerHandle;
-        if (!wrapper || !wrapper.viewController) return nullptr;
-        
-        // Return the actual NSViewController* as an opaque handle
-        // This is a borrowed reference, caller should not release it
-        return (__bridge void*)wrapper.viewController;
+        ObsidianViewControllerWrapper* wrapper = (__bridge ObsidianViewControllerWrapper*)handle;
+        return wrapper.viewController ? (__bridge void*)wrapper.viewController : nullptr;
     }
 }
 
 bool obsidian_macos_viewcontroller_is_valid(ObsidianViewControllerHandle handle) {
     if (!handle) return false;
-    
+    @autoreleasepool {
+        return ((__bridge ObsidianViewControllerWrapper*)handle).viewController != nil;
+    }
+}
+
+void obsidian_macos_viewcontroller_configure_for_sidebar(ObsidianViewControllerHandle handle) {
+    if (!handle) return;
+    @autoreleasepool {
+        [(__bridge ObsidianViewControllerWrapper*)handle configureForSidebar];
+    }
+}
+
+void obsidian_macos_viewcontroller_set_preferred_content_size(ObsidianViewControllerHandle handle,
+                                                               double width, double height) {
+    if (!handle) return;
     @autoreleasepool {
         ObsidianViewControllerWrapper* wrapper = (__bridge ObsidianViewControllerWrapper*)handle;
-        return [wrapper isValid];
+        if (wrapper.viewController) {
+            [wrapper.viewController setPreferredContentSize:NSMakeSize(width, height)];
+        }
+    }
+}
+
+void obsidian_macos_viewcontroller_get_preferred_content_size(ObsidianViewControllerHandle handle,
+                                                               double* outWidth, double* outHeight) {
+    if (!handle || !outWidth || !outHeight) return;
+    @autoreleasepool {
+        ObsidianViewControllerWrapper* wrapper = (__bridge ObsidianViewControllerWrapper*)handle;
+        if (wrapper.viewController) {
+            NSSize size = [wrapper.viewController preferredContentSize];
+            *outWidth = size.width;
+            *outHeight = size.height;
+        } else {
+            *outWidth = *outHeight = 0;
+        }
     }
 }
 
 void obsidian_macos_destroy_viewcontroller(ObsidianViewControllerHandle handle) {
     if (!handle) return;
-    
     @autoreleasepool {
-        // Release the wrapper (ARC will handle cleanup)
-        ObsidianViewControllerWrapper* wrapper = (__bridge_transfer ObsidianViewControllerWrapper*)handle;
-        // Clear the view before releasing
-        [wrapper setView:nullptr];
-        wrapper = nil;
+        (void)(__bridge_transfer ObsidianViewControllerWrapper*)handle;
     }
 }
 

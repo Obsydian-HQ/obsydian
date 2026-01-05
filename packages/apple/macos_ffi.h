@@ -800,6 +800,33 @@ public:
     bool isValid() const;
     
     /**
+     * Configure the view controller for use as a sidebar.
+     * This wraps the current view in an NSVisualEffectView with the sidebar
+     * material to get the native macOS sidebar appearance (translucent, vibrancy).
+     * 
+     * IMPORTANT: Call this AFTER setting the view via setView().
+     */
+    void configureForSidebar();
+    
+    /**
+     * Set the preferred content size for the view controller.
+     * This is CRITICAL for NSSplitViewController to properly size its child items.
+     * NSSplitView uses the preferredContentSize of child view controllers to determine
+     * the layout of split view items.
+     * 
+     * @param width Preferred width (use 0 for unconstrained)
+     * @param height Preferred height (use 0 for unconstrained)
+     */
+    void setPreferredContentSize(double width, double height);
+    
+    /**
+     * Get the preferred content size for the view controller.
+     * @param outWidth Pointer to receive width (can be nullptr)
+     * @param outHeight Pointer to receive height (can be nullptr)
+     */
+    void getPreferredContentSize(double* outWidth, double* outHeight) const;
+    
+    /**
      * Get the internal view controller handle (for internal use)
      */
     void* getHandle() const { return handle_; }
@@ -852,6 +879,15 @@ public:
      * Check if split view controller is valid
      */
     bool isValid() const;
+    
+    /**
+     * Set the NSSplitView's frame size.
+     * CRITICAL: This MUST be called BEFORE adding any split view items.
+     * Real macOS apps (like Watt editor) set the split view frame size before adding items.
+     * @param width Desired width
+     * @param height Desired height
+     */
+    void setViewFrameSize(double width, double height);
     
     /**
      * Get the internal split view controller handle (for internal use)
@@ -929,6 +965,38 @@ public:
     bool getCollapsed() const;
     
     /**
+     * Set whether the split view item allows full-height layout (macOS 11+)
+     * When true, the sidebar extends into the title bar area.
+     */
+    void setAllowsFullHeightLayout(bool allowed);
+    
+    /**
+     * Get whether the split view item allows full-height layout
+     */
+    bool getAllowsFullHeightLayout() const;
+    
+    /**
+     * Set whether the split view item can collapse
+     */
+    void setCanCollapse(bool canCollapse);
+    
+    /**
+     * Get whether the split view item can collapse
+     */
+    bool getCanCollapse() const;
+    
+    /**
+     * Set the holding priority for the split view item
+     * Higher priority items resist being resized.
+     */
+    void setHoldingPriority(float priority);
+    
+    /**
+     * Get the holding priority for the split view item
+     */
+    float getHoldingPriority() const;
+    
+    /**
      * Check if split view item is valid
      */
     bool isValid() const;
@@ -948,6 +1016,108 @@ public:
 
 private:
     void* handle_;  // Opaque handle to native split view item
+};
+
+/**
+ * Toolbar display mode enumeration
+ */
+enum class ToolbarDisplayMode {
+    Default = 0,
+    IconAndLabel = 1,
+    IconOnly = 2,
+    LabelOnly = 3
+};
+
+/**
+ * Toolbar style enumeration (macOS 11+)
+ */
+enum class ToolbarStyle {
+    Automatic = 0,
+    Expanded = 1,
+    Preference = 2,
+    Unified = 3,
+    UnifiedCompact = 4
+};
+
+/**
+ * Toolbar handle (opaque pointer)
+ * Wraps NSToolbar for managing window toolbars
+ * 
+ * REQUIRED for native sidebar collapse button functionality.
+ * The collapse button is provided by NSToolbarToggleSidebarItemIdentifier.
+ */
+class Toolbar {
+public:
+    Toolbar();
+    ~Toolbar();
+    
+    /**
+     * Create a toolbar with the given identifier
+     * @param identifier Unique identifier for the toolbar
+     */
+    bool create(const std::string& identifier = "ObsidianMainToolbar");
+    
+    /**
+     * Set the toolbar's display mode
+     */
+    void setDisplayMode(ToolbarDisplayMode mode);
+    
+    /**
+     * Get the toolbar's display mode
+     */
+    ToolbarDisplayMode getDisplayMode() const;
+    
+    /**
+     * Insert the sidebar toggle button at the specified index
+     * This adds NSToolbarToggleSidebarItemIdentifier which provides
+     * the native collapse/expand button for sidebars.
+     * @param index Index where to insert the item
+     */
+    void insertSidebarToggleItem(int index = 0);
+    
+    /**
+     * Insert the sidebar tracking separator at the specified index (macOS 11+)
+     * This provides proper separator tracking when the sidebar is resized.
+     * @param index Index where to insert the separator
+     */
+    void insertSidebarTrackingSeparator(int index = 1);
+    
+    /**
+     * Insert a flexible space item at the specified index
+     * @param index Index where to insert the item
+     */
+    void insertFlexibleSpace(int index);
+    
+    /**
+     * Get the number of items in the toolbar
+     */
+    int getItemCount() const;
+    
+    /**
+     * Check if toolbar is valid
+     */
+    bool isValid() const;
+    
+    /**
+     * Get the internal toolbar handle (for internal use)
+     */
+    void* getHandle() const { return handle_; }
+    
+    /**
+     * Get the actual NSToolbar* handle (for internal use by Window)
+     */
+    void* getNSToolbarHandle() const;
+    
+    // Non-copyable
+    Toolbar(const Toolbar&) = delete;
+    Toolbar& operator=(const Toolbar&) = delete;
+    
+    // Movable
+    Toolbar(Toolbar&&) noexcept;
+    Toolbar& operator=(Toolbar&&) noexcept;
+
+private:
+    void* handle_;  // Opaque handle to native toolbar
 };
 
 /**
