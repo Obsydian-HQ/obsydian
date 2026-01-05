@@ -768,6 +768,189 @@ private:
 };
 
 /**
+ * ViewController handle (opaque pointer)
+ * Wraps NSViewController for managing view hierarchies
+ * Required for NSSplitViewController and NSSplitViewItem composition
+ */
+class ViewController {
+public:
+    ViewController();
+    ~ViewController();
+    
+    /**
+     * Create a ViewController
+     */
+    bool create();
+    
+    /**
+     * Set the view for the view controller
+     * @param viewHandle NSView handle (from VStack, HStack, List, etc.)
+     */
+    void setView(void* viewHandle);
+    
+    /**
+     * Get the view from the view controller
+     * @return NSView handle, or nullptr if not set
+     */
+    void* getView() const;
+    
+    /**
+     * Check if view controller is valid
+     */
+    bool isValid() const;
+    
+    /**
+     * Get the internal view controller handle (for internal use)
+     */
+    void* getHandle() const { return handle_; }
+    
+    // Non-copyable
+    ViewController(const ViewController&) = delete;
+    ViewController& operator=(const ViewController&) = delete;
+    
+    // Movable
+    ViewController(ViewController&&) noexcept;
+    ViewController& operator=(ViewController&&) noexcept;
+
+private:
+    void* handle_;  // Opaque handle to native view controller
+};
+
+/**
+ * SplitViewController handle (opaque pointer)
+ * Wraps NSSplitViewController for managing split view items
+ */
+class SplitViewController {
+public:
+    SplitViewController();
+    ~SplitViewController();
+    
+    /**
+     * Create a SplitViewController
+     */
+    bool create();
+    
+    /**
+     * Get the view from the split view controller
+     * @return NSView handle, or nullptr if not set
+     */
+    void* getView() const;
+    
+    /**
+     * Add a split view item to the split view controller
+     * @param splitViewItemHandle NSSplitViewItem handle
+     */
+    void addSplitViewItem(void* splitViewItemHandle);
+    
+    /**
+     * Remove a split view item from the split view controller
+     * @param splitViewItemHandle NSSplitViewItem handle to remove
+     */
+    void removeSplitViewItem(void* splitViewItemHandle);
+    
+    /**
+     * Check if split view controller is valid
+     */
+    bool isValid() const;
+    
+    /**
+     * Get the internal split view controller handle (for internal use)
+     */
+    void* getHandle() const { return handle_; }
+    
+    // Non-copyable
+    SplitViewController(const SplitViewController&) = delete;
+    SplitViewController& operator=(const SplitViewController&) = delete;
+    
+    // Movable
+    SplitViewController(SplitViewController&&) noexcept;
+    SplitViewController& operator=(SplitViewController&&) noexcept;
+
+private:
+    void* handle_;  // Opaque handle to native split view controller
+};
+
+/**
+ * SplitViewItem handle (opaque pointer)
+ * Wraps NSSplitViewItem for managing individual panes in a split view
+ */
+class SplitViewItem {
+public:
+    SplitViewItem();
+    ~SplitViewItem();
+    
+    /**
+     * Create a sidebar split view item with a view controller
+     * This provides native macOS sidebar behavior (material background, collapse button)
+     * @param viewControllerHandle NSViewController handle
+     */
+    bool createSidebarWithViewController(void* viewControllerHandle);
+    
+    /**
+     * Create a content list split view item with a view controller
+     * @param viewControllerHandle NSViewController handle
+     */
+    bool createContentListWithViewController(void* viewControllerHandle);
+    
+    /**
+     * Create an inspector split view item with a view controller
+     * @param viewControllerHandle NSViewController handle
+     */
+    bool createInspectorWithViewController(void* viewControllerHandle);
+    
+    /**
+     * Set minimum thickness for the split view item
+     */
+    void setMinimumThickness(double thickness);
+    
+    /**
+     * Get minimum thickness for the split view item
+     */
+    double getMinimumThickness() const;
+    
+    /**
+     * Set maximum thickness for the split view item
+     */
+    void setMaximumThickness(double thickness);
+    
+    /**
+     * Get maximum thickness for the split view item
+     */
+    double getMaximumThickness() const;
+    
+    /**
+     * Set whether the split view item is collapsed
+     */
+    void setCollapsed(bool collapsed);
+    
+    /**
+     * Get whether the split view item is collapsed
+     */
+    bool getCollapsed() const;
+    
+    /**
+     * Check if split view item is valid
+     */
+    bool isValid() const;
+    
+    /**
+     * Get the internal split view item handle (for internal use)
+     */
+    void* getHandle() const { return handle_; }
+    
+    // Non-copyable
+    SplitViewItem(const SplitViewItem&) = delete;
+    SplitViewItem& operator=(const SplitViewItem&) = delete;
+    
+    // Movable
+    SplitViewItem(SplitViewItem&&) noexcept;
+    SplitViewItem& operator=(SplitViewItem&&) noexcept;
+
+private:
+    void* handle_;  // Opaque handle to native split view item
+};
+
+/**
  * Process handle (opaque pointer)
  */
 class Process {

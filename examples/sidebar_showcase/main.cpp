@@ -1,13 +1,14 @@
 /**
- * SplitView Showcase Example Application
+ * Native Sidebar Showcase Example Application
  * 
- * This example demonstrates the SplitView layout with:
- * - Primary pane with VStack containing buttons
- * - List component in primary pane
- * - Collapse/expand functionality
- * - Secondary pane with multiple components
- * - Resizing behavior (drag divider to resize)
- * - Minimum/maximum primary pane width constraints
+ * This example demonstrates the native macOS Sidebar using NSSplitViewController
+ * and NSSplitViewItem.sidebar() with:
+ * - Native material background (vibrancy effect)
+ * - Native collapse/expand button
+ * - Full-height sidebar integration
+ * - Automatic window control integration
+ * - List component in sidebar
+ * - Main content area
  * 
  * This example uses the public Obsidian API - exactly how real users
  * (like Glass) will use Obsidian.
@@ -22,7 +23,7 @@
 using namespace obsidian;
 
 int main(int /* argc */, char* /* argv */[]) {
-    std::cout << "=== Obsidian SplitView Showcase ===\n\n";
+    std::cout << "=== Obsidian Native Sidebar Showcase ===\n\n";
     
     // Create and initialize the application
     App app;
@@ -35,120 +36,99 @@ int main(int /* argc */, char* /* argv */[]) {
     
     // Create a window using the public API
     Window window;
-    if (!window.create(1000, 700, "SplitView Showcase")) {
+    if (!window.create(1200, 800, "Native Sidebar Showcase")) {
         std::cerr << "Failed to create window\n";
         app.shutdown();
         return 1;
     }
     std::cout << "Window created\n";
     
-    // Create SplitView with primary pane on the leading (left) side
-    SplitView splitView;
-    if (!splitView.create(SplitPosition::Leading)) {
-        std::cerr << "Failed to create SplitView\n";
+    // Create native Sidebar
+    Sidebar sidebar;
+    if (!sidebar.create()) {
+        std::cerr << "Failed to create Sidebar\n";
         app.shutdown();
         return 1;
     }
-    std::cout << "SplitView created with leading primary pane\n";
+    std::cout << "Native Sidebar created\n";
     
-    // Configure primary pane width constraints
-    splitView.setMinimumPrimaryPaneWidth(150.0);  // Minimum width: 150pt
-    splitView.setMaximumPrimaryPaneWidth(400.0);  // Maximum width: 400pt
-    splitView.setPrimaryPaneWidth(250.0);         // Initial width: 250pt
-    std::cout << "Primary pane configured: min=150pt, max=400pt, initial=250pt\n";
+    // Configure sidebar width constraints
+    sidebar.setMinimumSidebarWidth(200.0);  // Minimum width: 200pt
+    sidebar.setMaximumSidebarWidth(400.0);  // Maximum width: 400pt
+    std::cout << "Sidebar configured: min=200pt, max=400pt\n";
     
-    // Create primary pane content using VStack with buttons
-    VStack primaryPaneVStack;
-    primaryPaneVStack.setSpacing(10.0);
-    primaryPaneVStack.setPadding(Padding::all(15.0));
-    primaryPaneVStack.setAlignment(layout::Alignment::TopLeading);
+    // Create sidebar content using List
+    List sidebarList;
+    sidebarList.create(0, 0, 250, 600);
     
-    // Create buttons for primary pane navigation
-    Button navButton1;
-    navButton1.create("Home", 0, 0, 200, 30);
-    navButton1.setOnClick([]() {
-        std::cout << "Home button clicked!\n";
+    // Add items to sidebar list
+    sidebarList.addItem("Home");
+    sidebarList.addItem("Projects");
+    sidebarList.addItem("Documents");
+    sidebarList.addItem("Settings");
+    sidebarList.addItem("Help");
+    std::cout << "Sidebar list created with 5 items\n";
+    
+    // Set sidebar content
+    sidebar.setSidebarContent(sidebarList);
+    std::cout << "Sidebar content set (List with 5 items)\n";
+    
+    // Create main content area using VStack
+    VStack mainContentVStack;
+    mainContentVStack.setSpacing(20.0);
+    mainContentVStack.setPadding(Padding::all(30.0));
+    mainContentVStack.setAlignment(layout::Alignment::TopLeading);
+    
+    // Create buttons for main content area
+    Button mainButton1;
+    mainButton1.create("Primary Action", 0, 0, 300, 40);
+    mainButton1.setOnClick([]() {
+        std::cout << "Primary Action clicked!\n";
     });
     
-    Button navButton2;
-    navButton2.create("Projects", 0, 0, 200, 30);
-    navButton2.setOnClick([]() {
-        std::cout << "Projects button clicked!\n";
+    Button mainButton2;
+    mainButton2.create("Secondary Action", 0, 0, 300, 40);
+    mainButton2.setOnClick([]() {
+        std::cout << "Secondary Action clicked!\n";
     });
     
-    Button navButton3;
-    navButton3.create("Settings", 0, 0, 200, 30);
-    navButton3.setOnClick([]() {
-        std::cout << "Settings button clicked!\n";
-    });
+    // Add buttons to main content VStack
+    mainContentVStack.addChild(mainButton1);
+    mainContentVStack.addChild(mainButton2);
     
-    // Add buttons to primary pane VStack
-    primaryPaneVStack.addChild(navButton1);
-    primaryPaneVStack.addChild(navButton2);
-    primaryPaneVStack.addChild(navButton3);
+    // Update main content VStack layout
+    mainContentVStack.updateLayout();
     
-    // Update VStack layout (required after adding children)
-    primaryPaneVStack.updateLayout();
+    // Set main content
+    sidebar.setMainContent(mainContentVStack);
+    std::cout << "Main content set (VStack with 2 buttons)\n";
     
-    // Set primary pane content to VStack
-    splitView.setPrimaryPaneContent(primaryPaneVStack);
-    std::cout << "Primary pane content set (VStack with 3 buttons)\n";
+    // Add Sidebar to window
+    sidebar.addToWindow(window);
+    std::cout << "Sidebar added to window\n";
     
-    // Create secondary pane area using VStack
-    VStack secondaryPaneVStack;
-    secondaryPaneVStack.setSpacing(15.0);
-    secondaryPaneVStack.setPadding(Padding::all(20.0));
-    secondaryPaneVStack.setAlignment(layout::Alignment::TopLeading);
-    
-    // Create buttons for secondary pane area
-    Button secondaryButton1;
-    secondaryButton1.create("Action 1", 0, 0, 200, 35);
-    secondaryButton1.setOnClick([]() {
-        std::cout << "Action 1 clicked!\n";
-    });
-    
-    Button secondaryButton2;
-    secondaryButton2.create("Action 2", 0, 0, 200, 35);
-    secondaryButton2.setOnClick([]() {
-        std::cout << "Action 2 clicked!\n";
-    });
-    
-    // Add buttons to secondary pane VStack
-    secondaryPaneVStack.addChild(secondaryButton1);
-    secondaryPaneVStack.addChild(secondaryButton2);
-    
-    // Update secondary pane VStack layout
-    secondaryPaneVStack.updateLayout();
-    
-    // Set secondary pane content to VStack
-    splitView.setSecondaryPaneContent(secondaryPaneVStack);
-    std::cout << "Secondary pane content set (VStack with 2 buttons)\n";
-    
-    // Add SplitView to window
-    splitView.addToWindow(window);
-    std::cout << "SplitView added to window\n";
-    
-    // Set up primary pane toggle callback
-    splitView.setOnPrimaryPaneToggle([](bool collapsed) {
+    // Set up sidebar toggle callback
+    sidebar.setOnSidebarToggle([](bool collapsed) {
         if (collapsed) {
-            std::cout << "Primary pane collapsed\n";
+            std::cout << "Sidebar collapsed (native button)\n";
         } else {
-            std::cout << "Primary pane expanded\n";
+            std::cout << "Sidebar expanded (native button)\n";
         }
     });
     
     // Show the window
     window.show();
-    std::cout << "\nWindow displayed with SplitView\n";
-    std::cout << "Primary pane features:\n";
-    std::cout << "  - VStack with 3 navigation buttons\n";
-    std::cout << "  - Initial width: 250pt\n";
-    std::cout << "  - Drag divider to resize (constrained to 150-400pt)\n";
-    std::cout << "  - Double-click divider to collapse/expand\n";
-    std::cout << "\nSecondary pane features:\n";
+    std::cout << "\nWindow displayed with Native Sidebar\n";
+    std::cout << "Native Sidebar features:\n";
+    std::cout << "  - Material background (native macOS vibrancy)\n";
+    std::cout << "  - Native collapse/expand button\n";
+    std::cout << "  - Full-height sidebar integration\n";
+    std::cout << "  - Automatic window control integration\n";
+    std::cout << "  - List component with 5 items\n";
+    std::cout << "\nMain content features:\n";
     std::cout << "  - VStack with 2 action buttons\n";
-    std::cout << "  - Resizes automatically when primary pane changes\n";
-    std::cout << "\nInteract with the buttons, resize the primary pane, and toggle collapse/expand.\n";
+    std::cout << "  - Resizes automatically when sidebar changes\n";
+    std::cout << "\nInteract with the sidebar list, use the native collapse button, and resize the sidebar.\n";
     std::cout << "Close the window to exit.\n\n";
     
     // Set up application callbacks
@@ -170,6 +150,6 @@ int main(int /* argc */, char* /* argv */[]) {
     window.close();
     app.shutdown();
     
-    std::cout << "\n=== SplitView Showcase exited ===\n";
+    std::cout << "\n=== Native Sidebar Showcase exited ===\n";
     return 0;
 }

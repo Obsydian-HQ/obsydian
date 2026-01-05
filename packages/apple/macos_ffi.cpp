@@ -19,6 +19,9 @@
 #include "macos_process_list.h"
 #include "macos_platform.h"
 #include "macos_splitview.h"
+#include "macos_viewcontroller.h"
+#include "macos_splitviewcontroller.h"
+#include "macos_splitviewitem.h"
 #include <cstring>
 #include <cstdlib>
 #include <vector>
@@ -1078,6 +1081,236 @@ SplitView& SplitView::operator=(SplitView&& other) noexcept {
     if (this != &other) {
         if (handle_) {
             obsidian_macos_destroy_splitview(handle_);
+        }
+        handle_ = other.handle_;
+        other.handle_ = nullptr;
+    }
+    return *this;
+}
+
+// ViewController implementation
+ViewController::ViewController() : handle_(nullptr) {}
+
+ViewController::~ViewController() {
+    if (handle_) {
+        obsidian_macos_destroy_viewcontroller(handle_);
+        handle_ = nullptr;
+    }
+}
+
+bool ViewController::create() {
+    if (handle_) {
+        return false; // Already created
+    }
+    
+    ObsidianViewControllerParams params;
+    params._reserved = 0;
+    
+    handle_ = obsidian_macos_create_viewcontroller(params);
+    return handle_ != nullptr;
+}
+
+void ViewController::setView(void* viewHandle) {
+    if (handle_) {
+        obsidian_macos_viewcontroller_set_view(handle_, viewHandle);
+    }
+}
+
+void* ViewController::getView() const {
+    if (!handle_) {
+        return nullptr;
+    }
+    return obsidian_macos_viewcontroller_get_view(handle_);
+}
+
+bool ViewController::isValid() const {
+    if (!handle_) {
+        return false;
+    }
+    return obsidian_macos_viewcontroller_is_valid(handle_);
+}
+
+ViewController::ViewController(ViewController&& other) noexcept : handle_(other.handle_) {
+    other.handle_ = nullptr;
+}
+
+ViewController& ViewController::operator=(ViewController&& other) noexcept {
+    if (this != &other) {
+        if (handle_) {
+            obsidian_macos_destroy_viewcontroller(handle_);
+        }
+        handle_ = other.handle_;
+        other.handle_ = nullptr;
+    }
+    return *this;
+}
+
+// SplitViewController implementation
+SplitViewController::SplitViewController() : handle_(nullptr) {}
+
+SplitViewController::~SplitViewController() {
+    if (handle_) {
+        obsidian_macos_destroy_splitviewcontroller(handle_);
+        handle_ = nullptr;
+    }
+}
+
+bool SplitViewController::create() {
+    if (handle_) {
+        return false; // Already created
+    }
+    
+    ObsidianSplitViewControllerParams params;
+    params._reserved = 0;
+    
+    handle_ = obsidian_macos_create_splitviewcontroller(params);
+    return handle_ != nullptr;
+}
+
+void* SplitViewController::getView() const {
+    if (!handle_) {
+        return nullptr;
+    }
+    return obsidian_macos_splitviewcontroller_get_view(handle_);
+}
+
+void SplitViewController::addSplitViewItem(void* splitViewItemHandle) {
+    if (handle_) {
+        obsidian_macos_splitviewcontroller_add_splitviewitem(handle_, splitViewItemHandle);
+    }
+}
+
+void SplitViewController::removeSplitViewItem(void* splitViewItemHandle) {
+    if (handle_) {
+        obsidian_macos_splitviewcontroller_remove_splitviewitem(handle_, splitViewItemHandle);
+    }
+}
+
+bool SplitViewController::isValid() const {
+    if (!handle_) {
+        return false;
+    }
+    return obsidian_macos_splitviewcontroller_is_valid(handle_);
+}
+
+SplitViewController::SplitViewController(SplitViewController&& other) noexcept : handle_(other.handle_) {
+    other.handle_ = nullptr;
+}
+
+SplitViewController& SplitViewController::operator=(SplitViewController&& other) noexcept {
+    if (this != &other) {
+        if (handle_) {
+            obsidian_macos_destroy_splitviewcontroller(handle_);
+        }
+        handle_ = other.handle_;
+        other.handle_ = nullptr;
+    }
+    return *this;
+}
+
+// SplitViewItem implementation
+SplitViewItem::SplitViewItem() : handle_(nullptr) {}
+
+SplitViewItem::~SplitViewItem() {
+    if (handle_) {
+        obsidian_macos_destroy_splitviewitem(handle_);
+        handle_ = nullptr;
+    }
+}
+
+bool SplitViewItem::createSidebarWithViewController(void* viewControllerHandle) {
+    if (handle_) {
+        return false; // Already created
+    }
+    
+    if (!viewControllerHandle) {
+        return false;
+    }
+    
+    handle_ = obsidian_macos_splitviewitem_sidebar_with_viewcontroller(viewControllerHandle);
+    return handle_ != nullptr;
+}
+
+bool SplitViewItem::createContentListWithViewController(void* viewControllerHandle) {
+    if (handle_) {
+        return false; // Already created
+    }
+    
+    if (!viewControllerHandle) {
+        return false;
+    }
+    
+    handle_ = obsidian_macos_splitviewitem_content_list_with_viewcontroller(viewControllerHandle);
+    return handle_ != nullptr;
+}
+
+bool SplitViewItem::createInspectorWithViewController(void* viewControllerHandle) {
+    if (handle_) {
+        return false; // Already created
+    }
+    
+    if (!viewControllerHandle) {
+        return false;
+    }
+    
+    handle_ = obsidian_macos_splitviewitem_inspector_with_viewcontroller(viewControllerHandle);
+    return handle_ != nullptr;
+}
+
+void SplitViewItem::setMinimumThickness(double thickness) {
+    if (handle_) {
+        obsidian_macos_splitviewitem_set_minimum_thickness(handle_, thickness);
+    }
+}
+
+double SplitViewItem::getMinimumThickness() const {
+    if (!handle_) {
+        return 0.0;
+    }
+    return obsidian_macos_splitviewitem_get_minimum_thickness(handle_);
+}
+
+void SplitViewItem::setMaximumThickness(double thickness) {
+    if (handle_) {
+        obsidian_macos_splitviewitem_set_maximum_thickness(handle_, thickness);
+    }
+}
+
+double SplitViewItem::getMaximumThickness() const {
+    if (!handle_) {
+        return 0.0;
+    }
+    return obsidian_macos_splitviewitem_get_maximum_thickness(handle_);
+}
+
+void SplitViewItem::setCollapsed(bool collapsed) {
+    if (handle_) {
+        obsidian_macos_splitviewitem_set_collapsed(handle_, collapsed);
+    }
+}
+
+bool SplitViewItem::getCollapsed() const {
+    if (!handle_) {
+        return false;
+    }
+    return obsidian_macos_splitviewitem_get_collapsed(handle_);
+}
+
+bool SplitViewItem::isValid() const {
+    if (!handle_) {
+        return false;
+    }
+    return obsidian_macos_splitviewitem_is_valid(handle_);
+}
+
+SplitViewItem::SplitViewItem(SplitViewItem&& other) noexcept : handle_(other.handle_) {
+    other.handle_ = nullptr;
+}
+
+SplitViewItem& SplitViewItem::operator=(SplitViewItem&& other) noexcept {
+    if (this != &other) {
+        if (handle_) {
+            obsidian_macos_destroy_splitviewitem(handle_);
         }
         handle_ = other.handle_;
         other.handle_ = nullptr;
