@@ -91,7 +91,9 @@ mkdir -p "$FRAMEWORK_DIR/Versions/A/Modules"
 # Compile all sources into object files
 OBJECT_FILES=()
 for src in "${SOURCES[@]}"; do
-    obj_file="$MACOS_ARM64_DIR/$(basename "$src" | sed 's/\.[^.]*$/.o/')"
+    # Create unique object file names by preserving directory structure
+    obj_name=$(echo "$src" | sed 's|/|_|g' | sed 's/\.[^.]*$/.o/')
+    obj_file="$MACOS_ARM64_DIR/$obj_name"
     # Determine compiler based on file extension
     if [[ "$src" == *.mm ]]; then
         COMPILER="clang++"
@@ -211,7 +213,8 @@ for src in "${SOURCES[@]}"; do
         continue
     fi
     
-    obj_file="$IOS_ARM64_DIR/$(basename "$src" | sed 's/\.[^.]*$/.o/')"
+    obj_name=$(echo "$src" | sed 's|/|_|g' | sed 's/\.[^.]*$/.o/')
+    obj_file="$IOS_ARM64_DIR/$obj_name"
     # Determine compiler based on file extension
     if [[ "$src" == *.mm ]]; then
         COMPILER="clang++"
@@ -286,7 +289,8 @@ for src in "${SOURCES[@]}"; do
         continue
     fi
     
-    obj_file="$IOS_SIM_ARM64_DIR/$(basename "$src" | sed 's/\.[^.]*$/.o/')"
+    obj_name=$(echo "$src" | sed 's|/|_|g' | sed 's/\.[^.]*$/.o/')
+    obj_file="$IOS_SIM_ARM64_DIR/$obj_name"
     # Determine compiler based on file extension
     if [[ "$src" == *.mm ]]; then
         COMPILER="clang++"
