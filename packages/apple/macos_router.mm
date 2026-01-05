@@ -50,11 +50,14 @@
     
     _currentPath = [NSString stringWithUTF8String:path];
     
-    // Clear old content before new content is rendered
-    // The route component function will add new content
-    if (_windowHandle) {
-        obsidian_macos_window_clear_content(_windowHandle);
-    }
+    // NOTE: We no longer clear window content here.
+    // The ScreenContainer now manages route content:
+    // - ScreenContainer stays attached to the window
+    // - Individual screens are shown/hidden via setActiveScreen()
+    // - Screen content is cleared via screen->clear() before rendering
+    // 
+    // This follows the react-native-screens pattern where the container
+    // persists and only manages child screen visibility.
 }
 
 @end

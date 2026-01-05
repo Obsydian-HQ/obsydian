@@ -89,23 +89,30 @@ bool RouteRenderer::renderRoute(const RouteNode* routeNode,
     
     // Get route path for screen lookup
     std::string routePath = buildPathFromNode(routeNode);
+    std::cerr << "[RouteRenderer] Rendering route: " << routePath << std::endl;
     
     // Get or create screen for this route
     obsidian::Screen* screen = nullptr;
     if (screenContainer) {
         screen = screenContainer->getOrCreateScreen(routePath);
+        std::cerr << "[RouteRenderer] Screen " << (screen ? "created/found" : "FAILED") << " for path: " << routePath << std::endl;
         if (screen) {
             // Clear previous content
             screen->clear();
+            std::cerr << "[RouteRenderer] Screen content cleared" << std::endl;
         }
+    } else {
+        std::cerr << "[RouteRenderer] WARNING: No screenContainer!" << std::endl;
     }
     
     // Render into screen
     bool result = renderRouteWithLayouts(routeNode, window, screen, router, params, query, "");
+    std::cerr << "[RouteRenderer] renderRouteWithLayouts returned: " << (result ? "SUCCESS" : "FAILED") << std::endl;
     
     // Set screen as active (makes it visible)
     if (screenContainer && screen) {
         screenContainer->setActiveScreen(screen);
+        std::cerr << "[RouteRenderer] Screen set as active" << std::endl;
     }
     
     return result;
@@ -165,14 +172,19 @@ bool RouteRenderer::renderRouteWithLayouts(const RouteNode* routeNode,
     // Render with layout nesting
     // If we have layouts, render them in order (outermost to innermost)
     // Each layout wraps the next layout or the route content
+    std::cerr << "[RouteRenderer] Layout chain has " << layoutChain.size() << " layouts for path: " << routePath << std::endl;
+    
     try {
         if (layoutChain.empty()) {
             // No layouts, just render the route component
+            std::cerr << "[RouteRenderer] No layouts, rendering route directly" << std::endl;
             routeIt->second(ctx);
         } else {
             // Build nested rendering: outermost layout wraps next layout, which wraps route
             std::function<void()> renderContent = [&]() {
+                std::cerr << "[RouteRenderer] Rendering route content for: " << routePath << std::endl;
                 routeIt->second(ctx);
+                std::cerr << "[RouteRenderer] Route content rendered" << std::endl;
             };
             
             // Wrap renderContent with each layout (from innermost to outermost)
@@ -180,11 +192,14 @@ bool RouteRenderer::renderRouteWithLayouts(const RouteNode* routeNode,
                 auto layoutFunc = *it;
                 auto currentRender = renderContent;
                 renderContent = [&, layoutFunc, currentRender]() {
+                    std::cerr << "[RouteRenderer] Entering layout function" << std::endl;
                     layoutFunc(ctx, currentRender);
+                    std::cerr << "[RouteRenderer] Exited layout function" << std::endl;
                 };
             }
             
             // Execute the nested rendering chain
+            std::cerr << "[RouteRenderer] Executing nested rendering chain" << std::endl;
             renderContent();
         }
         return true;

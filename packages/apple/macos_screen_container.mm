@@ -177,6 +177,9 @@ void obsidian_macos_screen_container_attach_to_window(ObsidianScreenContainerHan
             NSView* contentView = (__bridge NSView*)contentViewPtr;
             [contentView addSubview:container];
             
+            NSLog(@"[ScreenContainer] Attached to window contentView. Container frame: %@", NSStringFromRect(container.frame));
+            NSLog(@"[ScreenContainer] ContentView frame: %@", NSStringFromRect(contentView.frame));
+            
             // Pin container to fill window's content view
             [NSLayoutConstraint activateConstraints:@[
                 [container.leadingAnchor constraintEqualToAnchor:contentView.leadingAnchor],
@@ -184,6 +187,10 @@ void obsidian_macos_screen_container_attach_to_window(ObsidianScreenContainerHan
                 [container.topAnchor constraintEqualToAnchor:contentView.topAnchor],
                 [container.bottomAnchor constraintEqualToAnchor:contentView.bottomAnchor]
             ]];
+            
+            NSLog(@"[ScreenContainer] Constraints activated. Container has %lu subviews", (unsigned long)container.subviews.count);
+        } else {
+            NSLog(@"[ScreenContainer] ERROR: Could not get contentView from window!");
         }
     }
 }
@@ -227,7 +234,29 @@ void obsidian_macos_screen_container_set_active_screen(
     @autoreleasepool {
         ObsidianScreenContainerView* container = (__bridge ObsidianScreenContainerView*)containerHandle;
         ObsidianScreenView* screen = screenHandle ? (__bridge ObsidianScreenView*)screenHandle : nil;
+        NSLog(@"[ScreenContainer] setActiveScreen called. Screen: %@, path: %@", screen, screen.routePath);
+        NSLog(@"[ScreenContainer] Screen has %lu subviews", (unsigned long)screen.subviews.count);
+        
+        // Debug: print screen's subview hierarchy
+        if (screen.subviews.count > 0) {
+            NSView* firstSubview = screen.subviews[0];
+            NSLog(@"[ScreenContainer] Screen's first subview: %@ with %lu children, frame: %@", 
+                  [firstSubview class], (unsigned long)firstSubview.subviews.count, 
+                  NSStringFromRect(firstSubview.frame));
+            for (NSView* child in firstSubview.subviews) {
+                NSLog(@"[ScreenContainer]   Child: %@ frame: %@", [child class], NSStringFromRect(child.frame));
+            }
+        }
+        
         [container setActiveScreen:screen];
+        NSLog(@"[ScreenContainer] Screen isHidden: %d, Container has %lu subviews", screen.isHidden, (unsigned long)container.subviews.count);
+        NSLog(@"[ScreenContainer] Container frame: %@, Screen frame: %@", 
+              NSStringFromRect(container.frame), NSStringFromRect(screen.frame));
+        
+        // Force layout
+        [container layoutSubtreeIfNeeded];
+        NSLog(@"[ScreenContainer] After layout - Container frame: %@, Screen frame: %@", 
+              NSStringFromRect(container.frame), NSStringFromRect(screen.frame));
     }
 }
 

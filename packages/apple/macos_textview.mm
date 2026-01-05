@@ -10,12 +10,60 @@
 #import <objc/runtime.h>
 #import <memory>
 
-// Internal text view wrapper class
-@interface ObsidianTextViewWrapper : NSObject {
-    NSTextView* _textView;
+// Custom NSTextView subclass that returns intrinsic content size based on text
+// This is essential for Auto Layout to size the text view correctly
+@interface ObsidianTextView : NSTextView
+@end
+
+@implementation ObsidianTextView
+
+- (NSSize)intrinsicContentSize {
+    // Calculate the size needed to display all the text
+    if (self.textStorage.length == 0) {
+        // No text - return a small minimum size
+        return NSMakeSize(10, 20);
+    }
+    
+    // Use the layout manager to calculate the text bounds
+    NSLayoutManager* layoutManager = self.layoutManager;
+    NSTextContainer* textContainer = self.textContainer;
+    
+    // Force layout
+    [layoutManager ensureLayoutForTextContainer:textContainer];
+    
+    // Get the bounding rect for all glyphs
+    NSRange glyphRange = [layoutManager glyphRangeForTextContainer:textContainer];
+    NSRect usedRect = [layoutManager usedRectForTextContainer:textContainer];
+    
+    // Add some padding
+    CGFloat width = usedRect.size.width + 4;
+    CGFloat height = usedRect.size.height + 4;
+    
+    // Minimum size
+    if (width < 10) width = 10;
+    if (height < 20) height = 20;
+    
+    return NSMakeSize(width, height);
 }
 
-@property (nonatomic, strong) NSTextView* textView;
+- (void)setString:(NSString *)string {
+    [super setString:string];
+    [self invalidateIntrinsicContentSize];
+}
+
+- (void)setFont:(NSFont *)font {
+    [super setFont:font];
+    [self invalidateIntrinsicContentSize];
+}
+
+@end
+
+// Internal text view wrapper class
+@interface ObsidianTextViewWrapper : NSObject {
+    ObsidianTextView* _textView;
+}
+
+@property (nonatomic, strong) ObsidianTextView* textView;
 
 - (instancetype)initWithParams:(ObsidianTextViewParams)params;
 - (void)setString:(const char*)text;
@@ -42,13 +90,21 @@
 - (instancetype)initWithParams:(ObsidianTextViewParams)params {
     self = [super init];
     if (self) {
-        // Create NSTextView with frame
+        // Create custom ObsidianTextView with frame
         NSRect frame = NSMakeRect(params.x, params.y, params.width, params.height);
-        _textView = [[NSTextView alloc] initWithFrame:frame];
+        _textView = [[ObsidianTextView alloc] initWithFrame:frame];
         
-        // Configure text view defaults
-        // NSTextView is editable by default, but we'll let the user control this
-        // NSTextView is selectable by default, but we'll let the user control this
+        // CRITICAL: Disable autoresizing mask for Auto Layout
+        _textView.translatesAutoresizingMaskIntoConstraints = NO;
+        
+        // Configure for use as a label-like view by default
+        _textView.drawsBackground = NO;
+        _textView.editable = NO;
+        _textView.selectable = YES;
+        
+        // Make text container non-wrapping so text stays on one line (unless explicitly set otherwise)
+        _textView.textContainer.widthTracksTextView = NO;
+        _textView.textContainer.containerSize = NSMakeSize(FLT_MAX, FLT_MAX);
     }
     return self;
 }

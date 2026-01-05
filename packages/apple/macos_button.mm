@@ -43,11 +43,14 @@
         // Create NSButton
         _button = [[NSButton alloc] init];
         
+        // CRITICAL: Disable autoresizing mask for Auto Layout
+        _button.translatesAutoresizingMaskIntoConstraints = NO;
+        
         // Set button style to standard push button
         [_button setButtonType:NSButtonTypeMomentaryPushIn];
         [_button setBezelStyle:NSBezelStyleRounded];
         
-        // Set frame (position and size)
+        // Set frame (position and size) - used as initial/fallback size
         NSRect frame = NSMakeRect(params.x, params.y, params.width, params.height);
         [_button setFrame:frame];
         

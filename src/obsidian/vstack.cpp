@@ -147,7 +147,17 @@ public:
     }
 };
 
-VStack::VStack() : pImpl(std::make_unique<Impl>()) {}
+VStack::VStack() : pImpl(std::make_unique<Impl>()) {
+#ifdef __APPLE__
+    // Eagerly initialize native view for proper content slot support
+    // This allows VStacks to be used as content slots even before children are added
+    ObsidianVStackParams params;
+    pImpl->vstackHandle = obsidian_macos_create_vstack(params);
+    if (pImpl->vstackHandle) {
+        pImpl->valid = true;
+    }
+#endif
+}
 
 VStack::~VStack() {
     if (pImpl && pImpl->valid) {
@@ -376,16 +386,6 @@ void VStack::addChild(VStack& vstack) {
     }
     
 #ifdef __APPLE__
-    // Initialize VStack if not already created
-    if (!pImpl->valid) {
-        ObsidianVStackParams params;
-        pImpl->vstackHandle = obsidian_macos_create_vstack(params);
-        if (!pImpl->vstackHandle) {
-            return;
-        }
-        pImpl->valid = true;
-    }
-    
     // Get nested VStack's native view handle
     void* nestedView = vstack.getNativeViewHandle();
     if (!nestedView) {
@@ -784,12 +784,16 @@ void VStack::addToWindow(Window& window) {
 
 void VStack::addToScreen(Screen& screen) {
     if (!pImpl) {
+        std::cerr << "[VStack] addToScreen: pImpl is null!" << std::endl;
         return;
     }
     
     void* screenContentView = screen.getNativeHandle();
+    std::cerr << "[VStack] addToScreen: screenContentView=" << screenContentView << std::endl;
     if (screenContentView) {
         addToParentView(screenContentView);
+    } else {
+        std::cerr << "[VStack] addToScreen: ERROR - screenContentView is null!" << std::endl;
     }
 }
 

@@ -166,6 +166,11 @@ private:
  * Route Context
  * 
  * Provides route information and navigation methods to route components.
+ * 
+ * Supports nested layout rendering through the content slot mechanism:
+ * - Layouts call setContentSlot() to establish where children should render
+ * - Child routes use setContent() which renders into the slot if one exists
+ * - This enables proper parent-child nesting like Expo Router/React Navigation
  */
 class RouteContext {
 public:
@@ -229,13 +234,50 @@ public:
     bool canGoForward() const;
     
     /**
+     * Set a content slot for nested rendering (called by layouts)
+     * When a layout calls this, child routes will render into this VStack
+     * instead of directly to the screen.
+     * 
+     * Usage in layout:
+     * ```cpp
+     * void myLayout(RouteContext& ctx, std::function<void()> renderChild) {
+     *     VStack layout;
+     *     // ... add header, nav, etc. ...
+     *     
+     *     VStack contentSlot;  // Where children will render
+     *     layout.addChild(contentSlot);
+     *     ctx.setContentSlot(contentSlot);  // Register slot for children
+     *     
+     *     ctx.setContent(layout);  // Add layout to screen
+     *     renderChild();  // Now children render into contentSlot
+     * }
+     * ```
+     */
+    void setContentSlot(void* slotViewHandle);
+    
+    /**
+     * Get the current content slot (nullptr if none)
+     */
+    void* getContentSlot() const;
+    
+    /**
+     * Check if a content slot is set
+     */
+    bool hasContentSlot() const;
+    
+    /**
      * Set content for the current route
-     * Uses screen if available (router-managed), falls back to window
-     * The component must have addToScreen(Screen&) and addToWindow(Window&) methods
+     * If a content slot is set (by a parent layout), renders into the slot.
+     * Otherwise renders to screen if available, or window as fallback.
+     * The component must have addToScreen(Screen&), addToWindow(Window&), 
+     * and addToParentView(void*) methods.
      */
     template<typename T>
     void setContent(T& component) {
-        if (screen_) {
+        if (contentSlot_) {
+            // Render into layout's content slot
+            component.addToParentView(contentSlot_);
+        } else if (screen_) {
             component.addToScreen(*screen_);
         } else {
             component.addToWindow(window_);
@@ -249,6 +291,7 @@ private:
     std::map<std::string, std::string> params_;
     std::map<std::string, std::string> query_;
     Router& router_;
+    void* contentSlot_ = nullptr;  // Native view handle for nested rendering
 };
 
 } // namespace obsidian

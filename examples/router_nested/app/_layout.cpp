@@ -1,6 +1,8 @@
 /**
  * Root layout for nested routes example
  * This layout wraps all routes
+ * 
+ * Uses content slot pattern for proper nesting
  */
 
 #include <obsidian/obsidian.h>
@@ -9,7 +11,7 @@
 using namespace obsidian;
 
 void renderRootLayout(RouteContext& ctx, std::function<void()> renderChild) {
-    
+    // Main layout container
     VStack layout;
     layout.setSpacing(20.0);
     layout.setPadding(Padding::all(30.0));
@@ -40,10 +42,24 @@ void renderRootLayout(RouteContext& ctx, std::function<void()> renderChild) {
     separator.create("────────────────────────────────────", 0, 0, 0, 0);
     layout.addChild(separator);
     
-    // Render child route content
-    renderChild();
+    // Content slot for child routes
+    VStack contentSlot;
+    contentSlot.setSpacing(10.0);
+    layout.addChild(contentSlot);
     
-    ctx.setContent(layout);
+    // STEP 1: Add layout to screen FIRST (bypass setContent to avoid contentSlot check)
+    Screen* screen = ctx.getScreen();
+    if (screen) {
+        layout.addToScreen(*screen);
+    } else {
+        layout.addToWindow(ctx.getWindow());
+    }
+    
+    // STEP 2: Set content slot for children
+    ctx.setContentSlot(contentSlot.getNativeViewHandle());
+    
+    // STEP 3: Render children - they go into contentSlot via setContent()
+    renderChild();
 }
 
 REGISTER_LAYOUT("/", renderRootLayout);

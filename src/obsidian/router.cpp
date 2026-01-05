@@ -359,7 +359,7 @@ RouteContext::RouteContext(Window& window,
                           const std::map<std::string, std::string>& params,
                           const std::map<std::string, std::string>& query,
                           Router& router)
-    : window_(window), screen_(screen), path_(path), params_(params), query_(query), router_(router) {}
+    : window_(window), screen_(screen), path_(path), params_(params), query_(query), router_(router), contentSlot_(nullptr) {}
 
 Window& RouteContext::getWindow() const {
     return window_;
@@ -399,4 +399,16 @@ bool RouteContext::canGoBack() const {
 
 bool RouteContext::canGoForward() const {
     return router_.canGoForward();
+}
+
+void RouteContext::setContentSlot(void* slotViewHandle) {
+    contentSlot_ = slotViewHandle;
+}
+
+void* RouteContext::getContentSlot() const {
+    return contentSlot_;
+}
+
+bool RouteContext::hasContentSlot() const {
+    return contentSlot_ != nullptr;
 }

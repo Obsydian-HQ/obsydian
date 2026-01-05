@@ -9,9 +9,41 @@
 #import <AppKit/AppKit.h>
 #import <objc/runtime.h>
 
+// Custom wrapper view that forwards intrinsic content size from its child
+// This is essential for Auto Layout to size the Link correctly
+@interface ObsidianLinkWrapperView : NSView
+@property (nonatomic, weak) NSView* childView;
+@end
+
+@implementation ObsidianLinkWrapperView
+
+- (NSSize)intrinsicContentSize {
+    // Forward intrinsic content size from child
+    if (_childView) {
+        return [_childView intrinsicContentSize];
+    }
+    return NSMakeSize(NSViewNoIntrinsicMetric, NSViewNoIntrinsicMetric);
+}
+
+- (void)addSubview:(NSView *)view {
+    [super addSubview:view];
+    _childView = view;
+    [self invalidateIntrinsicContentSize];
+}
+
+- (void)willRemoveSubview:(NSView *)subview {
+    [super willRemoveSubview:subview];
+    if (_childView == subview) {
+        _childView = nil;
+    }
+    [self invalidateIntrinsicContentSize];
+}
+
+@end
+
 // Internal link wrapper class - wraps any view and makes it clickable
 @interface ObsidianLinkWrapper : NSObject {
-    NSView* _wrapperView;      // Container view that wraps the child
+    ObsidianLinkWrapperView* _wrapperView;      // Container view that wraps the child
     NSView* _childView;        // The child view being wrapped
     NSString* _href;           // Route path for navigation
     ObsidianLinkClickCallback _callback;
@@ -19,7 +51,7 @@
     NSClickGestureRecognizer* _clickRecognizer;
 }
 
-@property (nonatomic, strong) NSView* wrapperView;
+@property (nonatomic, strong) ObsidianLinkWrapperView* wrapperView;
 @property (nonatomic, strong) NSView* childView;
 @property (nonatomic, assign) ObsidianLinkClickCallback callback;
 @property (nonatomic, assign) void* userData;
@@ -54,6 +86,9 @@
         // The wrapper will handle clicks and forward them
         _wrapperView = [[NSView alloc] init];
         _wrapperView.wantsLayer = YES;
+        
+        // CRITICAL: Disable autoresizing mask for Auto Layout
+        _wrapperView.translatesAutoresizingMaskIntoConstraints = NO;
         
         // Set the wrapper's frame to match the child's frame
         _wrapperView.frame = _childView.frame;

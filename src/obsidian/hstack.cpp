@@ -147,7 +147,17 @@ public:
     }
 };
 
-HStack::HStack() : pImpl(std::make_unique<Impl>()) {}
+HStack::HStack() : pImpl(std::make_unique<Impl>()) {
+#ifdef __APPLE__
+    // Eagerly initialize native view for proper content slot support
+    // This allows HStacks to be used as content slots even before children are added
+    ObsidianHStackParams params;
+    pImpl->hstackHandle = obsidian_macos_create_hstack(params);
+    if (pImpl->hstackHandle) {
+        pImpl->valid = true;
+    }
+#endif
+}
 
 HStack::~HStack() {
     if (pImpl && pImpl->valid) {
@@ -368,16 +378,6 @@ void HStack::addChild(VStack& vstack) {
     }
     
 #ifdef __APPLE__
-    // Initialize HStack if not already created
-    if (!pImpl->valid) {
-        ObsidianHStackParams params;
-        pImpl->hstackHandle = obsidian_macos_create_hstack(params);
-        if (!pImpl->hstackHandle) {
-            return;
-        }
-        pImpl->valid = true;
-    }
-    
     // Get nested VStack's native view handle
     void* nestedView = vstack.getNativeViewHandle();
     if (!nestedView) {
@@ -404,16 +404,6 @@ void HStack::addChild(HStack& hstack) {
     }
     
 #ifdef __APPLE__
-    // Initialize HStack if not already created
-    if (!pImpl->valid) {
-        ObsidianHStackParams params;
-        pImpl->hstackHandle = obsidian_macos_create_hstack(params);
-        if (!pImpl->hstackHandle) {
-            return;
-        }
-        pImpl->valid = true;
-    }
-    
     // Get nested HStack's native view handle
     void* nestedView = hstack.getNativeViewHandle();
     if (!nestedView) {
