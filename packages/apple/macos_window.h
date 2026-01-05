@@ -52,6 +52,13 @@ bool obsidian_macos_window_is_valid(ObsidianWindowHandle handle);
 void* obsidian_macos_window_get_content_view(ObsidianWindowHandle handle);
 
 /**
+ * Get the NSWindow pointer from a window handle
+ * Returns an opaque pointer to the NSWindow, or NULL on failure
+ * This is for internal FFI debugging and diagnostics
+ */
+void* obsidian_macos_window_get_nswindow(ObsidianWindowHandle handle);
+
+/**
  * Update window constraints to prevent shrinking in macOS 15+ (Sequoia)
  * In macOS 15+, layout is computed more lazily, and the window may resize
  * based on contentView's fittingSize. This function ensures constraints are updated.

@@ -1,5 +1,10 @@
 /**
  * macOS ViewController FFI - Objective-C++ Implementation
+ * 
+ * Based on legend-music's SidebarSplitView.swift pattern:
+ * - Simple container view as the view controller's view
+ * - Container has autoresizingMask for resizing
+ * - Content added as subview with autoresizingMask
  */
 
 #import "macos_viewcontroller.h"
@@ -7,9 +12,8 @@
 
 @interface ObsidianViewControllerWrapper : NSObject
 @property (nonatomic, strong) NSViewController* viewController;
-@property (nonatomic, strong) NSVisualEffectView* visualEffectView;
-@property (nonatomic, strong) NSView* contentView;
-@property (nonatomic, assign) BOOL configuredForSidebar;
+@property (nonatomic, strong) NSView* container;
+@property (nonatomic, weak) NSView* content;
 @end
 
 @implementation ObsidianViewControllerWrapper
@@ -18,77 +22,73 @@
     self = [super init];
     if (self) {
         _viewController = [[NSViewController alloc] init];
-        _configuredForSidebar = NO;
+        
+        // Create container view - exactly like legend-music does
+        _container = [[NSView alloc] init];
+        [_container setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
+        
+        [_viewController setView:_container];
     }
     return self;
 }
 
 - (void)setView:(void*)viewHandle {
-    if (!_viewController || !viewHandle) return;
+    if (!viewHandle) return;
     
     NSView* view = (__bridge NSView*)viewHandle;
-    if ([view superview]) {
-        [view removeFromSuperview];
+    
+    // Remove old content
+    if (_content) {
+        [_content removeFromSuperview];
     }
-    [_viewController setView:view];
-}
-
-- (void*)getView {
-    return _viewController ? (__bridge void*)[_viewController view] : nullptr;
+    
+    _content = view;
+    
+    // Add to container with autoresizingMask - exactly like legend-music
+    [view setFrame:_container.bounds];
+    [view setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
+    [_container addSubview:view];
 }
 
 - (void)configureForSidebar {
-    if (!_viewController || _configuredForSidebar) return;
+    if (!_content) return;
     
-    NSView* currentView = [_viewController view];
-    if (!currentView) return;
+    // Make scroll view / table view transparent for sidebar vibrancy
+    [self makeTransparent:_content];
     
-    _contentView = currentView;
-    [self makeViewTransparentForSidebar:_contentView];
+    // Wrap content in NSVisualEffectView
+    NSVisualEffectView* vibrancy = [[NSVisualEffectView alloc] initWithFrame:_container.bounds];
+    [vibrancy setMaterial:NSVisualEffectMaterialSidebar];
+    [vibrancy setBlendingMode:NSVisualEffectBlendingModeBehindWindow];
+    [vibrancy setState:NSVisualEffectStateFollowsWindowActiveState];
+    [vibrancy setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
     
-    // Create vibrancy view with sidebar material
-    _visualEffectView = [[NSVisualEffectView alloc] init];
-    [_visualEffectView setMaterial:NSVisualEffectMaterialSidebar];
-    [_visualEffectView setBlendingMode:NSVisualEffectBlendingModeBehindWindow];
-    [_visualEffectView setState:NSVisualEffectStateFollowsWindowActiveState];
+    // Move content into vibrancy view
+    [_content removeFromSuperview];
+    [_content setFrame:vibrancy.bounds];
+    [vibrancy addSubview:_content];
     
-    [_contentView removeFromSuperview];
-    [_visualEffectView addSubview:_contentView];
-    
-    // Use constraints to fill
-    [_contentView setTranslatesAutoresizingMaskIntoConstraints:NO];
-    [NSLayoutConstraint activateConstraints:@[
-        [_contentView.leadingAnchor constraintEqualToAnchor:_visualEffectView.leadingAnchor],
-        [_contentView.trailingAnchor constraintEqualToAnchor:_visualEffectView.trailingAnchor],
-        [_contentView.topAnchor constraintEqualToAnchor:_visualEffectView.topAnchor],
-        [_contentView.bottomAnchor constraintEqualToAnchor:_visualEffectView.bottomAnchor]
-    ]];
-    
-    [_viewController setView:_visualEffectView];
-    _configuredForSidebar = YES;
+    // Add vibrancy to container
+    [_container addSubview:vibrancy];
 }
 
-- (void)makeViewTransparentForSidebar:(NSView*)view {
-    if (!view) return;
-    
+- (void)makeTransparent:(NSView*)view {
     if ([view isKindOfClass:[NSScrollView class]]) {
-        NSScrollView* scrollView = (NSScrollView*)view;
-        [scrollView setDrawsBackground:NO];
-        [scrollView setBorderType:NSNoBorder];
-        [[scrollView contentView] setDrawsBackground:NO];
-        [self makeViewTransparentForSidebar:[scrollView documentView]];
+        NSScrollView* sv = (NSScrollView*)view;
+        [sv setDrawsBackground:NO];
+        [sv setBorderType:NSNoBorder];
+        [[sv contentView] setDrawsBackground:NO];
+        [self makeTransparent:[sv documentView]];
     }
-    
     if ([view isKindOfClass:[NSTableView class]]) {
-        NSTableView* tableView = (NSTableView*)view;
-        [tableView setBackgroundColor:[NSColor clearColor]];
-        [tableView setUsesAlternatingRowBackgroundColors:NO];
-        [tableView setSelectionHighlightStyle:NSTableViewSelectionHighlightStyleSourceList];
-        [tableView setFocusRingType:NSFocusRingTypeNone];
+        NSTableView* tv = (NSTableView*)view;
+        [tv setBackgroundColor:[NSColor clearColor]];
+        [tv setUsesAlternatingRowBackgroundColors:NO];
+        [tv setSelectionHighlightStyle:NSTableViewSelectionHighlightStyleSourceList];
+        [tv setFocusRingType:NSFocusRingTypeNone];
     }
-    
-    for (NSView* subview in [view subviews]) {
-        [self makeViewTransparentForSidebar:subview];
+    for (NSView* sub in [view subviews]) {
+        [self makeTransparent:sub];
     }
 }
 
@@ -99,31 +99,29 @@ extern "C" {
 
 ObsidianViewControllerHandle obsidian_macos_create_viewcontroller(ObsidianViewControllerParams params) {
     @autoreleasepool {
-        ObsidianViewControllerWrapper* wrapper = [[ObsidianViewControllerWrapper alloc] init];
-        return wrapper.viewController ? (__bridge_retained void*)wrapper : nullptr;
+        ObsidianViewControllerWrapper* w = [[ObsidianViewControllerWrapper alloc] init];
+        return w ? (__bridge_retained void*)w : nullptr;
     }
 }
 
 void obsidian_macos_viewcontroller_set_view(ObsidianViewControllerHandle handle, void* viewHandle) {
     if (!handle) return;
     @autoreleasepool {
-        ObsidianViewControllerWrapper* wrapper = (__bridge ObsidianViewControllerWrapper*)handle;
-        [wrapper setView:viewHandle];
+        [(__bridge ObsidianViewControllerWrapper*)handle setView:viewHandle];
     }
 }
 
 void* obsidian_macos_viewcontroller_get_view(ObsidianViewControllerHandle handle) {
     if (!handle) return nullptr;
     @autoreleasepool {
-        return [(__bridge ObsidianViewControllerWrapper*)handle getView];
+        return (__bridge void*)((__bridge ObsidianViewControllerWrapper*)handle).container;
     }
 }
 
 void* obsidian_macos_viewcontroller_get_viewcontroller(ObsidianViewControllerHandle handle) {
     if (!handle) return nullptr;
     @autoreleasepool {
-        ObsidianViewControllerWrapper* wrapper = (__bridge ObsidianViewControllerWrapper*)handle;
-        return wrapper.viewController ? (__bridge void*)wrapper.viewController : nullptr;
+        return (__bridge void*)((__bridge ObsidianViewControllerWrapper*)handle).viewController;
     }
 }
 
@@ -141,29 +139,19 @@ void obsidian_macos_viewcontroller_configure_for_sidebar(ObsidianViewControllerH
     }
 }
 
-void obsidian_macos_viewcontroller_set_preferred_content_size(ObsidianViewControllerHandle handle,
-                                                               double width, double height) {
+void obsidian_macos_viewcontroller_set_preferred_content_size(ObsidianViewControllerHandle handle, double width, double height) {
     if (!handle) return;
     @autoreleasepool {
-        ObsidianViewControllerWrapper* wrapper = (__bridge ObsidianViewControllerWrapper*)handle;
-        if (wrapper.viewController) {
-            [wrapper.viewController setPreferredContentSize:NSMakeSize(width, height)];
-        }
+        ((__bridge ObsidianViewControllerWrapper*)handle).viewController.preferredContentSize = NSMakeSize(width, height);
     }
 }
 
-void obsidian_macos_viewcontroller_get_preferred_content_size(ObsidianViewControllerHandle handle,
-                                                               double* outWidth, double* outHeight) {
-    if (!handle || !outWidth || !outHeight) return;
+void obsidian_macos_viewcontroller_get_preferred_content_size(ObsidianViewControllerHandle handle, double* outWidth, double* outHeight) {
+    if (!handle) return;
     @autoreleasepool {
-        ObsidianViewControllerWrapper* wrapper = (__bridge ObsidianViewControllerWrapper*)handle;
-        if (wrapper.viewController) {
-            NSSize size = [wrapper.viewController preferredContentSize];
-            *outWidth = size.width;
-            *outHeight = size.height;
-        } else {
-            *outWidth = *outHeight = 0;
-        }
+        NSSize size = ((__bridge ObsidianViewControllerWrapper*)handle).viewController.preferredContentSize;
+        if (outWidth) *outWidth = size.width;
+        if (outHeight) *outHeight = size.height;
     }
 }
 

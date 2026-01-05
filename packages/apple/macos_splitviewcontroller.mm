@@ -1,8 +1,7 @@
 /**
  * macOS SplitViewController FFI - Objective-C++ Implementation
  * 
- * Simple implementation based on real working apps (Watt editor, HelloAppKit, etc.)
- * The key insight: set the view frame size BEFORE adding items. That's it.
+ * Based on legend-music's SidebarSplitView.swift - copy the pattern exactly.
  */
 
 #import "macos_splitviewcontroller.h"
@@ -20,116 +19,104 @@
     self = [super init];
     if (self) {
         _splitViewController = [[NSSplitViewController alloc] init];
+        
+        // Configure exactly like legend-music does in setupSplitView()
+        [_splitViewController.splitView setVertical:YES];
+        [_splitViewController.splitView setDividerStyle:NSSplitViewDividerStyleThin];
+        
+        // Set autoresizingMask on the split view controller's view
+        [_splitViewController.view setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
     }
     return self;
 }
 
-- (void)setViewFrameSize:(CGFloat)width height:(CGFloat)height {
-    if (!_splitViewController) return;
+- (void)addSplitViewItem:(void*)itemHandle {
+    if (!itemHandle) return;
     
-    // This is what real apps do (from Watt editor):
-    // view.frame.size = CGSize(width: 800, height: 600)
-    // Set the frame BEFORE adding any items.
-    NSView* view = [_splitViewController view];
-    [view setFrame:NSMakeRect(0, 0, width, height)];
+    void* actualItem = obsidian_macos_splitviewitem_get_splitviewitem(itemHandle);
+    if (!actualItem) return;
+    
+    NSSplitViewItem* item = (__bridge NSSplitViewItem*)actualItem;
+    [_splitViewController addSplitViewItem:item];
 }
 
-- (void*)getView {
-    if (!_splitViewController) return nullptr;
-    return (__bridge void*)[_splitViewController view];
-}
-
-- (void)addSplitViewItem:(void*)splitViewItemHandle {
-    if (!_splitViewController || !splitViewItemHandle) return;
+- (void)removeSplitViewItem:(void*)itemHandle {
+    if (!itemHandle) return;
     
-    void* actualSplitViewItem = obsidian_macos_splitviewitem_get_splitviewitem(splitViewItemHandle);
-    if (!actualSplitViewItem) return;
+    void* actualItem = obsidian_macos_splitviewitem_get_splitviewitem(itemHandle);
+    if (!actualItem) return;
     
-    NSSplitViewItem* splitViewItem = (__bridge NSSplitViewItem*)actualSplitViewItem;
-    [_splitViewController addSplitViewItem:splitViewItem];
-}
-
-- (void)removeSplitViewItem:(void*)splitViewItemHandle {
-    if (!_splitViewController || !splitViewItemHandle) return;
-    
-    void* actualSplitViewItem = obsidian_macos_splitviewitem_get_splitviewitem(splitViewItemHandle);
-    if (!actualSplitViewItem) return;
-    
-    NSSplitViewItem* splitViewItem = (__bridge NSSplitViewItem*)actualSplitViewItem;
-    [_splitViewController removeSplitViewItem:splitViewItem];
-}
-
-- (void)addToWindow:(void*)windowHandle {
-    if (!_splitViewController || !windowHandle) return;
-    
-    // Simply set as content view controller - that's what real apps do
-    obsidian_macos_window_set_content_view_controller(windowHandle, (__bridge void*)_splitViewController);
+    NSSplitViewItem* item = (__bridge NSSplitViewItem*)actualItem;
+    [_splitViewController removeSplitViewItem:item];
 }
 
 @end
 
-// C interface implementation
+// C interface
 extern "C" {
 
 ObsidianSplitViewControllerHandle obsidian_macos_create_splitviewcontroller(ObsidianSplitViewControllerParams params) {
     @autoreleasepool {
-        ObsidianSplitViewControllerWrapper* wrapper = [[ObsidianSplitViewControllerWrapper alloc] init];
-        if (wrapper && wrapper.splitViewController) {
-            return (__bridge_retained void*)wrapper;
-        }
-        return nullptr;
+        ObsidianSplitViewControllerWrapper* w = [[ObsidianSplitViewControllerWrapper alloc] init];
+        return w ? (__bridge_retained void*)w : nullptr;
     }
 }
 
 void* obsidian_macos_splitviewcontroller_get_view(ObsidianSplitViewControllerHandle handle) {
     if (!handle) return nullptr;
     @autoreleasepool {
-        ObsidianSplitViewControllerWrapper* wrapper = (__bridge ObsidianSplitViewControllerWrapper*)handle;
-        return [wrapper getView];
+        return (__bridge void*)((__bridge ObsidianSplitViewControllerWrapper*)handle).splitViewController.view;
     }
 }
 
-void obsidian_macos_splitviewcontroller_add_splitviewitem(ObsidianSplitViewControllerHandle handle,
-                                                          void* splitViewItemHandle) {
+void obsidian_macos_splitviewcontroller_add_splitviewitem(ObsidianSplitViewControllerHandle handle, void* itemHandle) {
     if (!handle) return;
     @autoreleasepool {
-        ObsidianSplitViewControllerWrapper* wrapper = (__bridge ObsidianSplitViewControllerWrapper*)handle;
-        [wrapper addSplitViewItem:splitViewItemHandle];
+        [(__bridge ObsidianSplitViewControllerWrapper*)handle addSplitViewItem:itemHandle];
     }
 }
 
-void obsidian_macos_splitviewcontroller_remove_splitviewitem(ObsidianSplitViewControllerHandle handle,
-                                                             void* splitViewItemHandle) {
+void obsidian_macos_splitviewcontroller_remove_splitviewitem(ObsidianSplitViewControllerHandle handle, void* itemHandle) {
     if (!handle) return;
     @autoreleasepool {
-        ObsidianSplitViewControllerWrapper* wrapper = (__bridge ObsidianSplitViewControllerWrapper*)handle;
-        [wrapper removeSplitViewItem:splitViewItemHandle];
+        [(__bridge ObsidianSplitViewControllerWrapper*)handle removeSplitViewItem:itemHandle];
     }
 }
 
-void obsidian_macos_splitviewcontroller_add_to_window(ObsidianSplitViewControllerHandle handle,
-                                                      void* windowHandle) {
-    if (!handle) return;
+void obsidian_macos_splitviewcontroller_add_to_window(ObsidianSplitViewControllerHandle handle, void* windowHandle) {
+    if (!handle || !windowHandle) return;
     @autoreleasepool {
-        ObsidianSplitViewControllerWrapper* wrapper = (__bridge ObsidianSplitViewControllerWrapper*)handle;
-        [wrapper addToWindow:windowHandle];
+        ObsidianSplitViewControllerWrapper* w = (__bridge ObsidianSplitViewControllerWrapper*)handle;
+        NSWindow* window = (__bridge NSWindow*)obsidian_macos_window_get_nswindow(windowHandle);
+        if (!window) return;
+        
+        // Get window content size BEFORE setting content view controller
+        NSSize contentSize = [[window contentView] frame].size;
+        
+        // Set content view controller
+        [window setContentViewController:w.splitViewController];
+        
+        // Force window back to original size - setContentViewController may have resized it
+        [window setContentSize:contentSize];
+        
+        // Force layout
+        [w.splitViewController.splitView adjustSubviews];
+        [w.splitViewController.view layoutSubtreeIfNeeded];
     }
 }
 
 bool obsidian_macos_splitviewcontroller_is_valid(ObsidianSplitViewControllerHandle handle) {
     if (!handle) return false;
     @autoreleasepool {
-        ObsidianSplitViewControllerWrapper* wrapper = (__bridge ObsidianSplitViewControllerWrapper*)handle;
-        return wrapper.splitViewController != nil;
+        return ((__bridge ObsidianSplitViewControllerWrapper*)handle).splitViewController != nil;
     }
 }
 
-void obsidian_macos_splitviewcontroller_set_view_frame_size(ObsidianSplitViewControllerHandle handle,
-                                                            double width, double height) {
+void obsidian_macos_splitviewcontroller_set_view_frame_size(ObsidianSplitViewControllerHandle handle, double width, double height) {
     if (!handle) return;
     @autoreleasepool {
-        ObsidianSplitViewControllerWrapper* wrapper = (__bridge ObsidianSplitViewControllerWrapper*)handle;
-        [wrapper setViewFrameSize:width height:height];
+        ObsidianSplitViewControllerWrapper* w = (__bridge ObsidianSplitViewControllerWrapper*)handle;
+        [w.splitViewController.view setFrameSize:NSMakeSize(width, height)];
     }
 }
 

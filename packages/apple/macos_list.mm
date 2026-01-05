@@ -103,6 +103,10 @@ struct ObsidianListItem {
         [_scrollView setBorderType:NSBezelBorder];
         [_scrollView setDocumentView:_tableView];
         
+        // CRITICAL: Set autoresizingMask so scroll view resizes with parent
+        // This is required for proper split view integration
+        [_scrollView setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
+        
         _callback = nullptr;
         _userData = nullptr;
     }
