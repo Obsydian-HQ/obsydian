@@ -112,9 +112,21 @@ bool RouteRenderer::renderRouteWithLayouts(const RouteNode* routeNode,
     obsidian::RouteContext ctx(window, routePath, params, query, router);
     
     // Collect layouts in parent hierarchy (outermost to innermost)
+    // First check if the route node itself has a layout
     std::vector<LayoutComponentFunction> layoutChain;
-    const RouteNode* current = routeNode->parent;
+    const RouteNode* current = routeNode;
     
+    // Check route node itself for layout (e.g., /products with both layout and route)
+    if (current && current->hasLayout) {
+        std::string layoutPath = buildPathFromNode(current);
+        auto layoutIt = pImpl->layoutComponents.find(layoutPath);
+        if (layoutIt != pImpl->layoutComponents.end()) {
+            layoutChain.push_back(layoutIt->second);
+        }
+    }
+    
+    // Then walk up parent chain
+    current = routeNode->parent;
     while (current) {
         if (current->hasLayout) {
             std::string layoutPath = buildPathFromNode(current);

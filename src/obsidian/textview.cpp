@@ -38,7 +38,7 @@ TextView::~TextView() {
     }
 }
 
-bool TextView::create(int x, int y, int width, int height) {
+bool TextView::create(const std::string& text, int x, int y, int width, int height) {
     if (pImpl->valid) {
         return false; // Already created
     }
@@ -47,12 +47,19 @@ bool TextView::create(int x, int y, int width, int height) {
     if (!pImpl->macosTextView.create(x, y, width, height)) {
         return false;
     }
+    if (!text.empty()) {
+        pImpl->macosTextView.setString(text);
+    }
     pImpl->valid = true;
     return true;
 #else
     // Other platforms not yet implemented
     return false;
 #endif
+}
+
+bool TextView::create(int x, int y, int width, int height) {
+    return create("", x, y, width, height);
 }
 
 void TextView::setString(const std::string& text) {
@@ -74,6 +81,50 @@ std::string TextView::getString() const {
     return pImpl->macosTextView.getString();
 #else
     return std::string();
+#endif
+}
+
+void TextView::setFontSize(double size) {
+    if (!pImpl->valid) {
+        return;
+    }
+    
+#ifdef __APPLE__
+    pImpl->macosTextView.setFontSize(size);
+#endif
+}
+
+double TextView::getFontSize() const {
+    if (!pImpl->valid) {
+        return 0.0;
+    }
+    
+#ifdef __APPLE__
+    return pImpl->macosTextView.getFontSize();
+#else
+    return 0.0;
+#endif
+}
+
+void TextView::setFontWeight(FontWeight weight) {
+    if (!pImpl->valid) {
+        return;
+    }
+    
+#ifdef __APPLE__
+    pImpl->macosTextView.setFontWeight((int)weight);
+#endif
+}
+
+FontWeight TextView::getFontWeight() const {
+    if (!pImpl->valid) {
+        return FontWeight::Regular;
+    }
+    
+#ifdef __APPLE__
+    return (FontWeight)pImpl->macosTextView.getFontWeight();
+#else
+    return FontWeight::Regular;
 #endif
 }
 

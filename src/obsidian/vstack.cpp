@@ -10,6 +10,8 @@
 #include "obsidian/button.h"
 #include "obsidian/link.h"
 #include "obsidian/spacer.h"
+#include "obsidian/textview.h"
+#include "obsidian/hstack.h"
 #include <iostream>
 
 // Include internal headers (not exposed to users)
@@ -314,6 +316,114 @@ void VStack::addChild(Link& link) {
 #endif
 }
 
+void VStack::addChild(TextView& textView) {
+    if (!pImpl || !textView.isValid()) {
+        return;
+    }
+    
+#ifdef __APPLE__
+    // Initialize VStack if not already created
+    if (!pImpl->valid) {
+        ObsidianVStackParams params;
+        pImpl->vstackHandle = obsidian_macos_create_vstack(params);
+        if (!pImpl->vstackHandle) {
+            return;
+        }
+        pImpl->valid = true;
+    }
+    
+    // Get text view's native view handle
+    void* textViewHandle = textView.getNativeHandle();
+    if (!textViewHandle) {
+        return;
+    }
+    
+    // Remove text view from current parent if it has one
+    textView.removeFromParent();
+    
+    // Add child view to container
+    obsidian_macos_vstack_add_child_view(pImpl->vstackHandle, textViewHandle);
+    pImpl->childViewHandles.push_back(textViewHandle);
+    
+    // Update layout ONLY if container is already in window hierarchy
+    if (pImpl->parentView) {
+        updateLayout();
+    }
+#endif
+}
+
+void VStack::addChild(VStack& vstack) {
+    if (!pImpl || !vstack.isValid()) {
+        return;
+    }
+    
+#ifdef __APPLE__
+    // Initialize VStack if not already created
+    if (!pImpl->valid) {
+        ObsidianVStackParams params;
+        pImpl->vstackHandle = obsidian_macos_create_vstack(params);
+        if (!pImpl->vstackHandle) {
+            return;
+        }
+        pImpl->valid = true;
+    }
+    
+    // Get nested VStack's native view handle
+    void* nestedView = vstack.getNativeViewHandle();
+    if (!nestedView) {
+        return;
+    }
+    
+    // Remove nested VStack from current parent if it has one
+    vstack.removeFromParent();
+    
+    // Add child view to container
+    obsidian_macos_vstack_add_child_view(pImpl->vstackHandle, nestedView);
+    pImpl->childViewHandles.push_back(nestedView);
+    
+    // Update layout ONLY if container is already in window hierarchy
+    if (pImpl->parentView) {
+        updateLayout();
+    }
+#endif
+}
+
+void VStack::addChild(HStack& hstack) {
+    if (!pImpl || !hstack.isValid()) {
+        return;
+    }
+    
+#ifdef __APPLE__
+    // Initialize VStack if not already created
+    if (!pImpl->valid) {
+        ObsidianVStackParams params;
+        pImpl->vstackHandle = obsidian_macos_create_vstack(params);
+        if (!pImpl->vstackHandle) {
+            return;
+        }
+        pImpl->valid = true;
+    }
+    
+    // Get HStack's native view handle
+    void* hstackView = hstack.getNativeViewHandle();
+    if (!hstackView) {
+        return;
+    }
+    
+    // Remove HStack from current parent if it has one
+    hstack.removeFromParent();
+    
+    // Add child view to container
+    obsidian_macos_vstack_add_child_view(pImpl->vstackHandle, hstackView);
+    pImpl->childViewHandles.push_back(hstackView);
+    
+    // Update layout ONLY if container is already in window hierarchy
+    if (pImpl->parentView) {
+        updateLayout();
+    }
+#endif
+}
+
 void VStack::removeChild(Button& button) {
     if (!pImpl || !pImpl->valid || !button.isValid()) {
         return;
@@ -375,6 +485,75 @@ void VStack::removeChild(Spacer& spacer) {
     auto it = std::find(pImpl->childViewHandles.begin(), pImpl->childViewHandles.end(), spacerView);
     if (it != pImpl->childViewHandles.end()) {
         obsidian_macos_vstack_remove_child_view(pImpl->vstackHandle, spacerView);
+        pImpl->childViewHandles.erase(it);
+        
+        // Update layout
+        updateLayout();
+    }
+#endif
+}
+
+void VStack::removeChild(TextView& textView) {
+    if (!pImpl || !pImpl->valid || !textView.isValid()) {
+        return;
+    }
+    
+#ifdef __APPLE__
+    void* textViewHandle = textView.getNativeHandle();
+    if (!textViewHandle) {
+        return;
+    }
+    
+    // Find and remove from child handles
+    auto it = std::find(pImpl->childViewHandles.begin(), pImpl->childViewHandles.end(), textViewHandle);
+    if (it != pImpl->childViewHandles.end()) {
+        obsidian_macos_vstack_remove_child_view(pImpl->vstackHandle, textViewHandle);
+        pImpl->childViewHandles.erase(it);
+        
+        // Update layout
+        updateLayout();
+    }
+#endif
+}
+
+void VStack::removeChild(VStack& vstack) {
+    if (!pImpl || !pImpl->valid || !vstack.isValid()) {
+        return;
+    }
+    
+#ifdef __APPLE__
+    void* nestedView = vstack.getNativeViewHandle();
+    if (!nestedView) {
+        return;
+    }
+    
+    // Find and remove from child handles
+    auto it = std::find(pImpl->childViewHandles.begin(), pImpl->childViewHandles.end(), nestedView);
+    if (it != pImpl->childViewHandles.end()) {
+        obsidian_macos_vstack_remove_child_view(pImpl->vstackHandle, nestedView);
+        pImpl->childViewHandles.erase(it);
+        
+        // Update layout
+        updateLayout();
+    }
+#endif
+}
+
+void VStack::removeChild(HStack& hstack) {
+    if (!pImpl || !pImpl->valid || !hstack.isValid()) {
+        return;
+    }
+    
+#ifdef __APPLE__
+    void* hstackView = hstack.getNativeViewHandle();
+    if (!hstackView) {
+        return;
+    }
+    
+    // Find and remove from child handles
+    auto it = std::find(pImpl->childViewHandles.begin(), pImpl->childViewHandles.end(), hstackView);
+    if (it != pImpl->childViewHandles.end()) {
+        obsidian_macos_vstack_remove_child_view(pImpl->vstackHandle, hstackView);
         pImpl->childViewHandles.erase(it);
         
         // Update layout

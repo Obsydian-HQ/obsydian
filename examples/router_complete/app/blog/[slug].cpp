@@ -25,14 +25,14 @@ void renderBlogPostRoute(RouteContext& ctx) {
     
     TextView title;
     std::string titleText = "Blog Post: " + slug;
-    title.create(titleText.c_str(), 0, 0, 0, 0);
+    title.create(titleText, 0, 0, 0, 0);
     title.setFontSize(32.0);
     title.setFontWeight(FontWeight::Bold);
     content.addChild(title);
     
     TextView description;
     std::string descText = "This is a dynamic blog post route. The slug '" + slug + "' was extracted from the route path.";
-    description.create(descText.c_str(), 0, 0, 0, 0);
+    description.create(descText, 0, 0, 0, 0);
     description.setFontSize(14.0);
     content.addChild(description);
     

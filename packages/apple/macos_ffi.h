@@ -296,6 +296,26 @@ public:
     bool isEnabled() const;
     
     /**
+     * Set font size
+     */
+    void setFontSize(double size);
+    
+    /**
+     * Get font size
+     */
+    double getFontSize() const;
+    
+    /**
+     * Set font weight (0=Regular, 1=Bold, 2=Semibold, 3=Medium, 4=Light, 5=Thin)
+     */
+    void setFontWeight(int weight);
+    
+    /**
+     * Get font weight
+     */
+    int getFontWeight() const;
+    
+    /**
      * Add text view to a window's content view
      */
     void addToWindow(Window& window);

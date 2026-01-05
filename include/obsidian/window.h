@@ -99,6 +99,17 @@ public:
      */
     void* getNativeHandle() const;
     
+    /**
+     * Set window content (convenience method)
+     * This is a convenience method that calls addToWindow on the component
+     * @tparam T Component type (VStack, HStack, etc.)
+     * @param component Component to set as window content
+     */
+    template<typename T>
+    void setContent(T& component) {
+        component.addToWindow(*this);
+    }
+    
     // Non-copyable
     Window(const Window&) = delete;
     Window& operator=(const Window&) = delete;

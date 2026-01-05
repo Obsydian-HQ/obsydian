@@ -9,8 +9,13 @@
 
 #ifdef __APPLE__
 
+#ifdef __cplusplus
 #include <cstdint>
 #include <string>
+#else
+#include <stdint.h>
+#include <stdbool.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {

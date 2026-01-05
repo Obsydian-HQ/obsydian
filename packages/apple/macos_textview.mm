@@ -28,6 +28,10 @@
 - (bool)isVisible;
 - (void)setEnabled:(bool)enabled;
 - (bool)isEnabled;
+- (void)setFontSize:(double)size;
+- (double)fontSize;
+- (void)setFontWeightValue:(int)weight;
+- (int)fontWeightValue;
 - (void)addToWindow:(void*)windowHandle;
 - (void)removeFromParent;
 
@@ -54,6 +58,87 @@
         NSString* textStr = [NSString stringWithUTF8String:text];
         [_textView setString:textStr];
     }
+}
+
+- (void)setFontSize:(double)size {
+    if (_textView && size > 0) {
+        NSFont* currentFont = [_textView font];
+        if (!currentFont) {
+            currentFont = [NSFont systemFontOfSize:size];
+        } else {
+            currentFont = [NSFont fontWithName:currentFont.fontName size:size];
+        }
+        if (currentFont) {
+            [_textView setFont:currentFont];
+        }
+    }
+}
+
+- (double)fontSize {
+    if (_textView) {
+        NSFont* font = [_textView font];
+        if (font) {
+            return font.pointSize;
+        }
+    }
+    return 0.0;
+}
+
+- (void)setFontWeightValue:(int)weight {
+    if (_textView) {
+        double size = [self fontSize];
+        if (size <= 0) {
+            size = 13.0; // Default size
+        }
+        
+        NSFont* font = nil;
+        switch (weight) {
+            case 1: // Bold
+                font = [NSFont boldSystemFontOfSize:size];
+                break;
+            case 2: // Semibold
+                font = [NSFont systemFontOfSize:size weight:NSFontWeightSemibold];
+                break;
+            case 3: // Medium
+                font = [NSFont systemFontOfSize:size weight:NSFontWeightMedium];
+                break;
+            case 4: // Light
+                font = [NSFont systemFontOfSize:size weight:NSFontWeightLight];
+                break;
+            case 5: // Thin
+                font = [NSFont systemFontOfSize:size weight:NSFontWeightThin];
+                break;
+            case 0: // Regular
+            default:
+                font = [NSFont systemFontOfSize:size];
+                break;
+        }
+        
+        if (font) {
+            [_textView setFont:font];
+        }
+    }
+}
+
+- (int)fontWeightValue {
+    if (_textView) {
+        NSFont* font = [_textView font];
+        if (font) {
+            NSFontDescriptor* descriptor = font.fontDescriptor;
+            NSDictionary* traits = [descriptor objectForKey:NSFontTraitsAttribute];
+            NSNumber* weightNumber = [traits objectForKey:NSFontWeightTrait];
+            if (weightNumber) {
+                CGFloat weight = [weightNumber floatValue];
+                // Map NSFontWeight to our enum
+                if (weight >= 0.6) return 1; // Bold
+                if (weight >= 0.4) return 2; // Semibold
+                if (weight >= 0.23) return 3; // Medium
+                if (weight >= 0.0) return 0; // Regular
+                return 0;
+            }
+        }
+    }
+    return 0; // Regular
 }
 
 - (const char*)getString {
@@ -90,19 +175,6 @@
     return false;
 }
 
-- (void)setVisible:(bool)visible {
-    if (_textView) {
-        [_textView setHidden:!visible];
-    }
-}
-
-- (bool)isVisible {
-    if (_textView) {
-        return ![_textView isHidden];
-    }
-    return false;
-}
-
 - (void)setEnabled:(bool)enabled {
     if (_textView) {
         [_textView setEditable:enabled];
@@ -118,6 +190,19 @@
         // NSTextView doesn't have isEnabled, so we check if it's editable
         // This is a reasonable proxy for "enabled" state
         return [_textView isEditable];
+    }
+    return false;
+}
+
+- (void)setVisible:(bool)visible {
+    if (_textView) {
+        [_textView setHidden:!visible];
+    }
+}
+
+- (bool)isVisible {
+    if (_textView) {
+        return ![_textView isHidden];
     }
     return false;
 }
@@ -310,6 +395,42 @@ void* obsidian_macos_textview_get_view_handle(ObsidianTextViewHandle handle) {
         }
     }
     return nullptr;
+}
+
+void obsidian_macos_textview_set_font_size(ObsidianTextViewHandle handle, double size) {
+    if (!handle) return;
+    
+    @autoreleasepool {
+        ObsidianTextViewWrapper* wrapper = (__bridge ObsidianTextViewWrapper*)handle;
+        [wrapper setFontSize:size];
+    }
+}
+
+double obsidian_macos_textview_get_font_size(ObsidianTextViewHandle handle) {
+    if (!handle) return 0.0;
+    
+    @autoreleasepool {
+        ObsidianTextViewWrapper* wrapper = (__bridge ObsidianTextViewWrapper*)handle;
+        return [wrapper fontSize];
+    }
+}
+
+void obsidian_macos_textview_set_font_weight(ObsidianTextViewHandle handle, ObsidianFontWeight weight) {
+    if (!handle) return;
+    
+    @autoreleasepool {
+        ObsidianTextViewWrapper* wrapper = (__bridge ObsidianTextViewWrapper*)handle;
+        [wrapper setFontWeightValue:(int)weight];
+    }
+}
+
+ObsidianFontWeight obsidian_macos_textview_get_font_weight(ObsidianTextViewHandle handle) {
+    if (!handle) return ObsidianFontWeightRegular;
+    
+    @autoreleasepool {
+        ObsidianTextViewWrapper* wrapper = (__bridge ObsidianTextViewWrapper*)handle;
+        return (ObsidianFontWeight)[wrapper fontWeightValue];
+    }
 }
 
 } // extern "C"

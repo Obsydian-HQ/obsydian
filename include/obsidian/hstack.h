@@ -21,6 +21,7 @@ class TextField;
 class TextView;
 class Spacer;
 class Link;
+class VStack;
 
 /**
  * HStack class - Horizontal stack layout container
@@ -94,6 +95,21 @@ public:
     void addChild(Spacer& spacer);
     
     /**
+     * Add a text view as a child
+     */
+    void addChild(TextView& textView);
+    
+    /**
+     * Add a VStack as a child (nesting support)
+     */
+    void addChild(VStack& vstack);
+    
+    /**
+     * Add an HStack as a child (nesting support)
+     */
+    void addChild(HStack& hstack);
+    
+    /**
      * Remove a button child
      */
     void removeChild(Button& button);
@@ -107,6 +123,21 @@ public:
      * Remove a spacer child
      */
     void removeChild(Spacer& spacer);
+    
+    /**
+     * Remove a text view child
+     */
+    void removeChild(TextView& textView);
+    
+    /**
+     * Remove a VStack child
+     */
+    void removeChild(VStack& vstack);
+    
+    /**
+     * Remove an HStack child
+     */
+    void removeChild(HStack& hstack);
     
     /**
      * Clear all children

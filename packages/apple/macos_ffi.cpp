@@ -464,6 +464,32 @@ bool TextView::isEnabled() const {
     return obsidian_macos_textview_is_enabled(handle_);
 }
 
+void TextView::setFontSize(double size) {
+    if (handle_) {
+        obsidian_macos_textview_set_font_size(handle_, size);
+    }
+}
+
+double TextView::getFontSize() const {
+    if (!handle_) {
+        return 0.0;
+    }
+    return obsidian_macos_textview_get_font_size(handle_);
+}
+
+void TextView::setFontWeight(int weight) {
+    if (handle_) {
+        obsidian_macos_textview_set_font_weight(handle_, (ObsidianFontWeight)weight);
+    }
+}
+
+int TextView::getFontWeight() const {
+    if (!handle_) {
+        return 0;
+    }
+    return (int)obsidian_macos_textview_get_font_weight(handle_);
+}
+
 void TextView::addToWindow(Window& window) {
     if (handle_ && window.isValid()) {
         void* windowHandle = window.getHandle();

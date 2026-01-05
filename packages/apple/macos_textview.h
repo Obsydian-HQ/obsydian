@@ -117,6 +117,46 @@ bool obsidian_macos_textview_is_valid(ObsidianTextViewHandle handle);
  */
 void* obsidian_macos_textview_get_view_handle(ObsidianTextViewHandle handle);
 
+/**
+ * Font weight enumeration (matches C++ FontWeight enum)
+ */
+typedef enum {
+    ObsidianFontWeightRegular = 0,
+    ObsidianFontWeightBold = 1,
+    ObsidianFontWeightSemibold = 2,
+    ObsidianFontWeightMedium = 3,
+    ObsidianFontWeightLight = 4,
+    ObsidianFontWeightThin = 5
+} ObsidianFontWeight;
+
+/**
+ * Set font size
+ * @param handle Text view handle
+ * @param size Font size in points
+ */
+void obsidian_macos_textview_set_font_size(ObsidianTextViewHandle handle, double size);
+
+/**
+ * Get font size
+ * @param handle Text view handle
+ * @return Font size in points, or 0.0 if invalid
+ */
+double obsidian_macos_textview_get_font_size(ObsidianTextViewHandle handle);
+
+/**
+ * Set font weight
+ * @param handle Text view handle
+ * @param weight Font weight
+ */
+void obsidian_macos_textview_set_font_weight(ObsidianTextViewHandle handle, ObsidianFontWeight weight);
+
+/**
+ * Get font weight
+ * @param handle Text view handle
+ * @return Font weight, or Regular if invalid
+ */
+ObsidianFontWeight obsidian_macos_textview_get_font_weight(ObsidianTextViewHandle handle);
+
 #ifdef __cplusplus
 }
 #endif

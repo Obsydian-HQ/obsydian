@@ -73,4 +73,38 @@ inline void registerLayout(const std::string& path,
     }
 }
 
+/**
+ * Macro to register a route component
+ * 
+ * Usage:
+ * ```cpp
+ * void renderRoute(RouteContext& ctx) { ... }
+ * REGISTER_ROUTE("/about", renderRoute);
+ * ```
+ */
+#define REGISTER_ROUTE(path, component) \
+    static bool _registered_route_##component = []() { \
+        if (g_router) { \
+            registerRoute(path, component); \
+        } \
+        return true; \
+    }()
+
+/**
+ * Macro to register a layout component
+ * 
+ * Usage:
+ * ```cpp
+ * void renderLayout(RouteContext& ctx, std::function<void()> renderChild) { ... }
+ * REGISTER_LAYOUT("/", renderLayout);
+ * ```
+ */
+#define REGISTER_LAYOUT(path, layout) \
+    static bool _registered_layout_##layout = []() { \
+        if (g_router) { \
+            registerLayout(path, layout); \
+        } \
+        return true; \
+    }()
+
 } // namespace obsidian

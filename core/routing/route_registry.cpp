@@ -74,22 +74,26 @@ void RouteRegistry::addRouteFile(const RouteFile& routeFile) {
         const std::string& segment = segments[i];
         bool isLast = (i == segments.size() - 1);
         
+        // Find or create child node
+        RouteNode* child = findOrCreateNode(current, segment);
+        
         if (isLast && routeFile.type == RouteFileType::Layout) {
-            // This is a layout file - mark the current node
-            current->hasLayout = true;
-            current->layoutFile = routeFile;
-        } else {
-            // Find or create child node
-            RouteNode* child = findOrCreateNode(current, segment);
-            
-            if (isLast) {
-                // Set route file for the final node
-                child->routeFile = routeFile;
-                child->fullPath = routeFile.routePath;
-            }
-            
-            current = child;
+            // This is a layout file - mark the child node (not current)
+            child->hasLayout = true;
+            child->layoutFile = routeFile;
+        } else if (isLast) {
+            // Set route file for the final node
+            child->routeFile = routeFile;
+            child->fullPath = routeFile.routePath;
         }
+        
+        current = child;
+    }
+    
+    // Handle root layout (routePath == "/" or empty)
+    if (segments.empty() && routeFile.type == RouteFileType::Layout) {
+        current->hasLayout = true;
+        current->layoutFile = routeFile;
     }
 }
 
