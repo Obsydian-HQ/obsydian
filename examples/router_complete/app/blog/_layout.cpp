@@ -8,9 +8,6 @@
 using namespace obsidian;
 
 void renderBlogLayout(RouteContext& ctx, std::function<void()> renderChild) {
-    Window& window = ctx.getWindow();
-    
-    // Use a single VStack for the layout (can't nest VStack/HStack)
     VStack layout;
     layout.setSpacing(20.0);
     layout.setPadding(Padding::all(20.0));
@@ -28,11 +25,11 @@ void renderBlogLayout(RouteContext& ctx, std::function<void()> renderChild) {
     post2Link.create("/blog/post-2", "Post 2", 0, 0, 120, 30);
     layout.addChild(post2Link);
     
-    // Add layout to window
-    layout.addToWindow(window);
-    
-    // Render child route content
+    // Render child route content first
     renderChild();
+    
+    // Add layout to screen/window
+    ctx.setContent(layout);
 }
 
 // Register layout using function call (macro doesn't exist)

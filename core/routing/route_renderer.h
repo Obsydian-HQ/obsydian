@@ -17,6 +17,8 @@ namespace obsidian {
     class Window;
     class RouteContext;
     class Router;
+    class ScreenContainer;
+    class Screen;
 }
 
 namespace obsidian::routing {
@@ -62,6 +64,7 @@ public:
      * Render a route
      * @param routeNode Route node to render
      * @param window Window to render into
+     * @param screenContainer Screen container for managing route views
      * @param router Router instance for navigation
      * @param params Route parameters
      * @param query Query parameters
@@ -69,6 +72,7 @@ public:
      */
     bool renderRoute(const RouteNode* routeNode,
                      obsidian::Window& window,
+                     obsidian::ScreenContainer* screenContainer,
                      obsidian::Router& router,
                      const std::map<std::string, std::string>& params,
                      const std::map<std::string, std::string>& query);
@@ -105,6 +109,7 @@ private:
      * Render route with layout nesting
      * @param routeNode Route node to render
      * @param window Window to render into
+     * @param screen Screen to render into (owned by ScreenContainer)
      * @param router Router instance
      * @param params Route parameters
      * @param query Query parameters
@@ -113,6 +118,7 @@ private:
      */
     bool renderRouteWithLayouts(const RouteNode* routeNode,
                                 obsidian::Window& window,
+                                obsidian::Screen* screen,
                                 obsidian::Router& router,
                                 const std::map<std::string, std::string>& params,
                                 const std::map<std::string, std::string>& query,

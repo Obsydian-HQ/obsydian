@@ -237,10 +237,6 @@
     if (contentViewPtr) {
         NSView* contentView = (__bridge NSView*)contentViewPtr;
         [contentView addSubview:_containerView];
-        
-        // Pin container view to content view edges (will be overridden by user constraints if needed)
-        // But for now, we'll let the user manage container view constraints
-        // The container view should be constrained by whoever adds it to the window
     }
 }
 
@@ -349,6 +345,19 @@ void obsidian_macos_destroy_vstack(ObsidianVStackHandle handle) {
         // Remove from parent and clean up children
         [wrapper removeFromParent];
         // wrapper is automatically released due to __bridge_transfer
+    }
+}
+
+void obsidian_macos_release_vstack_handle(ObsidianVStackHandle handle) {
+    if (!handle) return;
+    
+    @autoreleasepool {
+        // Release our reference to the wrapper without removing from parent.
+        // The containerView stays in the view hierarchy (retained by superview).
+        // This is used when the C++ VStack is destroyed but we want the native
+        // view to remain visible (e.g., in route rendering).
+        (void)(__bridge_transfer ObsidianVStackWrapper*)handle;
+        // wrapper is released but containerView stays in superview
     }
 }
 

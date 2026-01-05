@@ -301,6 +301,15 @@ void obsidian_macos_destroy_link(ObsidianLinkHandle handle) {
     }
 }
 
+void obsidian_macos_release_link_handle(ObsidianLinkHandle handle) {
+    if (!handle) return;
+    
+    @autoreleasepool {
+        // Release our reference without removing from parent
+        (void)(__bridge_transfer ObsidianLinkWrapper*)handle;
+    }
+}
+
 bool obsidian_macos_link_is_valid(ObsidianLinkHandle handle) {
     if (!handle) return false;
     

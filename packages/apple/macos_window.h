@@ -182,6 +182,15 @@ void obsidian_macos_window_set_min_size(ObsidianWindowHandle handle, double minW
  */
 void obsidian_macos_window_get_min_size(ObsidianWindowHandle handle, double* outWidth, double* outHeight);
 
+/**
+ * Clear all subviews from the window's content view.
+ * This removes all child views from contentView, effectively clearing the window content.
+ * Used by the router to clear old content before rendering new routes.
+ * 
+ * @param handle Window handle
+ */
+void obsidian_macos_window_clear_content(ObsidianWindowHandle handle);
+
 #ifdef __cplusplus
 }
 #endif

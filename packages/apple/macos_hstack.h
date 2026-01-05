@@ -77,9 +77,15 @@ void obsidian_macos_hstack_add_to_window(ObsidianHStackHandle hstackHandle,
 void obsidian_macos_hstack_remove_from_parent(ObsidianHStackHandle handle);
 
 /**
- * Destroy the HStack container
+ * Destroy the HStack container and remove from parent
  */
 void obsidian_macos_destroy_hstack(ObsidianHStackHandle handle);
+
+/**
+ * Release the HStack handle WITHOUT removing from parent.
+ * The container view stays in the view hierarchy (retained by superview).
+ */
+void obsidian_macos_release_hstack_handle(ObsidianHStackHandle handle);
 
 /**
  * Check if HStack handle is valid

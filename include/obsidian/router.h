@@ -18,6 +18,8 @@ namespace obsidian {
 // Forward declarations
 class Window;
 class RouteContext;
+class ScreenContainer;
+class Screen;
 
 /**
  * Router class
@@ -168,6 +170,7 @@ private:
 class RouteContext {
 public:
     RouteContext(Window& window, 
+                Screen* screen,
                 const std::string& path,
                 const std::map<std::string, std::string>& params,
                 const std::map<std::string, std::string>& query,
@@ -177,6 +180,13 @@ public:
      * Get the window for rendering
      */
     Window& getWindow() const;
+    
+    /**
+     * Get the screen for this route (owned by ScreenContainer)
+     * Content added to this screen persists until explicitly cleared.
+     * Returns nullptr if no screen is set.
+     */
+    Screen* getScreen() const;
     
     /**
      * Get the current route path
@@ -217,9 +227,24 @@ public:
      * Check if forward navigation is possible
      */
     bool canGoForward() const;
+    
+    /**
+     * Set content for the current route
+     * Uses screen if available (router-managed), falls back to window
+     * The component must have addToScreen(Screen&) and addToWindow(Window&) methods
+     */
+    template<typename T>
+    void setContent(T& component) {
+        if (screen_) {
+            component.addToScreen(*screen_);
+        } else {
+            component.addToWindow(window_);
+        }
+    }
 
 private:
     Window& window_;
+    Screen* screen_;
     std::string path_;
     std::map<std::string, std::string> params_;
     std::map<std::string, std::string> query_;

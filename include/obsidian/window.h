@@ -110,6 +110,13 @@ public:
         component.addToWindow(*this);
     }
     
+    /**
+     * Clear all content from the window
+     * This removes all subviews from the content view.
+     * Used by the router to clear old content before rendering new routes.
+     */
+    void clearContent();
+    
     // Non-copyable
     Window(const Window&) = delete;
     Window& operator=(const Window&) = delete;

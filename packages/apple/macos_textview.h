@@ -106,6 +106,12 @@ void obsidian_macos_textview_remove_from_parent(ObsidianTextViewHandle handle);
 void obsidian_macos_destroy_textview(ObsidianTextViewHandle handle);
 
 /**
+ * Release the text view handle WITHOUT removing from parent.
+ * The text view stays in the view hierarchy (retained by superview).
+ */
+void obsidian_macos_release_textview_handle(ObsidianTextViewHandle handle);
+
+/**
  * Check if text view handle is valid
  */
 bool obsidian_macos_textview_is_valid(ObsidianTextViewHandle handle);

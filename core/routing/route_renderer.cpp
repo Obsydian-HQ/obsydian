@@ -5,6 +5,7 @@
 #include "route_renderer.h"
 #include "obsidian/router.h"
 #include "obsidian/window.h"
+#include "obsidian/screen_container.h"
 #include <iostream>
 #include <sstream>
 
@@ -77,6 +78,7 @@ std::string RouteRenderer::buildPathFromNode(const RouteNode* routeNode) const {
 
 bool RouteRenderer::renderRoute(const RouteNode* routeNode,
                                 obsidian::Window& window,
+                                obsidian::ScreenContainer* screenContainer,
                                 obsidian::Router& router,
                                 const std::map<std::string, std::string>& params,
                                 const std::map<std::string, std::string>& query) {
@@ -85,11 +87,33 @@ bool RouteRenderer::renderRoute(const RouteNode* routeNode,
         return false;
     }
     
-    return renderRouteWithLayouts(routeNode, window, router, params, query, "");
+    // Get route path for screen lookup
+    std::string routePath = buildPathFromNode(routeNode);
+    
+    // Get or create screen for this route
+    obsidian::Screen* screen = nullptr;
+    if (screenContainer) {
+        screen = screenContainer->getOrCreateScreen(routePath);
+        if (screen) {
+            // Clear previous content
+            screen->clear();
+        }
+    }
+    
+    // Render into screen
+    bool result = renderRouteWithLayouts(routeNode, window, screen, router, params, query, "");
+    
+    // Set screen as active (makes it visible)
+    if (screenContainer && screen) {
+        screenContainer->setActiveScreen(screen);
+    }
+    
+    return result;
 }
 
 bool RouteRenderer::renderRouteWithLayouts(const RouteNode* routeNode,
                                           obsidian::Window& window,
+                                          obsidian::Screen* screen,
                                           obsidian::Router& router,
                                           const std::map<std::string, std::string>& params,
                                           const std::map<std::string, std::string>& query,
@@ -108,8 +132,8 @@ bool RouteRenderer::renderRouteWithLayouts(const RouteNode* routeNode,
         return false;
     }
     
-    // Create RouteContext
-    obsidian::RouteContext ctx(window, routePath, params, query, router);
+    // Create RouteContext with screen for rendering
+    obsidian::RouteContext ctx(window, screen, routePath, params, query, router);
     
     // Collect layouts in parent hierarchy (outermost to innermost)
     // First check if the route node itself has a layout

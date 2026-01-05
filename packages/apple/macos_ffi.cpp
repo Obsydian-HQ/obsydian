@@ -376,7 +376,9 @@ TextView::TextView() : handle_(nullptr) {}
 
 TextView::~TextView() {
     if (handle_) {
-        obsidian_macos_destroy_textview(handle_);
+        // Use release_handle instead of destroy to keep the view in hierarchy
+        // The view is removed when the window clears content or explicitly removed
+        obsidian_macos_release_textview_handle(handle_);
         handle_ = nullptr;
     }
 }

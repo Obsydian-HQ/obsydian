@@ -200,4 +200,18 @@ void obsidian_macos_window_update_constraints(ObsidianWindowHandle /* handle */)
     // No-op - legacy function
 }
 
+void obsidian_macos_window_clear_content(ObsidianWindowHandle handle) {
+    if (!handle) return;
+    @autoreleasepool {
+        NSView* contentView = ((__bridge ObsidianWindowWrapper*)handle).window.contentView;
+        if (contentView) {
+            // Remove all subviews from content view
+            NSArray* subviews = [contentView.subviews copy];
+            for (NSView* subview in subviews) {
+                [subview removeFromSuperview];
+            }
+        }
+    }
+}
+
 }

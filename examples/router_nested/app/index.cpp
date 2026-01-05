@@ -8,7 +8,6 @@
 using namespace obsidian;
 
 void renderHomeRoute(RouteContext& ctx) {
-    Window& window = ctx.getWindow();
     
     VStack content;
     content.setSpacing(20.0);
@@ -25,7 +24,7 @@ void renderHomeRoute(RouteContext& ctx) {
     description.setFontSize(14.0);
     content.addChild(description);
     
-    window.setContent(content);
+    ctx.setContent(content);
 }
 
 REGISTER_ROUTE("/", renderHomeRoute);

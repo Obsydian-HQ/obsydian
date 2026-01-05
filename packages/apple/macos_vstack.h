@@ -84,9 +84,17 @@ void obsidian_macos_vstack_add_to_window(ObsidianVStackHandle vstackHandle,
 void obsidian_macos_vstack_remove_from_parent(ObsidianVStackHandle handle);
 
 /**
- * Destroy the VStack container
+ * Destroy the VStack container and remove from parent
  */
 void obsidian_macos_destroy_vstack(ObsidianVStackHandle handle);
+
+/**
+ * Release the VStack handle WITHOUT removing from parent.
+ * The container view stays in the view hierarchy (retained by superview).
+ * Use this when the C++ VStack object is destroyed but the native view
+ * should remain visible (e.g., route components on the stack).
+ */
+void obsidian_macos_release_vstack_handle(ObsidianVStackHandle handle);
 
 /**
  * Check if VStack handle is valid

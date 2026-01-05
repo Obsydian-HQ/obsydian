@@ -9,7 +9,6 @@
 using namespace obsidian;
 
 void renderProductRoute(RouteContext& ctx) {
-    Window& window = ctx.getWindow();
     
     VStack content;
     content.setSpacing(20.0);
@@ -60,7 +59,7 @@ void renderProductRoute(RouteContext& ctx) {
     backLink.create("/products", "Back to Products", 0, 0, 150, 30);
     content.addChild(backLink);
     
-    window.setContent(content);
+    ctx.setContent(content);
 }
 
 REGISTER_ROUTE("/products/:id", renderProductRoute);

@@ -4,6 +4,7 @@
 
 #include "obsidian/router.h"
 #include "obsidian/window.h"
+#include "obsidian/screen_container.h"
 #include "obsidian/route_registry_helper.h"  // For processPendingRegistrations
 #include "core/routing/route_scanner.h"
 #include "core/routing/route_registry.h"
@@ -31,6 +32,7 @@ public:
     NavigationHistory history;
     RouteRenderer renderer;
     Window* window = nullptr;
+    std::unique_ptr<ScreenContainer> screenContainer;
     std::function<void(const std::string& path)> onNavigation;
     std::string currentPath;
     bool valid = false;
@@ -131,7 +133,7 @@ void Router::navigate(const std::string& path, const std::map<std::string, std::
     
     // Render route component
     if (pImpl->window) {
-        pImpl->renderer.renderRoute(routeNode, *pImpl->window, *this, routeParams, query);
+        pImpl->renderer.renderRoute(routeNode, *pImpl->window, pImpl->screenContainer.get(), *this, routeParams, query);
     }
 }
 
@@ -159,7 +161,7 @@ void Router::goBack() {
         if (pImpl->window) {
             auto* routeNode = pImpl->registry.matchRoute(entry->path, const_cast<std::map<std::string, std::string>&>(entry->params));
             if (routeNode) {
-                pImpl->renderer.renderRoute(routeNode, *pImpl->window, *this, entry->params, entry->query);
+                pImpl->renderer.renderRoute(routeNode, *pImpl->window, pImpl->screenContainer.get(), *this, entry->params, entry->query);
             }
         }
     }
@@ -189,7 +191,7 @@ void Router::goForward() {
         if (pImpl->window) {
             auto* routeNode = pImpl->registry.matchRoute(entry->path, const_cast<std::map<std::string, std::string>&>(entry->params));
             if (routeNode) {
-                pImpl->renderer.renderRoute(routeNode, *pImpl->window, *this, entry->params, entry->query);
+                pImpl->renderer.renderRoute(routeNode, *pImpl->window, pImpl->screenContainer.get(), *this, entry->params, entry->query);
             }
         }
     }
@@ -231,7 +233,7 @@ void Router::replace(const std::string& path) {
     
     // Render route component
     if (pImpl->window) {
-        pImpl->renderer.renderRoute(routeNode, *pImpl->window, *this, routeParams, query);
+        pImpl->renderer.renderRoute(routeNode, *pImpl->window, pImpl->screenContainer.get(), *this, routeParams, query);
     }
 }
 
@@ -283,6 +285,12 @@ int Router::getHistorySize() const {
 
 void Router::setWindow(Window& window) {
     pImpl->window = &window;
+    
+    // Initialize ScreenContainer and attach to window
+    if (!pImpl->screenContainer) {
+        pImpl->screenContainer = std::make_unique<ScreenContainer>();
+        pImpl->screenContainer->attachToWindow(window);
+    }
     
 #ifdef __APPLE__
     // Initialize macOS router integration if not already done
@@ -346,14 +354,19 @@ void Router::registerLayoutComponent(const std::string& routePath,
 
 // RouteContext implementation
 RouteContext::RouteContext(Window& window,
+                          Screen* screen,
                           const std::string& path,
                           const std::map<std::string, std::string>& params,
                           const std::map<std::string, std::string>& query,
                           Router& router)
-    : window_(window), path_(path), params_(params), query_(query), router_(router) {}
+    : window_(window), screen_(screen), path_(path), params_(params), query_(query), router_(router) {}
 
 Window& RouteContext::getWindow() const {
     return window_;
+}
+
+Screen* RouteContext::getScreen() const {
+    return screen_;
 }
 
 const std::string& RouteContext::getPath() const {

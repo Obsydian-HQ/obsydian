@@ -16,6 +16,7 @@
 #include <functional>
 #include <vector>
 #include <string>
+#include <iostream>
 
 namespace obsidian {
 
@@ -94,19 +95,24 @@ inline void registerLayout(const std::string& path,
  */
 inline void processPendingRegistrations() {
     if (!g_router) {
+        std::cerr << "[RegistryHelper] processPendingRegistrations: g_router is null!" << std::endl;
         return;
     }
     
     // Process pending route registrations
     auto& pendingRoutes = getPendingRoutes();
+    std::cerr << "[RegistryHelper] Processing " << pendingRoutes.size() << " pending routes" << std::endl;
     for (const auto& pending : pendingRoutes) {
+        std::cerr << "[RegistryHelper] Registering route: " << pending.path << std::endl;
         g_router->registerRouteComponent(pending.path, pending.component);
     }
     pendingRoutes.clear();
     
     // Process pending layout registrations
     auto& pendingLayouts = getPendingLayouts();
+    std::cerr << "[RegistryHelper] Processing " << pendingLayouts.size() << " pending layouts" << std::endl;
     for (const auto& pending : pendingLayouts) {
+        std::cerr << "[RegistryHelper] Registering layout: " << pending.path << std::endl;
         g_router->registerLayoutComponent(pending.path, pending.layout);
     }
     pendingLayouts.clear();

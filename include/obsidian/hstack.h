@@ -22,6 +22,7 @@ class TextView;
 class Spacer;
 class Link;
 class VStack;
+class Screen;
 
 /**
  * HStack class - Horizontal stack layout container
@@ -145,13 +146,25 @@ public:
     void clearChildren();
     
     /**
-     * Window integration
+     * View integration
      */
     
     /**
      * Add HStack to a window's content view
      */
     void addToWindow(Window& window);
+    
+    /**
+     * Add HStack to a screen (for router-managed views)
+     * The screen owns the view after this call
+     */
+    void addToScreen(Screen& screen);
+    
+    /**
+     * Add HStack to an arbitrary parent view (low-level API)
+     * @param parentView Native view handle (NSView* on macOS)
+     */
+    void addToParentView(void* parentView);
     
     /**
      * Remove HStack from its parent view

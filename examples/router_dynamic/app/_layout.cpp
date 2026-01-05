@@ -8,7 +8,6 @@
 using namespace obsidian;
 
 void renderRootLayout(RouteContext& ctx, std::function<void()> renderChild) {
-    Window& window = ctx.getWindow();
     
     VStack layout;
     layout.setSpacing(20.0);
@@ -47,7 +46,7 @@ void renderRootLayout(RouteContext& ctx, std::function<void()> renderChild) {
     // Render child route content
     renderChild();
     
-    window.setContent(layout);
+    ctx.setContent(layout);
 }
 
 REGISTER_LAYOUT("/", renderRootLayout);

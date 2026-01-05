@@ -8,7 +8,6 @@
 using namespace obsidian;
 
 void renderAdminRoute(RouteContext& ctx) {
-    Window& window = ctx.getWindow();
     
     VStack content;
     content.setSpacing(20.0);
@@ -45,7 +44,7 @@ void renderAdminRoute(RouteContext& ctx) {
     
     content.addChild(adminFeatures);
     
-    window.setContent(content);
+    ctx.setContent(content);
 }
 
 REGISTER_ROUTE("/admin", renderAdminRoute);

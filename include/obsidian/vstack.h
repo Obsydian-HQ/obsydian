@@ -21,6 +21,7 @@ class TextView;
 class Spacer;
 class Link;
 class HStack;
+class Screen;
 
 /**
  * Padding structure for layout containers
@@ -175,13 +176,25 @@ public:
     void clearChildren();
     
     /**
-     * Window integration
+     * View integration
      */
     
     /**
      * Add VStack to a window's content view
      */
     void addToWindow(Window& window);
+    
+    /**
+     * Add VStack to a screen (for router-managed views)
+     * The screen owns the view after this call
+     */
+    void addToScreen(Screen& screen);
+    
+    /**
+     * Add VStack to an arbitrary parent view (low-level API)
+     * @param parentView Native view handle (NSView* on macOS)
+     */
+    void addToParentView(void* parentView);
     
     /**
      * Remove VStack from its parent view

@@ -369,6 +369,16 @@ void obsidian_macos_destroy_textview(ObsidianTextViewHandle handle) {
         
         // Clear the text view reference
         wrapper.textView = nil;
+    }
+}
+
+void obsidian_macos_release_textview_handle(ObsidianTextViewHandle handle) {
+    if (!handle) return;
+    
+    @autoreleasepool {
+        // Release our reference to the wrapper without removing from parent.
+        // The textView stays in the view hierarchy (retained by superview).
+        (void)(__bridge_transfer ObsidianTextViewWrapper*)handle;
         
         // ARC will handle cleanup of the wrapper when it goes out of scope
     }

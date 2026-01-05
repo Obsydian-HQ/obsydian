@@ -7,6 +7,7 @@
 
 #include "obsidian/vstack.h"
 #include "obsidian/window.h"
+#include "obsidian/screen_container.h"
 #include "obsidian/button.h"
 #include "obsidian/link.h"
 #include "obsidian/spacer.h"
@@ -23,6 +24,7 @@
 #include "macos_vstack.h"  // For VStack FFI
 #include "macos_layout_ffi.h"  // For layout constraints
 #include "macos_layout.h"  // For ObsidianLayoutAttribute
+#include "macos_screen_container.h"  // For Screen FFI
 #endif
 
 // Include layout engine
@@ -149,10 +151,25 @@ VStack::VStack() : pImpl(std::make_unique<Impl>()) {}
 
 VStack::~VStack() {
     if (pImpl && pImpl->valid) {
-        removeFromParent();
+        // NOTE: We do NOT call removeFromParent() here.
+        // The native view should remain in the view hierarchy until:
+        // 1. The window's content is explicitly cleared (e.g., by router navigation)
+        // 2. The user explicitly calls removeFromParent()
+        // 
+        // This allows VStacks created on the stack (local variables in route functions)
+        // to remain visible after the function returns. The router clears old content
+        // before rendering new routes.
+        //
+        // The native handle is released but the NSView stays in the superview hierarchy
+        // (the superview retains it). This is the standard AppKit ownership model.
 #ifdef __APPLE__
+        // Clear constraints to avoid dangling references
+        pImpl->clearConstraints();
+        pImpl->clearContainerConstraints();
+        // Release our handle but do NOT remove from parent
         if (pImpl->vstackHandle) {
-            obsidian_macos_destroy_vstack(pImpl->vstackHandle);
+            // Use release_handle which doesn't remove from parent
+            obsidian_macos_release_vstack_handle(pImpl->vstackHandle);
             pImpl->vstackHandle = nullptr;
         }
 #endif
@@ -762,6 +779,109 @@ void VStack::addToWindow(Window& window) {
     // In macOS 15+, layout is computed more lazily, and the window may resize
     // based on contentView's fittingSize. We must explicitly update constraints.
     obsidian_macos_window_update_constraints(windowHandle);
+#endif
+}
+
+void VStack::addToScreen(Screen& screen) {
+    if (!pImpl) {
+        return;
+    }
+    
+    void* screenContentView = screen.getNativeHandle();
+    if (screenContentView) {
+        addToParentView(screenContentView);
+    }
+}
+
+void VStack::addToParentView(void* parentView) {
+    if (!pImpl || !parentView) {
+        return;
+    }
+    
+#ifdef __APPLE__
+    // Initialize VStack if not already created
+    if (!pImpl->valid) {
+        ObsidianVStackParams params;
+        pImpl->vstackHandle = obsidian_macos_create_vstack(params);
+        if (!pImpl->vstackHandle) {
+            return;
+        }
+        pImpl->valid = true;
+    }
+    
+    // Get the VStack's view
+    void* vstackView = obsidian_macos_vstack_get_view(pImpl->vstackHandle);
+    if (!vstackView) {
+        return;
+    }
+    
+    // Add VStack view to parent
+    obsidian_macos_screen_add_subview(parentView, vstackView);
+    pImpl->parentView = parentView;
+    
+    // Set padding and spacing on the custom container view
+    obsidian_macos_vstack_set_padding(pImpl->vstackHandle,
+                                       pImpl->padding.top, pImpl->padding.bottom,
+                                       pImpl->padding.leading, pImpl->padding.trailing);
+    obsidian_macos_vstack_set_spacing(pImpl->vstackHandle, pImpl->spacing);
+    
+    // Update layout for children
+    updateLayout();
+    
+    // Force immediate layout pass
+    obsidian_macos_vstack_request_layout_update(pImpl->vstackHandle);
+    
+    // Create container constraints to pin to parent
+    void* containerView = vstackView;
+    
+    // For screens, pin to all edges to fill the screen
+    ObsidianLayoutConstraintParams leadingParams;
+    leadingParams.firstView = containerView;
+    leadingParams.firstAttribute = ObsidianLayoutAttributeLeading;
+    leadingParams.relation = ObsidianLayoutRelationEqual;
+    leadingParams.secondView = parentView;
+    leadingParams.secondAttribute = ObsidianLayoutAttributeLeading;
+    leadingParams.multiplier = 1.0;
+    leadingParams.constant = 0.0;
+    leadingParams.priority = 1000.0;
+    pImpl->containerLeadingConstraint.create(leadingParams);
+    pImpl->containerLeadingConstraint.activate();
+    
+    ObsidianLayoutConstraintParams trailingParams;
+    trailingParams.firstView = containerView;
+    trailingParams.firstAttribute = ObsidianLayoutAttributeTrailing;
+    trailingParams.relation = ObsidianLayoutRelationEqual;
+    trailingParams.secondView = parentView;
+    trailingParams.secondAttribute = ObsidianLayoutAttributeTrailing;
+    trailingParams.multiplier = 1.0;
+    trailingParams.constant = 0.0;
+    trailingParams.priority = 1000.0;
+    pImpl->containerTrailingConstraint.create(trailingParams);
+    pImpl->containerTrailingConstraint.activate();
+    
+    ObsidianLayoutConstraintParams topParams;
+    topParams.firstView = containerView;
+    topParams.firstAttribute = ObsidianLayoutAttributeTop;
+    topParams.relation = ObsidianLayoutRelationEqual;
+    topParams.secondView = parentView;
+    topParams.secondAttribute = ObsidianLayoutAttributeTop;
+    topParams.multiplier = 1.0;
+    topParams.constant = 0.0;
+    topParams.priority = 1000.0;
+    pImpl->containerTopConstraint.create(topParams);
+    pImpl->containerTopConstraint.activate();
+    
+    ObsidianLayoutConstraintParams bottomParams;
+    bottomParams.firstView = containerView;
+    bottomParams.firstAttribute = ObsidianLayoutAttributeBottom;
+    bottomParams.relation = ObsidianLayoutRelationEqual;
+    bottomParams.secondView = parentView;
+    bottomParams.secondAttribute = ObsidianLayoutAttributeBottom;
+    bottomParams.multiplier = 1.0;
+    bottomParams.constant = 0.0;
+    bottomParams.priority = 1000.0;
+    pImpl->containerBottomConstraint.create(bottomParams);
+    pImpl->containerBottomConstraint.activate();
 #endif
 }
 

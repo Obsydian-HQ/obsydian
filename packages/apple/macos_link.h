@@ -98,6 +98,11 @@ void obsidian_macos_link_remove_from_parent(ObsidianLinkHandle handle);
 void obsidian_macos_destroy_link(ObsidianLinkHandle handle);
 
 /**
+ * Release the link handle WITHOUT removing from parent.
+ */
+void obsidian_macos_release_link_handle(ObsidianLinkHandle handle);
+
+/**
  * Check if link handle is valid
  */
 bool obsidian_macos_link_is_valid(ObsidianLinkHandle handle);

@@ -8,7 +8,6 @@
 using namespace obsidian;
 
 void renderBlogPostRoute(RouteContext& ctx) {
-    Window& window = ctx.getWindow();
     
     VStack content;
     content.setSpacing(20.0);
@@ -46,7 +45,7 @@ void renderBlogPostRoute(RouteContext& ctx) {
     backLink.create("/blog", "Back to Blog", 0, 0, 150, 30);
     content.addChild(backLink);
     
-    window.setContent(content);
+    ctx.setContent(content);
 }
 
 REGISTER_ROUTE("/blog/:slug", renderBlogPostRoute);

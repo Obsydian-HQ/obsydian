@@ -78,7 +78,9 @@ public:
     void cleanup() {
 #ifdef __APPLE__
         if (macosLinkHandle) {
-            obsidian_macos_destroy_link(macosLinkHandle);
+            // Use release_handle instead of destroy to keep the view in hierarchy
+            // The view is removed when the window clears content
+            obsidian_macos_release_link_handle(macosLinkHandle);
             macosLinkHandle = nullptr;
         }
 #endif

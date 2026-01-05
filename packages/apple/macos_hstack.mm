@@ -345,6 +345,16 @@ void obsidian_macos_destroy_hstack(ObsidianHStackHandle handle) {
     }
 }
 
+void obsidian_macos_release_hstack_handle(ObsidianHStackHandle handle) {
+    if (!handle) return;
+    
+    @autoreleasepool {
+        // Release our reference to the wrapper without removing from parent.
+        // The containerView stays in the view hierarchy (retained by superview).
+        (void)(__bridge_transfer ObsidianHStackWrapper*)handle;
+    }
+}
+
 bool obsidian_macos_hstack_is_valid(ObsidianHStackHandle handle) {
     if (!handle) return false;
     

@@ -8,8 +8,6 @@
 using namespace obsidian;
 
 void renderContactRoute(RouteContext& ctx) {
-    Window& window = ctx.getWindow();
-    
     VStack content;
     content.setSpacing(20.0);
     content.setPadding(Padding::all(20.0));
@@ -25,7 +23,7 @@ void renderContactRoute(RouteContext& ctx) {
     description.setFontSize(14.0);
     content.addChild(description);
     
-    window.setContent(content);
+    ctx.setContent(content);
 }
 
 REGISTER_ROUTE("/contact", renderContactRoute);

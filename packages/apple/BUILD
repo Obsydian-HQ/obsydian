@@ -38,6 +38,7 @@ cc_library(
         "macos_toolbar.h",
         "macos_router.h",
         "macos_link.h",
+        "macos_screen_container.h",
     ],
     aspect_hints = [":apple_c_headers_interop"],
     copts = ["-std=c++20"],
@@ -71,6 +72,7 @@ objc_library(
         "macos_toolbar.mm",
         "macos_router.mm",
         "macos_link.mm",
+        "macos_screen_container.mm",
     ],
     hdrs = [
         "macos_button.h",
@@ -95,6 +97,7 @@ objc_library(
         "macos_toolbar.h",
         "macos_router.h",
         "macos_link.h",
+        "macos_screen_container.h",
     ],
     copts = [
         "-std=c++20",

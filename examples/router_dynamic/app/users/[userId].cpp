@@ -9,7 +9,6 @@
 using namespace obsidian;
 
 void renderUserRoute(RouteContext& ctx) {
-    Window& window = ctx.getWindow();
     
     VStack content;
     content.setSpacing(20.0);
@@ -42,7 +41,7 @@ void renderUserRoute(RouteContext& ctx) {
     backLink.create("/users", "Back to Users", 0, 0, 150, 30);
     content.addChild(backLink);
     
-    window.setContent(content);
+    ctx.setContent(content);
 }
 
 REGISTER_ROUTE("/users/:userId", renderUserRoute);

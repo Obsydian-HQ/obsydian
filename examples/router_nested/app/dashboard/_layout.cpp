@@ -8,7 +8,6 @@
 using namespace obsidian;
 
 void renderDashboardLayout(RouteContext& ctx, std::function<void()> renderChild) {
-    Window& window = ctx.getWindow();
     
     HStack layout;
     layout.setSpacing(20.0);
@@ -45,7 +44,7 @@ void renderDashboardLayout(RouteContext& ctx, std::function<void()> renderChild)
     
     layout.addChild(content);
     
-    window.setContent(layout);
+    ctx.setContent(layout);
 }
 
 REGISTER_LAYOUT("/dashboard", renderDashboardLayout);

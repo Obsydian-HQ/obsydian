@@ -8,9 +8,7 @@
 using namespace obsidian;
 
 void renderRootLayout(RouteContext& ctx, std::function<void()> renderChild) {
-    Window& window = ctx.getWindow();
-    
-    // Use a single VStack for the layout (can't nest VStack/HStack)
+    // Use a single VStack for the layout
     VStack layout;
     layout.setSpacing(20.0);
     layout.setPadding(Padding::all(30.0));
@@ -28,11 +26,11 @@ void renderRootLayout(RouteContext& ctx, std::function<void()> renderChild) {
     adminLink.create("/admin", "Admin", 0, 0, 80, 30);
     layout.addChild(adminLink);
     
-    // Add layout to window first
-    layout.addToWindow(window);
-    
-    // Render child route content (this will add its own content to the window)
+    // Render child route content first
     renderChild();
+    
+    // Add layout to screen/window
+    ctx.setContent(layout);
 }
 
 // Register layout using function call (macro doesn't exist)
