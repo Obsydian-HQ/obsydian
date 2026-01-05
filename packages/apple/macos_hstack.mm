@@ -155,10 +155,8 @@
         // Disable autoresizing mask - we'll use Auto Layout
         [_containerView setTranslatesAutoresizingMaskIntoConstraints:NO];
         
-        // Set background color to visualize padding area (light blue to differentiate from VStack)
-        [_containerView setWantsLayer:YES];
-        NSColor* containerColor = [NSColor colorWithCalibratedRed:0.3 green:0.5 blue:0.7 alpha:0.9];
-        [_containerView.layer setBackgroundColor:[containerColor CGColor]];
+        // HStack should be transparent (no background) - it's just a layout container
+        // No background color set - container is transparent by default
     }
     return self;
 }

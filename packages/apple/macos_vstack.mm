@@ -161,10 +161,8 @@
         // Disable autoresizing mask - we'll use Auto Layout
         [_containerView setTranslatesAutoresizingMaskIntoConstraints:NO];
         
-        // Set background color to visualize padding area (light green/cyan to differentiate from window)
-        [_containerView setWantsLayer:YES];
-        NSColor* containerColor = [NSColor colorWithCalibratedRed:0.2 green:0.6 blue:0.5 alpha:0.9];
-        [_containerView.layer setBackgroundColor:[containerColor CGColor]];
+        // VStack should be transparent (no background) - it's just a layout container
+        // No background color set - container is transparent by default
     }
     return self;
 }
