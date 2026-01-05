@@ -1,9 +1,3 @@
-/**
- * macOS SplitViewItem FFI - Objective-C++ Implementation
- * 
- * Based on legend-music's SidebarSplitView.swift - copy the pattern exactly.
- */
-
 #import "macos_splitviewitem.h"
 #import "macos_viewcontroller.h"
 #import <AppKit/AppKit.h>
@@ -24,7 +18,6 @@
 
 @end
 
-// C interface
 extern "C" {
 
 ObsidianSplitViewItemHandle obsidian_macos_splitviewitem_sidebar_with_viewcontroller(void* viewControllerHandle) {
@@ -36,7 +29,6 @@ ObsidianSplitViewItemHandle obsidian_macos_splitviewitem_sidebar_with_viewcontro
         NSViewController* vc = (__bridge NSViewController*)vcPtr;
         NSSplitViewItem* item = [NSSplitViewItem sidebarWithViewController:vc];
         
-        // Configure like legend-music does
         if (@available(macOS 11.0, *)) {
             [item setAllowsFullHeightLayout:YES];
             [item setTitlebarSeparatorStyle:NSTitlebarSeparatorStyleNone];
@@ -59,7 +51,6 @@ ObsidianSplitViewItemHandle obsidian_macos_splitviewitem_content_list_with_viewc
         NSViewController* vc = (__bridge NSViewController*)vcPtr;
         NSSplitViewItem* item = [NSSplitViewItem contentListWithViewController:vc];
         
-        // Configure like legend-music does
         if (@available(macOS 11.0, *)) {
             [item setAllowsFullHeightLayout:YES];
         }
@@ -197,17 +188,10 @@ void obsidian_macos_splitviewitem_set_titlebar_separator_style(ObsidianSplitView
         if (@available(macOS 11.0, *)) {
             NSSplitViewItem* item = ((__bridge ObsidianSplitViewItemWrapper*)handle).splitViewItem;
             switch (style) {
-                case ObsidianTitlebarSeparatorStyleNone:
-                    item.titlebarSeparatorStyle = NSTitlebarSeparatorStyleNone;
-                    break;
-                case ObsidianTitlebarSeparatorStyleLine:
-                    item.titlebarSeparatorStyle = NSTitlebarSeparatorStyleLine;
-                    break;
-                case ObsidianTitlebarSeparatorStyleShadow:
-                    item.titlebarSeparatorStyle = NSTitlebarSeparatorStyleShadow;
-                    break;
-                default:
-                    item.titlebarSeparatorStyle = NSTitlebarSeparatorStyleAutomatic;
+                case ObsidianTitlebarSeparatorStyleNone: item.titlebarSeparatorStyle = NSTitlebarSeparatorStyleNone; break;
+                case ObsidianTitlebarSeparatorStyleLine: item.titlebarSeparatorStyle = NSTitlebarSeparatorStyleLine; break;
+                case ObsidianTitlebarSeparatorStyleShadow: item.titlebarSeparatorStyle = NSTitlebarSeparatorStyleShadow; break;
+                default: item.titlebarSeparatorStyle = NSTitlebarSeparatorStyleAutomatic;
             }
         }
     }
@@ -234,14 +218,11 @@ void obsidian_macos_splitviewitem_set_collapse_behavior(ObsidianSplitViewItemHan
         NSSplitViewItem* item = ((__bridge ObsidianSplitViewItemWrapper*)handle).splitViewItem;
         switch (behavior) {
             case ObsidianCollapseBehaviorPreferResizingSplitViewWithFixedSiblings:
-                item.collapseBehavior = NSSplitViewItemCollapseBehaviorPreferResizingSplitViewWithFixedSiblings;
-                break;
+                item.collapseBehavior = NSSplitViewItemCollapseBehaviorPreferResizingSplitViewWithFixedSiblings; break;
             case ObsidianCollapseBehaviorPreferResizingSiblingsWithFixedSplitView:
-                item.collapseBehavior = NSSplitViewItemCollapseBehaviorPreferResizingSiblingsWithFixedSplitView;
-                break;
+                item.collapseBehavior = NSSplitViewItemCollapseBehaviorPreferResizingSiblingsWithFixedSplitView; break;
             case ObsidianCollapseBehaviorUseConstraints:
-                item.collapseBehavior = NSSplitViewItemCollapseBehaviorUseConstraints;
-                break;
+                item.collapseBehavior = NSSplitViewItemCollapseBehaviorUseConstraints; break;
             default:
                 item.collapseBehavior = NSSplitViewItemCollapseBehaviorDefault;
         }
@@ -292,4 +273,4 @@ void obsidian_macos_destroy_splitviewitem(ObsidianSplitViewItemHandle handle) {
     }
 }
 
-} // extern "C"
+}

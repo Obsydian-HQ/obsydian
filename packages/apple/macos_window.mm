@@ -1,9 +1,3 @@
-/**
- * macOS Window FFI - Objective-C++ Implementation
- * 
- * Based on real macOS app patterns (legend-music, etc.)
- */
-
 #import "macos_window.h"
 #import <AppKit/AppKit.h>
 
@@ -17,7 +11,6 @@
     self = [super init];
     if (self) {
         NSRect contentRect = NSMakeRect(0, 0, params.width, params.height);
-        // Include fullSizeContentView from the start - this is what real apps do
         NSWindowStyleMask styleMask = NSWindowStyleMaskTitled | 
                                      NSWindowStyleMaskClosable | 
                                      NSWindowStyleMaskResizable | 
@@ -42,7 +35,6 @@
 
 @end
 
-// C interface
 extern "C" {
 
 ObsidianWindowHandle obsidian_macos_create_window(ObsidianWindowParams params) {
@@ -177,20 +169,16 @@ void obsidian_macos_window_configure_for_sidebar(ObsidianWindowHandle handle) {
     if (!handle) return;
     @autoreleasepool {
         NSWindow* window = ((__bridge ObsidianWindowWrapper*)handle).window;
-        // Ensure fullSizeContentView is set
         if (!([window styleMask] & NSWindowStyleMaskFullSizeContentView)) {
             [window setStyleMask:[window styleMask] | NSWindowStyleMaskFullSizeContentView];
         }
-        // Hide title for clean sidebar look
         [window setTitleVisibility:NSWindowTitleHidden];
-        // Make titlebar transparent so sidebar extends into titlebar area
         [window setTitlebarAppearsTransparent:YES];
     }
 }
 
-// Empty stub - this was a workaround that's no longer needed
 void obsidian_macos_window_update_constraints(ObsidianWindowHandle handle) {
-    // No-op
+    // No-op - legacy function
 }
 
-} // extern "C"
+}

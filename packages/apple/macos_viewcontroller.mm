@@ -1,12 +1,3 @@
-/**
- * macOS ViewController FFI - Objective-C++ Implementation
- * 
- * Based on legend-music's SidebarSplitView.swift pattern:
- * - Simple container view as the view controller's view
- * - Container has autoresizingMask for resizing
- * - Content added as subview with autoresizingMask
- */
-
 #import "macos_viewcontroller.h"
 #import <AppKit/AppKit.h>
 
@@ -22,11 +13,8 @@
     self = [super init];
     if (self) {
         _viewController = [[NSViewController alloc] init];
-        
-        // Create container view - exactly like legend-music does
         _container = [[NSView alloc] init];
         [_container setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
-        
         [_viewController setView:_container];
     }
     return self;
@@ -37,14 +25,11 @@
     
     NSView* view = (__bridge NSView*)viewHandle;
     
-    // Remove old content
     if (_content) {
         [_content removeFromSuperview];
     }
     
     _content = view;
-    
-    // Add to container with autoresizingMask - exactly like legend-music
     [view setFrame:_container.bounds];
     [view setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
     [_container addSubview:view];
@@ -53,22 +38,17 @@
 - (void)configureForSidebar {
     if (!_content) return;
     
-    // Make scroll view / table view transparent for sidebar vibrancy
     [self makeTransparent:_content];
     
-    // Wrap content in NSVisualEffectView
     NSVisualEffectView* vibrancy = [[NSVisualEffectView alloc] initWithFrame:_container.bounds];
     [vibrancy setMaterial:NSVisualEffectMaterialSidebar];
     [vibrancy setBlendingMode:NSVisualEffectBlendingModeBehindWindow];
     [vibrancy setState:NSVisualEffectStateFollowsWindowActiveState];
     [vibrancy setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
     
-    // Move content into vibrancy view
     [_content removeFromSuperview];
     [_content setFrame:vibrancy.bounds];
     [vibrancy addSubview:_content];
-    
-    // Add vibrancy to container
     [_container addSubview:vibrancy];
 }
 
@@ -94,7 +74,6 @@
 
 @end
 
-// C interface
 extern "C" {
 
 ObsidianViewControllerHandle obsidian_macos_create_viewcontroller(ObsidianViewControllerParams params) {
@@ -162,4 +141,4 @@ void obsidian_macos_destroy_viewcontroller(ObsidianViewControllerHandle handle) 
     }
 }
 
-} // extern "C"
+}

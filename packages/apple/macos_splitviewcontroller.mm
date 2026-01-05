@@ -1,9 +1,3 @@
-/**
- * macOS SplitViewController FFI - Objective-C++ Implementation
- * 
- * Based on legend-music's SidebarSplitView.swift - copy the pattern exactly.
- */
-
 #import "macos_splitviewcontroller.h"
 #import "macos_splitviewitem.h"
 #import "macos_window.h"
@@ -19,12 +13,8 @@
     self = [super init];
     if (self) {
         _splitViewController = [[NSSplitViewController alloc] init];
-        
-        // Configure exactly like legend-music does in setupSplitView()
         [_splitViewController.splitView setVertical:YES];
         [_splitViewController.splitView setDividerStyle:NSSplitViewDividerStyleThin];
-        
-        // Set autoresizingMask on the split view controller's view
         [_splitViewController.view setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
     }
     return self;
@@ -52,7 +42,6 @@
 
 @end
 
-// C interface
 extern "C" {
 
 ObsidianSplitViewControllerHandle obsidian_macos_create_splitviewcontroller(ObsidianSplitViewControllerParams params) {
@@ -90,16 +79,9 @@ void obsidian_macos_splitviewcontroller_add_to_window(ObsidianSplitViewControlle
         NSWindow* window = (__bridge NSWindow*)obsidian_macos_window_get_nswindow(windowHandle);
         if (!window) return;
         
-        // Get window content size BEFORE setting content view controller
         NSSize contentSize = [[window contentView] frame].size;
-        
-        // Set content view controller
         [window setContentViewController:w.splitViewController];
-        
-        // Force window back to original size - setContentViewController may have resized it
         [window setContentSize:contentSize];
-        
-        // Force layout
         [w.splitViewController.splitView adjustSubviews];
         [w.splitViewController.view layoutSubtreeIfNeeded];
     }
@@ -127,4 +109,4 @@ void obsidian_macos_destroy_splitviewcontroller(ObsidianSplitViewControllerHandl
     }
 }
 
-} // extern "C"
+}

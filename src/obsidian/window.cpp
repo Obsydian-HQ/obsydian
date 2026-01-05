@@ -121,7 +121,7 @@ bool Window::setupToolbarForSidebar() {
     obsidian_macos_window_set_toolbar(windowHandle, nsToolbarHandle);
     
     // Set unified compact style for sidebar integration (like CodeEdit)
-    obsidian_macos_window_set_toolbar_style(windowHandle, ObsidianWindowToolbarStyleUnifiedCompact);
+    obsidian_macos_window_set_toolbar_style(windowHandle, ObsidianWindowToolbarStyleUnified);
     
     // CRITICAL: Set window titlebar separator style to automatic
     // This allows the system to determine the separator based on the split view items
