@@ -97,6 +97,12 @@ public:
      */
     bool isValid() const;
     
+    /**
+     * Get the native view handle (for internal use by layout system)
+     * @return Platform-specific native view handle, or nullptr if invalid
+     */
+    void* getNativeViewHandle() const;
+    
     // Non-copyable
     Button(const Button&) = delete;
     Button& operator=(const Button&) = delete;

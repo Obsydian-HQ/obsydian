@@ -160,9 +160,6 @@
         
         // Disable autoresizing mask - we'll use Auto Layout
         [_containerView setTranslatesAutoresizingMaskIntoConstraints:NO];
-        
-        // VStack should be transparent (no background) - it's just a layout container
-        // No background color set - container is transparent by default
     }
     return self;
 }

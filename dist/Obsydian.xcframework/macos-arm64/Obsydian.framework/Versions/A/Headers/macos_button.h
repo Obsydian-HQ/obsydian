@@ -105,6 +105,13 @@ void obsidian_macos_destroy_button(ObsidianButtonHandle handle);
  */
 bool obsidian_macos_button_is_valid(ObsidianButtonHandle handle);
 
+/**
+ * Get the underlying NSView from a button handle
+ * Returns the NSButton* view (which is a subclass of NSView)
+ * This is for internal use by other FFI bindings (e.g., layout constraints)
+ */
+void* obsidian_macos_button_get_view(ObsidianButtonHandle handle);
+
 #ifdef __cplusplus
 }
 #endif

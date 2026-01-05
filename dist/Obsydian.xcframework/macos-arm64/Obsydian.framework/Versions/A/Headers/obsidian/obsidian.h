@@ -35,6 +35,10 @@
 #include "obsidian/list.h"
 #include "obsidian/process.h"
 #include "obsidian/process_list.h"
+#include "obsidian/vstack.h"
+#include "obsidian/hstack.h"
+#include "obsidian/zstack.h"
+#include "obsidian/spacer.h"
 
 /**
  * @namespace obsidian
