@@ -1,7 +1,7 @@
 /**
  * Obsidian Public API - Link Implementation
  * 
- * This file implements the public Link API by wrapping a Button
+ * This file implements the public Link API by wrapping any child component
  * and handling navigation through the Router.
  */
 
@@ -10,16 +10,38 @@
 #include "obsidian/route_registry_helper.h"
 #include "obsidian/window.h"
 #include "obsidian/button.h"
+#include "obsidian/textview.h"
+#include "obsidian/vstack.h"
+#include "obsidian/hstack.h"
+#include "obsidian/zstack.h"
+
+#ifdef __APPLE__
+#include "packages/apple/macos_link.h"
+#endif
 
 namespace obsidian {
 
 class Link::Impl {
 public:
-    Button button;
     std::string href;
     Router* router = nullptr;
     std::function<void()> onClickCallback;
     bool valid = false;
+    
+    // Child component reference (one of these will be set)
+    Button* buttonChild = nullptr;
+    TextView* textViewChild = nullptr;
+    VStack* vstackChild = nullptr;
+    HStack* hstackChild = nullptr;
+    // ZStack support deferred - needs getNativeViewHandle() method
+    
+    // For legacy text-based API
+    Button internalButton;
+    
+    // macOS Link FFI handle
+#ifdef __APPLE__
+    ObsidianLinkHandle macosLinkHandle = nullptr;
+#endif
     
     void handleClick() {
         // Call user callback if set
@@ -32,6 +54,36 @@ public:
             router->navigate(href);
         }
     }
+    
+    void* getChildNativeViewHandle() const {
+        if (buttonChild && buttonChild->isValid()) {
+            return buttonChild->getNativeViewHandle();
+        }
+        if (textViewChild && textViewChild->isValid()) {
+            return textViewChild->getNativeHandle();
+        }
+        if (vstackChild && vstackChild->isValid()) {
+            return vstackChild->getNativeViewHandle();
+        }
+        if (hstackChild && hstackChild->isValid()) {
+            return hstackChild->getNativeViewHandle();
+        }
+        // ZStack support deferred
+        if (internalButton.isValid()) {
+            return internalButton.getNativeViewHandle();
+        }
+        return nullptr;
+    }
+    
+    void cleanup() {
+#ifdef __APPLE__
+        if (macosLinkHandle) {
+            obsidian_macos_destroy_link(macosLinkHandle);
+            macosLinkHandle = nullptr;
+        }
+#endif
+        valid = false;
+    }
 };
 
 Link::Link() : pImpl(std::make_unique<Impl>()) {
@@ -43,34 +95,190 @@ Link::Link(Link&&) noexcept = default;
 Link& Link::operator=(Link&&) noexcept = default;
 
 Link::~Link() {
-    if (pImpl && pImpl->valid) {
-        pImpl->valid = false;
+    if (pImpl) {
+        pImpl->cleanup();
     }
 }
 
-bool Link::create(const std::string& href, const std::string& text, int x, int y, int width, int height) {
+// Create with Button child
+bool Link::create(const std::string& href, Button& child) {
     if (pImpl->valid) {
         return false; // Already created
     }
     
-    pImpl->href = href;
+    if (!child.isValid()) {
+        return false; // Child must be valid
+    }
     
-    // Create internal button
-    if (!pImpl->button.create(text, x, y, width, height)) {
+    pImpl->href = href;
+    pImpl->buttonChild = &child;
+    
+#ifdef __APPLE__
+    void* childView = child.getNativeViewHandle();
+    if (!childView) {
         return false;
     }
     
-    // Set button click handler to navigate
-    pImpl->button.setOnClick([this]() {
-        pImpl->handleClick();
-    });
+    ObsidianLinkParams params;
+    params.href = href.c_str();
+    params.childView = childView;
+    
+    pImpl->macosLinkHandle = obsidian_macos_create_link(params);
+    if (!pImpl->macosLinkHandle) {
+        return false;
+    }
+    
+    // Set click handler
+    obsidian_macos_link_set_on_click(pImpl->macosLinkHandle, [](void* userData) {
+        Link::Impl* impl = static_cast<Link::Impl*>(userData);
+        impl->handleClick();
+    }, pImpl.get());
+#endif
     
     pImpl->valid = true;
     return true;
 }
 
+// Create with TextView child
+bool Link::create(const std::string& href, TextView& child) {
+    if (pImpl->valid) {
+        return false;
+    }
+    
+    if (!child.isValid()) {
+        return false;
+    }
+    
+    pImpl->href = href;
+    pImpl->textViewChild = &child;
+    
+#ifdef __APPLE__
+    void* childView = child.getNativeHandle();
+    if (!childView) {
+        return false;
+    }
+    
+    ObsidianLinkParams params;
+    params.href = href.c_str();
+    params.childView = childView;
+    
+    pImpl->macosLinkHandle = obsidian_macos_create_link(params);
+    if (!pImpl->macosLinkHandle) {
+        return false;
+    }
+    
+    obsidian_macos_link_set_on_click(pImpl->macosLinkHandle, [](void* userData) {
+        Link::Impl* impl = static_cast<Link::Impl*>(userData);
+        impl->handleClick();
+    }, pImpl.get());
+#endif
+    
+    pImpl->valid = true;
+    return true;
+}
+
+// Create with VStack child
+bool Link::create(const std::string& href, VStack& child) {
+    if (pImpl->valid) {
+        return false;
+    }
+    
+    if (!child.isValid()) {
+        return false;
+    }
+    
+    pImpl->href = href;
+    pImpl->vstackChild = &child;
+    
+#ifdef __APPLE__
+    void* childView = child.getNativeViewHandle();
+    if (!childView) {
+        return false;
+    }
+    
+    ObsidianLinkParams params;
+    params.href = href.c_str();
+    params.childView = childView;
+    
+    pImpl->macosLinkHandle = obsidian_macos_create_link(params);
+    if (!pImpl->macosLinkHandle) {
+        return false;
+    }
+    
+    obsidian_macos_link_set_on_click(pImpl->macosLinkHandle, [](void* userData) {
+        Link::Impl* impl = static_cast<Link::Impl*>(userData);
+        impl->handleClick();
+    }, pImpl.get());
+#endif
+    
+    pImpl->valid = true;
+    return true;
+}
+
+// Create with HStack child
+bool Link::create(const std::string& href, HStack& child) {
+    if (pImpl->valid) {
+        return false;
+    }
+    
+    if (!child.isValid()) {
+        return false;
+    }
+    
+    pImpl->href = href;
+    pImpl->hstackChild = &child;
+    
+#ifdef __APPLE__
+    void* childView = child.getNativeViewHandle();
+    if (!childView) {
+        return false;
+    }
+    
+    ObsidianLinkParams params;
+    params.href = href.c_str();
+    params.childView = childView;
+    
+    pImpl->macosLinkHandle = obsidian_macos_create_link(params);
+    if (!pImpl->macosLinkHandle) {
+        return false;
+    }
+    
+    obsidian_macos_link_set_on_click(pImpl->macosLinkHandle, [](void* userData) {
+        Link::Impl* impl = static_cast<Link::Impl*>(userData);
+        impl->handleClick();
+    }, pImpl.get());
+#endif
+    
+    pImpl->valid = true;
+    return true;
+}
+
+// ZStack support deferred - ZStack needs getNativeViewHandle() method first
+
+// Legacy API: Create with text (creates Button internally)
+bool Link::create(const std::string& href, const std::string& text, int x, int y, int width, int height) {
+    if (pImpl->valid) {
+        return false;
+    }
+    
+    pImpl->href = href;
+    
+    // Create internal button
+    if (!pImpl->internalButton.create(text, x, y, width, height)) {
+        return false;
+    }
+    
+    // Use the Button create method
+    return create(href, pImpl->internalButton);
+}
+
 void Link::setHref(const std::string& href) {
     pImpl->href = href;
+#ifdef __APPLE__
+    if (pImpl->macosLinkHandle) {
+        obsidian_macos_link_set_href(pImpl->macosLinkHandle, href.c_str());
+    }
+#endif
 }
 
 std::string Link::getHref() const {
@@ -81,14 +289,21 @@ void Link::setText(const std::string& text) {
     if (!pImpl->valid) {
         return;
     }
-    pImpl->button.setTitle(text);
+    // Only works with legacy text-based API (internal button)
+    if (pImpl->internalButton.isValid()) {
+        pImpl->internalButton.setTitle(text);
+    }
 }
 
 std::string Link::getText() const {
     if (!pImpl->valid) {
         return std::string();
     }
-    return pImpl->button.getTitle();
+    // Only works with legacy text-based API (internal button)
+    if (pImpl->internalButton.isValid()) {
+        return pImpl->internalButton.getTitle();
+    }
+    return std::string();
 }
 
 void Link::setOnClick(std::function<void()> callback) {
@@ -99,14 +314,23 @@ void Link::addToWindow(Window& window) {
     if (!pImpl->valid || !window.isValid()) {
         return;
     }
-    pImpl->button.addToWindow(window);
+#ifdef __APPLE__
+    if (pImpl->macosLinkHandle) {
+        void* windowHandle = window.getNativeHandle();
+        obsidian_macos_link_add_to_window(pImpl->macosLinkHandle, windowHandle);
+    }
+#endif
 }
 
 void Link::removeFromParent() {
     if (!pImpl->valid) {
         return;
     }
-    pImpl->button.removeFromParent();
+#ifdef __APPLE__
+    if (pImpl->macosLinkHandle) {
+        obsidian_macos_link_remove_from_parent(pImpl->macosLinkHandle);
+    }
+#endif
 }
 
 void Link::setRouter(Router* router) {
@@ -117,28 +341,46 @@ void Link::setVisible(bool visible) {
     if (!pImpl->valid) {
         return;
     }
-    pImpl->button.setVisible(visible);
+#ifdef __APPLE__
+    if (pImpl->macosLinkHandle) {
+        obsidian_macos_link_set_visible(pImpl->macosLinkHandle, visible);
+    }
+#endif
 }
 
 bool Link::isVisible() const {
     if (!pImpl->valid) {
         return false;
     }
-    return pImpl->button.isVisible();
+#ifdef __APPLE__
+    if (pImpl->macosLinkHandle) {
+        return obsidian_macos_link_is_visible(pImpl->macosLinkHandle);
+    }
+#endif
+    return false;
 }
 
 void Link::setEnabled(bool enabled) {
     if (!pImpl->valid) {
         return;
     }
-    pImpl->button.setEnabled(enabled);
+#ifdef __APPLE__
+    if (pImpl->macosLinkHandle) {
+        obsidian_macos_link_set_enabled(pImpl->macosLinkHandle, enabled);
+    }
+#endif
 }
 
 bool Link::isEnabled() const {
     if (!pImpl->valid) {
         return false;
     }
-    return pImpl->button.isEnabled();
+#ifdef __APPLE__
+    if (pImpl->macosLinkHandle) {
+        return obsidian_macos_link_is_enabled(pImpl->macosLinkHandle);
+    }
+#endif
+    return false;
 }
 
 bool Link::isValid() const {
@@ -149,7 +391,12 @@ void* Link::getNativeViewHandle() const {
     if (!pImpl->valid) {
         return nullptr;
     }
-    return pImpl->button.getNativeViewHandle();
+#ifdef __APPLE__
+    if (pImpl->macosLinkHandle) {
+        return obsidian_macos_link_get_view(pImpl->macosLinkHandle);
+    }
+#endif
+    return nullptr;
 }
 
 } // namespace obsidian

@@ -140,6 +140,9 @@ cc_test(
     size = "large",  # GUI tests may take longer
     srcs = ["macos_router_test.cpp"],
     copts = ["-std=c++20"],
+    data = [
+        "//test_apps/route_scanner_test:app",
+    ],
     tags = [
         "manual",  # Don't run automatically in CI
         "requires-gui",  # Mark as requiring GUI - will be skipped in headless CI

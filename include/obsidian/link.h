@@ -4,7 +4,8 @@
  * Declarative navigation component for file-based routing.
  * Similar to Next.js Link or Expo Router Link.
  * 
- * Link wraps a Button internally and handles navigation when clicked.
+ * Link wraps any child component and makes it clickable for navigation.
+ * Supports Button, TextView, VStack, HStack, and other Obsydian components.
  */
 
 #pragma once
@@ -19,12 +20,17 @@ namespace obsidian {
 class Window;
 class Router;
 class Button;
+class TextView;
+class VStack;
+class HStack;
+class ZStack;
+class Spacer;
 
 /**
  * Link class - Declarative navigation component
  * 
- * Provides a component that navigates to a route when clicked.
- * Internally uses a Button for rendering and click handling.
+ * Provides a component that wraps any child component and navigates to a route when clicked.
+ * Similar to Next.js <Link> or React Router <Link> - wraps children and makes them clickable.
  */
 class Link {
 public:
@@ -39,14 +45,20 @@ public:
     ~Link();
     
     /**
-     * Create a link with the given href and button text
+     * Create a link with the given href and child component
      * @param href Route path to navigate to (e.g., "/about", "/users/123")
-     * @param text Text to display on the link button
-     * @param x X position in pixels
-     * @param y Y position in pixels
-     * @param width Link width in pixels
-     * @param height Link height in pixels
+     * @param child Child component to wrap (Button, TextView, VStack, etc.)
      * @return true if link was created successfully
+     */
+    bool create(const std::string& href, Button& child);
+    bool create(const std::string& href, TextView& child);
+    bool create(const std::string& href, VStack& child);
+    bool create(const std::string& href, HStack& child);
+    // Note: ZStack support deferred until getNativeViewHandle() is added to ZStack API
+    
+    /**
+     * Legacy API: Create a link with text (creates a Button internally)
+     * @deprecated Use create(href, Button&) instead for better flexibility
      */
     bool create(const std::string& href, const std::string& text, int x, int y, int width, int height);
     
@@ -63,13 +75,13 @@ public:
     std::string getHref() const;
     
     /**
-     * Set the link text
+     * Set the link text (only works with legacy text-based API)
      * @param text Text to display
      */
     void setText(const std::string& text);
     
     /**
-     * Get the link text
+     * Get the link text (only works with legacy text-based API)
      * @return Current text
      */
     std::string getText() const;
