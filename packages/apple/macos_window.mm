@@ -52,9 +52,9 @@
         }
         
         // Set minimum and maximum content size for window resizing
-        // Minimum size allows testing resize behavior while keeping content visible
-        // 300x300 is a reasonable minimum for most UI content
-        NSSize minSize = NSMakeSize(300, 300);
+        // Use the initial window size as minimum to prevent shrinking below creation size
+        // This ensures the window maintains at least its initial dimensions
+        NSSize minSize = NSMakeSize(params.width, params.height);
         NSSize maxSize = NSMakeSize(FLT_MAX, FLT_MAX);
         [_window setContentMinSize:minSize];
         [_window setContentMaxSize:maxSize];
@@ -73,7 +73,72 @@
 
 - (void)show {
     if (_window) {
+        // DEBUG: Log window state before showing
+        NSRect beforeShowFrame = [_window frame];
+        NSRect beforeShowContentRect = [_window contentRectForFrameRect:beforeShowFrame];
+        NSSize beforeContentMinSize = [_window contentMinSize];
+        NSLog(@"DEBUG: Before makeKeyAndOrderFront: - Frame: (%.0f, %.0f, %.0f, %.0f), Content: (%.0f, %.0f, %.0f, %.0f)",
+              beforeShowFrame.origin.x, beforeShowFrame.origin.y, beforeShowFrame.size.width, beforeShowFrame.size.height,
+              beforeShowContentRect.origin.x, beforeShowContentRect.origin.y, beforeShowContentRect.size.width, beforeShowContentRect.size.height);
+        NSLog(@"DEBUG: - contentMinSize: (%.0f, %.0f)", beforeContentMinSize.width, beforeContentMinSize.height);
+        
+        // DEBUG: Check if there's a content view controller
+        NSViewController* contentViewController = [_window contentViewController];
+        if (contentViewController) {
+            NSView* contentView = [contentViewController view];
+            NSSize vcPreferredSize = [contentViewController preferredContentSize];
+            NSSize vcViewIntrinsicSize = contentView ? [contentView intrinsicContentSize] : NSMakeSize(0, 0);
+            NSLog(@"DEBUG: - Content view controller preferredContentSize: (%.0f, %.0f)", vcPreferredSize.width, vcPreferredSize.height);
+            if (contentView) {
+                NSLog(@"DEBUG: - Content view controller view intrinsicContentSize: (%.0f, %.0f)", vcViewIntrinsicSize.width, vcViewIntrinsicSize.height);
+                NSLog(@"DEBUG: - Content view controller view frame: (%.0f, %.0f, %.0f, %.0f)",
+                      contentView.frame.origin.x, contentView.frame.origin.y, contentView.frame.size.width, contentView.frame.size.height);
+            }
+        }
+        
         [_window makeKeyAndOrderFront:nil];
+        
+        // DEBUG: Log window state immediately after makeKeyAndOrderFront:
+        NSRect afterShowFrame = [_window frame];
+        NSRect afterShowContentRect = [_window contentRectForFrameRect:afterShowFrame];
+        NSLog(@"DEBUG: After makeKeyAndOrderFront: - Frame: (%.0f, %.0f, %.0f, %.0f), Content: (%.0f, %.0f, %.0f, %.0f)",
+              afterShowFrame.origin.x, afterShowFrame.origin.y, afterShowFrame.size.width, afterShowFrame.size.height,
+              afterShowContentRect.origin.x, afterShowContentRect.origin.y, afterShowContentRect.size.width, afterShowContentRect.size.height);
+        
+        // If the window was resized, restore it asynchronously to let macOS finish its internal operations
+        if (afterShowContentRect.size.width != beforeShowContentRect.size.width ||
+            afterShowContentRect.size.height != beforeShowContentRect.size.height) {
+            NSLog(@"DEBUG: Window was resized during makeKeyAndOrderFront: from (%.0f, %.0f) to (%.0f, %.0f) - Restoring asynchronously",
+                  beforeShowContentRect.size.width, beforeShowContentRect.size.height,
+                  afterShowContentRect.size.width, afterShowContentRect.size.height);
+            
+            // Store the desired frame for async restoration
+            NSRect desiredFrame = beforeShowFrame;
+            
+            // Restore asynchronously to let macOS finish its internal resize operations
+            dispatch_async(dispatch_get_main_queue(), ^{
+                // Check current size again (might have changed)
+                NSRect currentFrame = [self->_window frame];
+                NSRect currentContentRect = [self->_window contentRectForFrameRect:currentFrame];
+                
+                // Only restore if still wrong
+                if (currentContentRect.size.width != desiredFrame.size.width ||
+                    currentContentRect.size.height != desiredFrame.size.height) {
+                    NSLog(@"DEBUG: Restoring window frame asynchronously from (%.0f, %.0f) to (%.0f, %.0f)",
+                          currentContentRect.size.width, currentContentRect.size.height,
+                          desiredFrame.size.width, desiredFrame.size.height);
+                    
+                    [self->_window setFrame:desiredFrame display:YES];
+                    
+                    // Verify restoration
+                    NSRect restoredFrame = [self->_window frame];
+                    NSRect restoredContentRect = [self->_window contentRectForFrameRect:restoredFrame];
+                    NSLog(@"DEBUG: After async restoration - Frame: (%.0f, %.0f, %.0f, %.0f), Content: (%.0f, %.0f, %.0f, %.0f)",
+                          restoredFrame.origin.x, restoredFrame.origin.y, restoredFrame.size.width, restoredFrame.size.height,
+                          restoredContentRect.origin.x, restoredContentRect.origin.y, restoredContentRect.size.width, restoredContentRect.size.height);
+                }
+            });
+        }
     }
 }
 
@@ -161,6 +226,130 @@ void obsidian_macos_window_update_constraints(ObsidianWindowHandle handle) {
             // updateConstraintsIfNeeded is a method on NSWindow, not NSView
             [wrapper.window updateConstraintsIfNeeded];
             [wrapper.window.contentView layoutSubtreeIfNeeded];
+        }
+    }
+}
+
+void obsidian_macos_window_set_content_view_controller(ObsidianWindowHandle handle, void* viewControllerHandle) {
+    if (!handle || !viewControllerHandle) return;
+    
+    @autoreleasepool {
+        ObsidianWindowWrapper* wrapper = (__bridge ObsidianWindowWrapper*)handle;
+        if (wrapper && wrapper.window) {
+            NSViewController* viewController = (__bridge NSViewController*)viewControllerHandle;
+            if (viewController) {
+                // DEBUG: Log window state before setContentViewController
+                NSRect beforeFrame = [wrapper.window frame];
+                NSRect beforeContentRect = [wrapper.window contentRectForFrameRect:beforeFrame];
+                NSSize beforeContentMinSize = [wrapper.window contentMinSize];
+                NSLog(@"DEBUG: Before setContentViewController - Frame: (%.0f, %.0f, %.0f, %.0f), Content: (%.0f, %.0f, %.0f, %.0f)",
+                      beforeFrame.origin.x, beforeFrame.origin.y, beforeFrame.size.width, beforeFrame.size.height,
+                      beforeContentRect.origin.x, beforeContentRect.origin.y, beforeContentRect.size.width, beforeContentRect.size.height);
+                NSLog(@"DEBUG: - contentMinSize: (%.0f, %.0f)", beforeContentMinSize.width, beforeContentMinSize.height);
+                
+                // DEBUG: Log view controller state
+                NSSize vcPreferredSize = [viewController preferredContentSize];
+                NSView* vcView = [viewController view];
+                NSSize vcViewIntrinsicSize = vcView ? [vcView intrinsicContentSize] : NSMakeSize(0, 0);
+                NSLog(@"DEBUG: - viewController preferredContentSize BEFORE: (%.0f, %.0f)", vcPreferredSize.width, vcPreferredSize.height);
+                if (vcView) {
+                    NSLog(@"DEBUG: - viewController view intrinsicContentSize: (%.0f, %.0f)", vcViewIntrinsicSize.width, vcViewIntrinsicSize.height);
+                    NSLog(@"DEBUG: - viewController view frame BEFORE: (%.0f, %.0f, %.0f, %.0f)", vcView.frame.origin.x, vcView.frame.origin.y, vcView.frame.size.width, vcView.frame.size.height);
+                }
+                
+                // CRITICAL: Before setting the content view controller, ensure:
+                // 1. The view controller's view frame matches the window's content size
+                // 2. The view controller's preferredContentSize matches the window's content size
+                // macOS uses BOTH of these to determine window size during makeKeyAndOrderFront:
+                NSRect currentFrame = [wrapper.window frame];
+                NSRect currentContentRect = [wrapper.window contentRectForFrameRect:currentFrame];
+                NSSize currentContentSize = currentContentRect.size;
+                
+                // CRITICAL: Set the view's frame to match the window's content size BEFORE setContentViewController:
+                // macOS uses the view's frame to determine window size. If the view has a smaller frame,
+                // macOS will shrink the window to match it (constrained by contentMinSize).
+                if (vcView) {
+                    NSRect currentViewFrame = vcView.frame;
+                    NSRect desiredViewFrame = NSMakeRect(0, 0, currentContentSize.width, currentContentSize.height);
+                    if (currentViewFrame.size.width != desiredViewFrame.size.width ||
+                        currentViewFrame.size.height != desiredViewFrame.size.height) {
+                        NSLog(@"DEBUG: - Setting view controller view frame from (%.0f, %.0f) to (%.0f, %.0f)",
+                              currentViewFrame.size.width, currentViewFrame.size.height,
+                              desiredViewFrame.size.width, desiredViewFrame.size.height);
+                        [vcView setFrame:desiredViewFrame];
+                        
+                        // CRITICAL: After setting the frame, we need to ensure the view's constraints
+                        // don't override it. Disable autoresizing mask and add explicit constraints
+                        // to enforce minimum size if needed.
+                        [vcView setTranslatesAutoresizingMaskIntoConstraints:NO];
+                        
+                        // Add minimum width and height constraints to prevent shrinking
+                        NSLayoutConstraint* minWidth = [NSLayoutConstraint constraintWithItem:vcView
+                                                                                    attribute:NSLayoutAttributeWidth
+                                                                                    relatedBy:NSLayoutRelationGreaterThanOrEqual
+                                                                                       toItem:nil
+                                                                                    attribute:NSLayoutAttributeNotAnAttribute
+                                                                                   multiplier:1.0
+                                                                                     constant:currentContentSize.width];
+                        NSLayoutConstraint* minHeight = [NSLayoutConstraint constraintWithItem:vcView
+                                                                                     attribute:NSLayoutAttributeHeight
+                                                                                     relatedBy:NSLayoutRelationGreaterThanOrEqual
+                                                                                        toItem:nil
+                                                                                     attribute:NSLayoutAttributeNotAnAttribute
+                                                                                    multiplier:1.0
+                                                                                      constant:currentContentSize.height];
+                        [minWidth setPriority:NSLayoutPriorityRequired];
+                        [minHeight setPriority:NSLayoutPriorityRequired];
+                        [vcView addConstraint:minWidth];
+                        [vcView addConstraint:minHeight];
+                        NSLog(@"DEBUG: - Added minimum size constraints: width >= %.0f, height >= %.0f",
+                              currentContentSize.width, currentContentSize.height);
+                    }
+                }
+                
+                // Update the view controller's preferredContentSize to match the window's content size
+                // This ensures macOS doesn't resize the window to a different size during makeKeyAndOrderFront:
+                if (vcPreferredSize.width != currentContentSize.width || 
+                    vcPreferredSize.height != currentContentSize.height) {
+                    [viewController setPreferredContentSize:currentContentSize];
+                    NSLog(@"DEBUG: - Updated viewController preferredContentSize from (%.0f, %.0f) to (%.0f, %.0f)",
+                          vcPreferredSize.width, vcPreferredSize.height,
+                          currentContentSize.width, currentContentSize.height);
+                }
+                
+                // CRITICAL: Use setContentViewController: instead of addSubview:
+                // This is REQUIRED for native sidebar behavior:
+                // 1. Collapse button appears automatically
+                // 2. Proper window resizing behavior (vertical and horizontal)
+                // 3. Correct view controller lifecycle management
+                // 4. Window size constraints work properly
+                [wrapper.window setContentViewController:viewController];
+                
+                // DEBUG: Log window state after setContentViewController
+                NSRect afterFrame = [wrapper.window frame];
+                NSRect afterContentRect = [wrapper.window contentRectForFrameRect:afterFrame];
+                NSLog(@"DEBUG: After setContentViewController - Frame: (%.0f, %.0f, %.0f, %.0f), Content: (%.0f, %.0f, %.0f, %.0f)",
+                      afterFrame.origin.x, afterFrame.origin.y, afterFrame.size.width, afterFrame.size.height,
+                      afterContentRect.origin.x, afterContentRect.origin.y, afterContentRect.size.width, afterContentRect.size.height);
+                
+                // If the window was resized, restore it
+                if (afterContentRect.size.width != beforeContentRect.size.width ||
+                    afterContentRect.size.height != beforeContentRect.size.height) {
+                    NSLog(@"DEBUG: Window was resized during setContentViewController: from (%.0f, %.0f) to (%.0f, %.0f) - Restoring",
+                          beforeContentRect.size.width, beforeContentRect.size.height,
+                          afterContentRect.size.width, afterContentRect.size.height);
+                    
+                    // Restore the original frame
+                    [wrapper.window setFrame:beforeFrame display:NO];
+                    
+                    // Log after restoration
+                    NSRect restoredFrame = [wrapper.window frame];
+                    NSRect restoredContentRect = [wrapper.window contentRectForFrameRect:restoredFrame];
+                    NSLog(@"DEBUG: After restoration - Frame: (%.0f, %.0f, %.0f, %.0f), Content: (%.0f, %.0f, %.0f, %.0f)",
+                          restoredFrame.origin.x, restoredFrame.origin.y, restoredFrame.size.width, restoredFrame.size.height,
+                          restoredContentRect.origin.x, restoredContentRect.origin.y, restoredContentRect.size.width, restoredContentRect.size.height);
+                }
+            }
         }
     }
 }

@@ -58,6 +58,18 @@ void* obsidian_macos_window_get_content_view(ObsidianWindowHandle handle);
  */
 void obsidian_macos_window_update_constraints(ObsidianWindowHandle handle);
 
+/**
+ * Set the content view controller for the window
+ * This is REQUIRED for native sidebar behavior with NSSplitViewController:
+ * - Collapse button appears automatically
+ * - Proper window resizing behavior
+ * - Correct view controller lifecycle management
+ * 
+ * @param handle Window handle
+ * @param viewControllerHandle View controller handle (NSViewController*)
+ */
+void obsidian_macos_window_set_content_view_controller(ObsidianWindowHandle handle, void* viewControllerHandle);
+
 #ifdef __cplusplus
 }
 #endif

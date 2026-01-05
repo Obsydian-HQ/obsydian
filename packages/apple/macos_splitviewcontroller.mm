@@ -33,6 +33,21 @@
     if (self) {
         // Create NSSplitViewController
         _splitViewController = [[NSSplitViewController alloc] init];
+        
+        // CRITICAL: Set preferredContentSize to prevent macOS from inferring minimal size
+        // during makeKeyAndOrderFront:. NSSplitViewController's view has no intrinsic
+        // content size (-1, -1) because it's a container view controller. Without
+        // preferredContentSize, macOS will default to a minimal size (128px height).
+        //
+        // preferredContentSize is the PROPER way to tell macOS what size the view
+        // controller wants. This is not a workaround - it's the intended API for
+        // container view controllers that don't have intrinsic content sizes.
+        //
+        // We use a reasonable default size (1200x800) that matches typical window sizes.
+        // The actual window size will be set explicitly via the window's frame, but
+        // this prevents macOS from shrinking the window during makeKeyAndOrderFront:.
+        NSSize preferredSize = NSMakeSize(1200, 800);
+        [_splitViewController setPreferredContentSize:preferredSize];
     }
     return self;
 }
@@ -77,31 +92,39 @@
 - (void)addToWindow:(void*)windowHandle {
     if (!_splitViewController || !windowHandle) return;
     
-    // The windowHandle is an ObsidianWindowWrapper, get the actual NSWindow
-    // We use obsidian_macos_window_get_content_view to get the content view
+    // DEBUG: Get window size to set proper preferredContentSize
     void* contentViewPtr = obsidian_macos_window_get_content_view(windowHandle);
-    if (!contentViewPtr) return;
-    
-    NSView* contentView = (__bridge NSView*)contentViewPtr;
-    NSView* splitView = [_splitViewController view];
-    if (!splitView) return;
-    
-    // Remove split view from its current parent if it has one
-    if ([splitView superview]) {
-        [splitView removeFromSuperview];
+    if (contentViewPtr) {
+        NSView* contentView = (__bridge NSView*)contentViewPtr;
+        NSRect contentRect = [contentView frame];
+        NSSize contentSize = contentRect.size;
+        
+        // Update preferredContentSize to match actual window content size
+        // This must be done BEFORE setContentViewController: to prevent shrinking
+        if (contentSize.width > 0 && contentSize.height > 0) {
+            NSSize currentPreferred = [_splitViewController preferredContentSize];
+            if (currentPreferred.width != contentSize.width || currentPreferred.height != contentSize.height) {
+                [_splitViewController setPreferredContentSize:contentSize];
+                NSLog(@"DEBUG: Updated NSSplitViewController preferredContentSize from (%.0f, %.0f) to (%.0f, %.0f)",
+                      currentPreferred.width, currentPreferred.height,
+                      contentSize.width, contentSize.height);
+            }
+        }
     }
     
-    // Add split view to window's content view
-    [contentView addSubview:splitView];
-    
-    // Set up Auto Layout constraints to fill the content view
-    [splitView setTranslatesAutoresizingMaskIntoConstraints:NO];
-    [NSLayoutConstraint activateConstraints:@[
-        [splitView.leadingAnchor constraintEqualToAnchor:contentView.leadingAnchor],
-        [splitView.trailingAnchor constraintEqualToAnchor:contentView.trailingAnchor],
-        [splitView.topAnchor constraintEqualToAnchor:contentView.topAnchor],
-        [splitView.bottomAnchor constraintEqualToAnchor:contentView.bottomAnchor]
-    ]];
+    // CRITICAL: Use setContentViewController: instead of addSubview:
+    // This is REQUIRED for native sidebar behavior:
+    // 1. Collapse button appears automatically
+    // 2. Proper window resizing behavior (vertical and horizontal)
+    // 3. Correct view controller lifecycle management
+    // 4. Window size constraints work properly
+    //
+    // When using setContentViewController:, macOS automatically:
+    // - Sets up the view controller's view as the window's content view
+    // - Manages the view controller's lifecycle
+    // - Handles window resizing based on preferredContentSize
+    // - Enables native sidebar features (collapse button, etc.)
+    obsidian_macos_window_set_content_view_controller(windowHandle, (__bridge void*)_splitViewController);
 }
 
 - (bool)isValid {
