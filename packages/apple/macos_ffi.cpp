@@ -972,81 +972,81 @@ SplitView::~SplitView() {
     }
 }
 
-bool SplitView::create(int position, double initialSidebarWidth, 
-                      double minSidebarWidth, double maxSidebarWidth) {
+bool SplitView::create(int position, double initialPrimaryPaneWidth, 
+                      double minPrimaryPaneWidth, double maxPrimaryPaneWidth) {
     if (handle_) {
         return false; // Already created
     }
     
     ObsidianSplitViewParams params;
-    params.position = (ObsidianSidebarPosition)position;
-    params.initialSidebarWidth = initialSidebarWidth;
-    params.minSidebarWidth = minSidebarWidth;
-    params.maxSidebarWidth = maxSidebarWidth;
+    params.position = (ObsidianSplitPosition)position;
+    params.initialPrimaryPaneWidth = initialPrimaryPaneWidth;
+    params.minPrimaryPaneWidth = minPrimaryPaneWidth;
+    params.maxPrimaryPaneWidth = maxPrimaryPaneWidth;
     
     handle_ = obsidian_macos_create_splitview(params);
     return handle_ != nullptr;
 }
 
-void SplitView::setSidebarWidth(double width) {
+void SplitView::setPrimaryPaneWidth(double width) {
     if (handle_) {
-        obsidian_macos_splitview_set_sidebar_width(handle_, width);
+        obsidian_macos_splitview_set_primary_pane_width(handle_, width);
     }
 }
 
-double SplitView::getSidebarWidth() const {
+double SplitView::getPrimaryPaneWidth() const {
     if (!handle_) {
         return 0.0;
     }
-    return obsidian_macos_splitview_get_sidebar_width(handle_);
+    return obsidian_macos_splitview_get_primary_pane_width(handle_);
 }
 
-void SplitView::setMinimumSidebarWidth(double width) {
+void SplitView::setMinimumPrimaryPaneWidth(double width) {
     if (handle_) {
-        obsidian_macos_splitview_set_minimum_sidebar_width(handle_, width);
+        obsidian_macos_splitview_set_minimum_primary_pane_width(handle_, width);
     }
 }
 
-void SplitView::setMaximumSidebarWidth(double width) {
+void SplitView::setMaximumPrimaryPaneWidth(double width) {
     if (handle_) {
-        obsidian_macos_splitview_set_maximum_sidebar_width(handle_, width);
+        obsidian_macos_splitview_set_maximum_primary_pane_width(handle_, width);
     }
 }
 
-void SplitView::collapseSidebar() {
+void SplitView::collapsePrimaryPane() {
     if (handle_) {
-        obsidian_macos_splitview_collapse_sidebar(handle_);
+        obsidian_macos_splitview_collapse_primary_pane(handle_);
     }
 }
 
-void SplitView::expandSidebar() {
+void SplitView::expandPrimaryPane() {
     if (handle_) {
-        obsidian_macos_splitview_expand_sidebar(handle_);
+        obsidian_macos_splitview_expand_primary_pane(handle_);
     }
 }
 
-void SplitView::toggleSidebar() {
+void SplitView::togglePrimaryPane() {
     if (handle_) {
-        obsidian_macos_splitview_toggle_sidebar(handle_);
+        obsidian_macos_splitview_toggle_primary_pane(handle_);
     }
 }
 
-bool SplitView::isSidebarCollapsed() const {
+bool SplitView::isPrimaryPaneCollapsed() const {
     if (!handle_) {
         return false;
     }
-    return obsidian_macos_splitview_is_sidebar_collapsed(handle_);
+    return obsidian_macos_splitview_is_primary_pane_collapsed(handle_);
 }
 
-void SplitView::setSidebarView(void* viewHandle) {
+void SplitView::setPrimaryPaneView(void* viewHandle) {
     if (handle_) {
-        obsidian_macos_splitview_set_sidebar_view(handle_, viewHandle);
+        obsidian_macos_splitview_set_primary_pane_view(handle_, viewHandle);
     }
 }
 
-void SplitView::setMainView(void* viewHandle) {
+void SplitView::setSecondaryPaneView(void* viewHandle) {
     if (handle_) {
-        obsidian_macos_splitview_set_main_view(handle_, viewHandle);
+        obsidian_macos_splitview_set_secondary_pane_view(handle_, viewHandle);
     }
 }
 

@@ -1,10 +1,10 @@
 /**
  * macOS SplitView FFI - C Interface
  * 
- * Provides C interface for creating and managing NSSplitView-based sidebar layouts
+ * Provides C interface for creating and managing NSSplitView-based split view layouts
  * from C++ code. This header is C-compatible and can be included from C++.
  * 
- * The SplitView provides a native macOS sidebar using NSSplitView with collapse/expand,
+ * The SplitView provides a split view using NSSplitView with collapse/expand,
  * resizing, and content customization capabilities.
  */
 
@@ -24,21 +24,22 @@ extern "C" {
 typedef void* ObsidianSplitViewHandle;
 
 /**
- * Sidebar position enumeration
+ * Split position enumeration
+ * Specifies which side the primary pane appears on
  */
 typedef enum {
-    ObsidianSidebarPositionLeading = 0,  // Left side (LTR)
-    ObsidianSidebarPositionTrailing = 1  // Right side (LTR)
-} ObsidianSidebarPosition;
+    ObsidianSplitPositionLeading = 0,  // Primary pane on left side (LTR)
+    ObsidianSplitPositionTrailing = 1  // Primary pane on right side (LTR)
+} ObsidianSplitPosition;
 
 /**
  * SplitView creation parameters
  */
 typedef struct {
-    ObsidianSidebarPosition position;  // Sidebar position (leading or trailing)
-    double initialSidebarWidth;        // Initial sidebar width in points (default: 200.0)
-    double minSidebarWidth;            // Minimum sidebar width in points (default: 150.0)
-    double maxSidebarWidth;            // Maximum sidebar width in points (default: 400.0)
+    ObsidianSplitPosition position;  // Split position (leading or trailing)
+    double initialPrimaryPaneWidth;  // Initial primary pane width in points (default: 200.0)
+    double minPrimaryPaneWidth;      // Minimum primary pane width in points (default: 150.0)
+    double maxPrimaryPaneWidth;      // Maximum primary pane width in points (default: 400.0)
 } ObsidianSplitViewParams;
 
 /**
@@ -57,64 +58,64 @@ void obsidian_macos_destroy_splitview(ObsidianSplitViewHandle handle);
 
 /**
  * Get the underlying NSView from a SplitView handle
- * This is the NSSplitView that contains the sidebar and main content
+ * This is the NSSplitView that contains the primary and secondary panes
  */
 void* obsidian_macos_splitview_get_view(ObsidianSplitViewHandle handle);
 
 /**
- * Set the sidebar width (in points)
+ * Set the primary pane width (in points)
  * The width will be clamped to min/max values
  */
-void obsidian_macos_splitview_set_sidebar_width(ObsidianSplitViewHandle handle, double width);
+void obsidian_macos_splitview_set_primary_pane_width(ObsidianSplitViewHandle handle, double width);
 
 /**
- * Get the current sidebar width (in points)
+ * Get the current primary pane width (in points)
  */
-double obsidian_macos_splitview_get_sidebar_width(ObsidianSplitViewHandle handle);
+double obsidian_macos_splitview_get_primary_pane_width(ObsidianSplitViewHandle handle);
 
 /**
- * Set minimum sidebar width (in points)
+ * Set minimum primary pane width (in points)
  */
-void obsidian_macos_splitview_set_minimum_sidebar_width(ObsidianSplitViewHandle handle, double width);
+void obsidian_macos_splitview_set_minimum_primary_pane_width(ObsidianSplitViewHandle handle, double width);
 
 /**
- * Set maximum sidebar width (in points)
+ * Set maximum primary pane width (in points)
  */
-void obsidian_macos_splitview_set_maximum_sidebar_width(ObsidianSplitViewHandle handle, double width);
+void obsidian_macos_splitview_set_maximum_primary_pane_width(ObsidianSplitViewHandle handle, double width);
 
 /**
- * Collapse the sidebar pane
+ * Collapse the primary pane
  */
-void obsidian_macos_splitview_collapse_sidebar(ObsidianSplitViewHandle handle);
+void obsidian_macos_splitview_collapse_primary_pane(ObsidianSplitViewHandle handle);
 
 /**
- * Expand the sidebar pane (restore from collapsed state)
+ * Expand the primary pane (restore from collapsed state)
  */
-void obsidian_macos_splitview_expand_sidebar(ObsidianSplitViewHandle handle);
+void obsidian_macos_splitview_expand_primary_pane(ObsidianSplitViewHandle handle);
 
 /**
- * Toggle sidebar collapse/expand state
+ * Toggle primary pane collapse/expand state
  */
-void obsidian_macos_splitview_toggle_sidebar(ObsidianSplitViewHandle handle);
+void obsidian_macos_splitview_toggle_primary_pane(ObsidianSplitViewHandle handle);
 
 /**
- * Check if sidebar is currently collapsed
+ * Check if primary pane is currently collapsed
  */
-bool obsidian_macos_splitview_is_sidebar_collapsed(ObsidianSplitViewHandle handle);
+bool obsidian_macos_splitview_is_primary_pane_collapsed(ObsidianSplitViewHandle handle);
 
 /**
- * Set the sidebar content view
+ * Set the primary pane content view
  * @param handle SplitView handle
- * @param viewHandle NSView handle to use as sidebar content (must be a valid NSView*)
+ * @param viewHandle NSView handle to use as primary pane content (must be a valid NSView*)
  */
-void obsidian_macos_splitview_set_sidebar_view(ObsidianSplitViewHandle handle, void* viewHandle);
+void obsidian_macos_splitview_set_primary_pane_view(ObsidianSplitViewHandle handle, void* viewHandle);
 
 /**
- * Set the main content view
+ * Set the secondary pane content view
  * @param handle SplitView handle
- * @param viewHandle NSView handle to use as main content (must be a valid NSView*)
+ * @param viewHandle NSView handle to use as secondary pane content (must be a valid NSView*)
  */
-void obsidian_macos_splitview_set_main_view(ObsidianSplitViewHandle handle, void* viewHandle);
+void obsidian_macos_splitview_set_secondary_pane_view(ObsidianSplitViewHandle handle, void* viewHandle);
 
 /**
  * Add SplitView to a window's content view

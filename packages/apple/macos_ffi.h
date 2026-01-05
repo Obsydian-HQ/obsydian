@@ -666,7 +666,7 @@ private:
 
 /**
  * SplitView handle (opaque pointer)
- * Provides sidebar layout with collapse/expand and resizing capabilities
+ * Provides split view layout with collapse/expand and resizing capabilities
  */
 class SplitView {
 public:
@@ -675,65 +675,65 @@ public:
     
     /**
      * Create a SplitView with the given parameters
-     * @param position Sidebar position (leading or trailing)
-     * @param initialSidebarWidth Initial sidebar width in points (default: 200.0)
-     * @param minSidebarWidth Minimum sidebar width in points (default: 150.0)
-     * @param maxSidebarWidth Maximum sidebar width in points (default: 400.0)
+     * @param position Split position (leading or trailing)
+     * @param initialPrimaryPaneWidth Initial primary pane width in points (default: 200.0)
+     * @param minPrimaryPaneWidth Minimum primary pane width in points (default: 150.0)
+     * @param maxPrimaryPaneWidth Maximum primary pane width in points (default: 400.0)
      */
-    bool create(int position, double initialSidebarWidth = 200.0, 
-                double minSidebarWidth = 150.0, double maxSidebarWidth = 400.0);
+    bool create(int position, double initialPrimaryPaneWidth = 200.0, 
+                double minPrimaryPaneWidth = 150.0, double maxPrimaryPaneWidth = 400.0);
     
     /**
-     * Set the sidebar width (in points)
+     * Set the primary pane width (in points)
      */
-    void setSidebarWidth(double width);
+    void setPrimaryPaneWidth(double width);
     
     /**
-     * Get the current sidebar width (in points)
+     * Get the current primary pane width (in points)
      */
-    double getSidebarWidth() const;
+    double getPrimaryPaneWidth() const;
     
     /**
-     * Set minimum sidebar width (in points)
+     * Set minimum primary pane width (in points)
      */
-    void setMinimumSidebarWidth(double width);
+    void setMinimumPrimaryPaneWidth(double width);
     
     /**
-     * Set maximum sidebar width (in points)
+     * Set maximum primary pane width (in points)
      */
-    void setMaximumSidebarWidth(double width);
+    void setMaximumPrimaryPaneWidth(double width);
     
     /**
-     * Collapse the sidebar pane
+     * Collapse the primary pane
      */
-    void collapseSidebar();
+    void collapsePrimaryPane();
     
     /**
-     * Expand the sidebar pane
+     * Expand the primary pane
      */
-    void expandSidebar();
+    void expandPrimaryPane();
     
     /**
-     * Toggle sidebar collapse/expand state
+     * Toggle primary pane collapse/expand state
      */
-    void toggleSidebar();
+    void togglePrimaryPane();
     
     /**
-     * Check if sidebar is currently collapsed
+     * Check if primary pane is currently collapsed
      */
-    bool isSidebarCollapsed() const;
+    bool isPrimaryPaneCollapsed() const;
     
     /**
-     * Set the sidebar content view
-     * @param viewHandle NSView handle to use as sidebar content
+     * Set the primary pane content view
+     * @param viewHandle NSView handle to use as primary pane content
      */
-    void setSidebarView(void* viewHandle);
+    void setPrimaryPaneView(void* viewHandle);
     
     /**
-     * Set the main content view
-     * @param viewHandle NSView handle to use as main content
+     * Set the secondary pane content view
+     * @param viewHandle NSView handle to use as secondary pane content
      */
-    void setMainView(void* viewHandle);
+    void setSecondaryPaneView(void* viewHandle);
     
     /**
      * Add SplitView to a window's content view

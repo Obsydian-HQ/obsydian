@@ -28,6 +28,7 @@
 
 #include <functional>
 #include <memory>
+#include <iostream>
 
 namespace obsidian {
 
@@ -35,17 +36,17 @@ class SplitView::Impl {
 public:
 #ifdef __APPLE__
     obsidian::ffi::macos::SplitView macosSplitView;
-    std::function<void(bool)> onSidebarToggleCallback;
+    std::function<void(bool)> onPrimaryPaneToggleCallback;
 #endif
     bool valid;
-    SidebarPosition position;
+    SplitPosition position;
     
     Impl()
 #ifdef __APPLE__
         : macosSplitView()
 #endif
         , valid(false)
-        , position(SidebarPosition::Leading)
+        , position(SplitPosition::Leading)
     {}
     
     ~Impl() {
@@ -75,14 +76,14 @@ SplitView::~SplitView() {
     }
 }
 
-bool SplitView::create(SidebarPosition position) {
+bool SplitView::create(SplitPosition position) {
     if (pImpl->valid) {
         return false; // Already created
     }
     
 #ifdef __APPLE__
-    // Convert SidebarPosition to integer (0 = Leading, 1 = Trailing)
-    int positionInt = (position == SidebarPosition::Leading) ? 0 : 1;
+    // Convert SplitPosition to integer (0 = Leading, 1 = Trailing)
+    int positionInt = (position == SplitPosition::Leading) ? 0 : 1;
     
     if (!pImpl->macosSplitView.create(positionInt, 200.0, 150.0, 400.0)) {
         return false;
@@ -97,102 +98,102 @@ bool SplitView::create(SidebarPosition position) {
 #endif
 }
 
-void SplitView::setSidebarWidth(double width) {
+void SplitView::setPrimaryPaneWidth(double width) {
     if (!pImpl || !pImpl->valid) {
         return;
     }
     
 #ifdef __APPLE__
-    pImpl->macosSplitView.setSidebarWidth(width);
+    pImpl->macosSplitView.setPrimaryPaneWidth(width);
 #endif
 }
 
-double SplitView::getSidebarWidth() const {
+double SplitView::getPrimaryPaneWidth() const {
     if (!pImpl || !pImpl->valid) {
         return 0.0;
     }
     
 #ifdef __APPLE__
-    return pImpl->macosSplitView.getSidebarWidth();
+    return pImpl->macosSplitView.getPrimaryPaneWidth();
 #else
     return 0.0;
 #endif
 }
 
-void SplitView::setMinimumSidebarWidth(double width) {
+void SplitView::setMinimumPrimaryPaneWidth(double width) {
     if (!pImpl || !pImpl->valid) {
         return;
     }
     
 #ifdef __APPLE__
-    pImpl->macosSplitView.setMinimumSidebarWidth(width);
+    pImpl->macosSplitView.setMinimumPrimaryPaneWidth(width);
 #endif
 }
 
-void SplitView::setMaximumSidebarWidth(double width) {
+void SplitView::setMaximumPrimaryPaneWidth(double width) {
     if (!pImpl || !pImpl->valid) {
         return;
     }
     
 #ifdef __APPLE__
-    pImpl->macosSplitView.setMaximumSidebarWidth(width);
+    pImpl->macosSplitView.setMaximumPrimaryPaneWidth(width);
 #endif
 }
 
-void SplitView::collapseSidebar() {
+void SplitView::collapsePrimaryPane() {
     if (!pImpl || !pImpl->valid) {
         return;
     }
     
 #ifdef __APPLE__
-    pImpl->macosSplitView.collapseSidebar();
-    if (pImpl->onSidebarToggleCallback) {
-        pImpl->onSidebarToggleCallback(true);
+    pImpl->macosSplitView.collapsePrimaryPane();
+    if (pImpl->onPrimaryPaneToggleCallback) {
+        pImpl->onPrimaryPaneToggleCallback(true);
     }
 #endif
 }
 
-void SplitView::expandSidebar() {
+void SplitView::expandPrimaryPane() {
     if (!pImpl || !pImpl->valid) {
         return;
     }
     
 #ifdef __APPLE__
-    pImpl->macosSplitView.expandSidebar();
-    if (pImpl->onSidebarToggleCallback) {
-        pImpl->onSidebarToggleCallback(false);
+    pImpl->macosSplitView.expandPrimaryPane();
+    if (pImpl->onPrimaryPaneToggleCallback) {
+        pImpl->onPrimaryPaneToggleCallback(false);
     }
 #endif
 }
 
-void SplitView::toggleSidebar() {
+void SplitView::togglePrimaryPane() {
     if (!pImpl || !pImpl->valid) {
         return;
     }
     
 #ifdef __APPLE__
-    bool wasCollapsed = pImpl->macosSplitView.isSidebarCollapsed();
-    pImpl->macosSplitView.toggleSidebar();
-    bool isCollapsed = pImpl->macosSplitView.isSidebarCollapsed();
-    if (pImpl->onSidebarToggleCallback && wasCollapsed != isCollapsed) {
-        pImpl->onSidebarToggleCallback(isCollapsed);
+    bool wasCollapsed = pImpl->macosSplitView.isPrimaryPaneCollapsed();
+    pImpl->macosSplitView.togglePrimaryPane();
+    bool isCollapsed = pImpl->macosSplitView.isPrimaryPaneCollapsed();
+    if (pImpl->onPrimaryPaneToggleCallback && wasCollapsed != isCollapsed) {
+        pImpl->onPrimaryPaneToggleCallback(isCollapsed);
     }
 #endif
 }
 
-bool SplitView::isSidebarCollapsed() const {
+bool SplitView::isPrimaryPaneCollapsed() const {
     if (!pImpl || !pImpl->valid) {
         return false;
     }
     
 #ifdef __APPLE__
-    return pImpl->macosSplitView.isSidebarCollapsed();
+    return pImpl->macosSplitView.isPrimaryPaneCollapsed();
 #else
     return false;
 #endif
 }
 
-void SplitView::setSidebarContent(VStack& vstack) {
+void SplitView::setPrimaryPaneContent(VStack& vstack) {
     if (!pImpl || !pImpl->valid || !vstack.isValid()) {
         return;
     }
@@ -200,12 +201,12 @@ void SplitView::setSidebarContent(VStack& vstack) {
 #ifdef __APPLE__
     void* vstackView = vstack.getNativeViewHandle();
     if (vstackView) {
-        pImpl->macosSplitView.setSidebarView(vstackView);
+        pImpl->macosSplitView.setPrimaryPaneView(vstackView);
     }
 #endif
 }
 
-void SplitView::setSidebarContent(HStack& hstack) {
+void SplitView::setPrimaryPaneContent(HStack& hstack) {
     if (!pImpl || !pImpl->valid || !hstack.isValid()) {
         return;
     }
@@ -213,12 +214,12 @@ void SplitView::setSidebarContent(HStack& hstack) {
 #ifdef __APPLE__
     void* hstackView = hstack.getNativeViewHandle();
     if (hstackView) {
-        pImpl->macosSplitView.setSidebarView(hstackView);
+        pImpl->macosSplitView.setPrimaryPaneView(hstackView);
     }
 #endif
 }
 
-void SplitView::setSidebarContent(List& list) {
+void SplitView::setPrimaryPaneContent(List& list) {
     if (!pImpl || !pImpl->valid || !list.isValid()) {
         return;
     }
@@ -226,12 +227,12 @@ void SplitView::setSidebarContent(List& list) {
 #ifdef __APPLE__
     void* listView = list.getNativeViewHandle();
     if (listView) {
-        pImpl->macosSplitView.setSidebarView(listView);
+        pImpl->macosSplitView.setPrimaryPaneView(listView);
     }
 #endif
 }
 
-void SplitView::setSidebarContent(Button& button) {
+void SplitView::setPrimaryPaneContent(Button& button) {
     if (!pImpl || !pImpl->valid || !button.isValid()) {
         return;
     }
@@ -239,12 +240,12 @@ void SplitView::setSidebarContent(Button& button) {
 #ifdef __APPLE__
     void* buttonView = button.getNativeViewHandle();
     if (buttonView) {
-        pImpl->macosSplitView.setSidebarView(buttonView);
+        pImpl->macosSplitView.setPrimaryPaneView(buttonView);
     }
 #endif
 }
 
-void SplitView::setSidebarContent(ScrollView& scrollView) {
+void SplitView::setPrimaryPaneContent(ScrollView& scrollView) {
     if (!pImpl || !pImpl->valid || !scrollView.isValid()) {
         return;
     }
@@ -252,12 +253,12 @@ void SplitView::setSidebarContent(ScrollView& scrollView) {
 #ifdef __APPLE__
     void* scrollViewHandle = scrollView.getNativeViewHandle();
     if (scrollViewHandle) {
-        pImpl->macosSplitView.setSidebarView(scrollViewHandle);
+        pImpl->macosSplitView.setPrimaryPaneView(scrollViewHandle);
     }
 #endif
 }
 
-void SplitView::setMainContent(VStack& vstack) {
+void SplitView::setSecondaryPaneContent(VStack& vstack) {
     if (!pImpl || !pImpl->valid || !vstack.isValid()) {
         return;
     }
@@ -265,12 +266,12 @@ void SplitView::setMainContent(VStack& vstack) {
 #ifdef __APPLE__
     void* vstackView = vstack.getNativeViewHandle();
     if (vstackView) {
-        pImpl->macosSplitView.setMainView(vstackView);
+        pImpl->macosSplitView.setSecondaryPaneView(vstackView);
     }
 #endif
 }
 
-void SplitView::setMainContent(HStack& hstack) {
+void SplitView::setSecondaryPaneContent(HStack& hstack) {
     if (!pImpl || !pImpl->valid || !hstack.isValid()) {
         return;
     }
@@ -278,12 +279,12 @@ void SplitView::setMainContent(HStack& hstack) {
 #ifdef __APPLE__
     void* hstackView = hstack.getNativeViewHandle();
     if (hstackView) {
-        pImpl->macosSplitView.setMainView(hstackView);
+        pImpl->macosSplitView.setSecondaryPaneView(hstackView);
     }
 #endif
 }
 
-void SplitView::setMainContent(List& list) {
+void SplitView::setSecondaryPaneContent(List& list) {
     if (!pImpl || !pImpl->valid || !list.isValid()) {
         return;
     }
@@ -291,12 +292,12 @@ void SplitView::setMainContent(List& list) {
 #ifdef __APPLE__
     void* listView = list.getNativeViewHandle();
     if (listView) {
-        pImpl->macosSplitView.setMainView(listView);
+        pImpl->macosSplitView.setSecondaryPaneView(listView);
     }
 #endif
 }
 
-void SplitView::setMainContent(Button& button) {
+void SplitView::setSecondaryPaneContent(Button& button) {
     if (!pImpl || !pImpl->valid || !button.isValid()) {
         return;
     }
@@ -304,12 +305,12 @@ void SplitView::setMainContent(Button& button) {
 #ifdef __APPLE__
     void* buttonView = button.getNativeViewHandle();
     if (buttonView) {
-        pImpl->macosSplitView.setMainView(buttonView);
+        pImpl->macosSplitView.setSecondaryPaneView(buttonView);
     }
 #endif
 }
 
-void SplitView::setMainContent(ScrollView& scrollView) {
+void SplitView::setSecondaryPaneContent(ScrollView& scrollView) {
     if (!pImpl || !pImpl->valid || !scrollView.isValid()) {
         return;
     }
@@ -317,7 +318,7 @@ void SplitView::setMainContent(ScrollView& scrollView) {
 #ifdef __APPLE__
     void* scrollViewHandle = scrollView.getNativeViewHandle();
     if (scrollViewHandle) {
-        pImpl->macosSplitView.setMainView(scrollViewHandle);
+        pImpl->macosSplitView.setSecondaryPaneView(scrollViewHandle);
     }
 #endif
 }
@@ -330,7 +331,7 @@ void SplitView::addToWindow(Window& window) {
 #ifdef __APPLE__
     if (!pImpl->valid) {
         // Auto-create with default position if not already created
-        if (!create(SidebarPosition::Leading)) {
+        if (!create(SplitPosition::Leading)) {
             return;
         }
     }
@@ -358,13 +359,13 @@ bool SplitView::isValid() const {
     return pImpl ? pImpl->valid : false;
 }
 
-void SplitView::setOnSidebarToggle(std::function<void(bool collapsed)> callback) {
+void SplitView::setOnPrimaryPaneToggle(std::function<void(bool collapsed)> callback) {
     if (!pImpl) {
         return;
     }
     
 #ifdef __APPLE__
-    pImpl->onSidebarToggleCallback = callback;
+    pImpl->onPrimaryPaneToggleCallback = callback;
 #endif
 }
 

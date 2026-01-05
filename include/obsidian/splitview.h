@@ -1,7 +1,7 @@
 /**
  * Obsidian Public API - SplitView
  * 
- * SplitView provides a native macOS sidebar layout using NSSplitView with
+ * SplitView provides a split view layout using NSSplitView with
  * collapse/expand, resizing, and content customization capabilities.
  */
 
@@ -22,17 +22,18 @@ class Button;
 class ScrollView;
 
 /**
- * Sidebar position enumeration
+ * Split position enumeration
+ * Specifies which side the primary pane appears on
  */
-enum class SidebarPosition {
-    Leading,   // Left side (LTR)
-    Trailing   // Right side (LTR)
+enum class SplitPosition {
+    Leading,   // Primary pane on left side (LTR)
+    Trailing   // Primary pane on right side (LTR)
 };
 
 /**
- * SplitView class - Sidebar layout container
+ * SplitView class - Split view layout container
  * 
- * Provides a native macOS sidebar using NSSplitView with collapse/expand,
+ * Provides a split view using NSSplitView with collapse/expand,
  * resizing, and content customization capabilities.
  */
 class SplitView {
@@ -52,82 +53,82 @@ public:
      */
     
     /**
-     * Create the SplitView with the given sidebar position
-     * @param position Sidebar position (Leading or Trailing)
+     * Create the SplitView with the given split position
+     * @param position Split position (Leading or Trailing)
      * @return true if SplitView was created successfully
      */
-    bool create(SidebarPosition position = SidebarPosition::Leading);
+    bool create(SplitPosition position = SplitPosition::Leading);
     
     /**
-     * Sidebar width management
+     * Primary pane width management
      */
     
     /**
-     * Set the sidebar width (in points)
+     * Set the primary pane width (in points)
      * The width will be clamped to min/max values
      */
-    void setSidebarWidth(double width);
+    void setPrimaryPaneWidth(double width);
     
     /**
-     * Get the current sidebar width (in points)
+     * Get the current primary pane width (in points)
      */
-    double getSidebarWidth() const;
+    double getPrimaryPaneWidth() const;
     
     /**
-     * Set minimum sidebar width (in points, default: 150.0)
+     * Set minimum primary pane width (in points, default: 150.0)
      */
-    void setMinimumSidebarWidth(double width);
+    void setMinimumPrimaryPaneWidth(double width);
     
     /**
-     * Set maximum sidebar width (in points, default: 400.0)
+     * Set maximum primary pane width (in points, default: 400.0)
      */
-    void setMaximumSidebarWidth(double width);
+    void setMaximumPrimaryPaneWidth(double width);
     
     /**
      * Collapse/expand management
      */
     
     /**
-     * Collapse the sidebar pane
+     * Collapse the primary pane
      */
-    void collapseSidebar();
+    void collapsePrimaryPane();
     
     /**
-     * Expand the sidebar pane (restore from collapsed state)
+     * Expand the primary pane (restore from collapsed state)
      */
-    void expandSidebar();
+    void expandPrimaryPane();
     
     /**
-     * Toggle sidebar collapse/expand state
+     * Toggle primary pane collapse/expand state
      */
-    void toggleSidebar();
+    void togglePrimaryPane();
     
     /**
-     * Check if sidebar is currently collapsed
+     * Check if primary pane is currently collapsed
      */
-    bool isSidebarCollapsed() const;
+    bool isPrimaryPaneCollapsed() const;
     
     /**
      * Content management
      */
     
     /**
-     * Set the sidebar content view
+     * Set the primary pane content view
      */
-    void setSidebarContent(VStack& vstack);
-    void setSidebarContent(HStack& hstack);
-    void setSidebarContent(List& list);
-    void setSidebarContent(Button& button);
-    void setSidebarContent(ScrollView& scrollView);
+    void setPrimaryPaneContent(VStack& vstack);
+    void setPrimaryPaneContent(HStack& hstack);
+    void setPrimaryPaneContent(List& list);
+    void setPrimaryPaneContent(Button& button);
+    void setPrimaryPaneContent(ScrollView& scrollView);
     
     /**
-     * Set the main content view
+     * Set the secondary pane content view
      */
-    void setMainContent(VStack& vstack);
-    void setMainContent(HStack& hstack);
-    void setMainContent(List& list);
-    void setMainContent(Button& button);
-    void setMainContent(ScrollView& scrollView);
+    void setSecondaryPaneContent(VStack& vstack);
+    void setSecondaryPaneContent(HStack& hstack);
+    void setSecondaryPaneContent(List& list);
+    void setSecondaryPaneContent(Button& button);
+    void setSecondaryPaneContent(ScrollView& scrollView);
     
     /**
      * Window integration
@@ -157,11 +158,11 @@ public:
      */
     
     /**
-     * Set callback for sidebar toggle events
-     * The callback will be called when the sidebar is collapsed or expanded
+     * Set callback for primary pane toggle events
+     * The callback will be called when the primary pane is collapsed or expanded
      * @param callback Function that takes a bool parameter (true if collapsed, false if expanded)
      */
-    void setOnSidebarToggle(std::function<void(bool collapsed)> callback);
+    void setOnPrimaryPaneToggle(std::function<void(bool collapsed)> callback);
     
     // Non-copyable
     SplitView(const SplitView&) = delete;
