@@ -152,3 +152,46 @@ cc_test(
         "@googletest//:gtest_main",
     ],
 )
+
+# Link component integration test
+cc_test(
+    name = "link_test",
+    size = "small",
+    srcs = ["link_test.cpp"],
+    copts = ["-std=c++20"],
+    data = [
+        "//test_apps/route_scanner_test:app",
+    ],
+    deps = [
+        "//src:obsidian",
+        "//core/routing:routing",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+# Route matcher integration test
+cc_test(
+    name = "route_matcher_test",
+    size = "small",
+    srcs = ["route_matcher_test.cpp"],
+    copts = ["-std=c++20"],
+    deps = [
+        "//core/routing:routing",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+# Navigation history integration test
+cc_test(
+    name = "navigation_history_test",
+    size = "small",
+    srcs = ["navigation_history_test.cpp"],
+    copts = ["-std=c++20"],
+    deps = [
+        "//core/routing:routing",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)

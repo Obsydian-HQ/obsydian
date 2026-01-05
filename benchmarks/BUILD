@@ -70,6 +70,23 @@ cc_binary(
     ],
 )
 
+# Router performance benchmark
+# Measures router performance: initialization, route matching, navigation, history
+cc_binary(
+    name = "router_bench",
+    srcs = ["router_bench.cpp"],
+    copts = ["-std=c++20"],
+    tags = ["benchmark"],
+    deps = [
+        "//core:runtime",
+        "//core/routing:routing",
+        "//include:obsidian_headers",
+        "//src:obsidian_impl",  # Link against actual implementation
+        "@com_github_google_benchmark//:benchmark",
+        "@com_github_google_benchmark//:benchmark_main",
+    ],
+)
+
 # Note: Benchmarks are cc_binary targets, not test targets
 # They should be run with: bazel run //benchmarks:window_creation_bench
 # Or via the CI script: ./scripts/ci.sh --benchmarks

@@ -7,6 +7,7 @@
 
 #include "obsidian/link.h"
 #include "obsidian/router.h"
+#include "obsidian/route_registry_helper.h"
 #include "obsidian/window.h"
 #include "obsidian/button.h"
 

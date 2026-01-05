@@ -88,15 +88,13 @@ std::string RouteMatcher::urlDecode(const std::string& encoded) {
 
 std::string RouteMatcher::urlEncode(const std::string& decoded) {
     std::ostringstream encoded;
-    encoded << std::hex << std::uppercase;
     
     for (unsigned char c : decoded) {
         if (std::isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
             encoded << c;
-        } else if (c == ' ') {
-            encoded << '+';
         } else {
-            encoded << '%' << std::setw(2) << std::setfill('0') << static_cast<int>(c);
+            // Use percent-encoding for all special characters including spaces
+            encoded << '%' << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(c);
         }
     }
     

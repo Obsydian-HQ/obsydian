@@ -68,34 +68,35 @@ TEST_F(RouteRenderingTest, RegisterRouteComponent) {
     bool componentCalled = false;
     std::string calledPath;
     
-    // Register a route component
-    router.registerRouteComponent("/test", [&](RouteContext& ctx) {
+    // Initialize router first (scans the app directory)
+    ASSERT_TRUE(router.initialize(testAppDirectory));
+    router.setWindow(window);
+    
+    // Register a route component for an existing route from the test app directory
+    router.registerRouteComponent("/about", [&](RouteContext& ctx) {
         componentCalled = true;
         calledPath = ctx.getPath();
     });
     
-    // Initialize router
-    ASSERT_TRUE(router.initialize(testAppDirectory));
-    router.setWindow(window);
-    
-    // Navigate to the route
-    router.navigate("/test");
+    // Navigate to the route (which exists in the test app directory)
+    router.navigate("/about");
     
     // Component should have been called
     ASSERT_TRUE(componentCalled) << "Route component should have been called";
-    ASSERT_EQ(calledPath, "/test") << "Route component should receive correct path";
+    ASSERT_EQ(calledPath, "/about") << "Route component should receive correct path";
 }
 
 TEST_F(RouteRenderingTest, RouteContextProvidesWindow) {
     Window* receivedWindow = nullptr;
     
-    router.registerRouteComponent("/test", [&](RouteContext& ctx) {
+    ASSERT_TRUE(router.initialize(testAppDirectory));
+    router.setWindow(window);
+    
+    router.registerRouteComponent("/about", [&](RouteContext& ctx) {
         receivedWindow = &ctx.getWindow();
     });
     
-    ASSERT_TRUE(router.initialize(testAppDirectory));
-    router.setWindow(window);
-    router.navigate("/test");
+    router.navigate("/about");
     
     ASSERT_NE(receivedWindow, nullptr) << "RouteContext should provide window";
     ASSERT_EQ(receivedWindow, &window) << "RouteContext should provide correct window";
@@ -119,42 +120,47 @@ TEST_F(RouteRenderingTest, RouteContextProvidesParams) {
 TEST_F(RouteRenderingTest, RouteContextProvidesQuery) {
     std::map<std::string, std::string> receivedQuery;
     
-    router.registerRouteComponent("/test", [&](RouteContext& ctx) {
+    ASSERT_TRUE(router.initialize(testAppDirectory));
+    router.setWindow(window);
+    
+    router.registerRouteComponent("/about", [&](RouteContext& ctx) {
         receivedQuery = ctx.getQuery();
     });
     
-    ASSERT_TRUE(router.initialize(testAppDirectory));
-    router.setWindow(window);
-    router.navigate("/test?sort=name&order=asc");
+    router.navigate("/about?sort=name&order=asc");
     
     ASSERT_FALSE(receivedQuery.empty()) << "RouteContext should provide query";
-    ASSERT_EQ(receivedQuery["sort"], "name") << "RouteContext should provide correct query value";
-    ASSERT_EQ(receivedQuery["order"], "asc") << "RouteContext should provide correct query value";
+    ASSERT_EQ(receivedQuery.at("sort"), "name") << "RouteContext should provide correct query value";
+    ASSERT_EQ(receivedQuery.at("order"), "asc") << "RouteContext should provide correct query value";
 }
 
 TEST_F(RouteRenderingTest, RouteContextNavigation) {
     bool navigated = false;
     std::string navigatedPath;
     
-    router.registerRouteComponent("/test", [&](RouteContext& ctx) {
-        ctx.navigate("/about");
-    });
+    ASSERT_TRUE(router.initialize(testAppDirectory));
+    router.setWindow(window);
     
     router.setOnNavigation([&](const std::string& path) {
         navigated = true;
         navigatedPath = path;
     });
     
-    ASSERT_TRUE(router.initialize(testAppDirectory));
-    router.setWindow(window);
-    router.navigate("/test");
+    router.registerRouteComponent("/about", [&](RouteContext& ctx) {
+        ctx.navigate("/");
+    });
+    
+    router.navigate("/about");
     
     ASSERT_TRUE(navigated) << "Navigation should be triggered";
-    ASSERT_EQ(navigatedPath, "/about") << "Navigation should go to correct path";
+    ASSERT_EQ(navigatedPath, "/") << "Navigation should go to correct path";
 }
 
 TEST_F(RouteRenderingTest, LayoutNesting) {
     std::vector<std::string> renderOrder;
+    
+    ASSERT_TRUE(router.initialize(testAppDirectory));
+    router.setWindow(window);
     
     // Register root layout
     router.registerLayoutComponent("/", [&](RouteContext& ctx, std::function<void()> renderChild) {
@@ -173,8 +179,6 @@ TEST_F(RouteRenderingTest, LayoutNesting) {
         renderOrder.push_back("products_route");
     });
     
-    ASSERT_TRUE(router.initialize(testAppDirectory));
-    router.setWindow(window);
     router.navigate("/products");
     
     // Layouts should render in order: root_layout -> products_layout -> products_route
@@ -202,20 +206,20 @@ TEST_F(RouteRenderingTest, LayoutWithoutChild) {
 TEST_F(RouteRenderingTest, MultipleRouteRegistrations) {
     int callCount = 0;
     
-    router.registerRouteComponent("/route1", [&](RouteContext& ctx) {
-        callCount++;
-    });
-    
-    router.registerRouteComponent("/route2", [&](RouteContext& ctx) {
-        callCount++;
-    });
-    
     ASSERT_TRUE(router.initialize(testAppDirectory));
     router.setWindow(window);
     
-    router.navigate("/route1");
+    router.registerRouteComponent("/about", [&](RouteContext& ctx) {
+        callCount++;
+    });
+    
+    router.registerRouteComponent("/", [&](RouteContext& ctx) {
+        callCount++;
+    });
+    
+    router.navigate("/about");
     ASSERT_EQ(callCount, 1) << "First route should be called";
     
-    router.navigate("/route2");
+    router.navigate("/");
     ASSERT_EQ(callCount, 2) << "Second route should be called";
 }

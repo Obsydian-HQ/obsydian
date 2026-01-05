@@ -11,8 +11,17 @@
 #include "core/routing/route_renderer.h"
 #include <iostream>
 
+#ifdef __APPLE__
+#include "packages/apple/macos_router.h"
+#endif
+
 using namespace obsidian;
 using namespace obsidian::routing;
+
+// Forward declaration of global router instance
+namespace obsidian {
+    extern Router* g_router;
+}
 
 class Router::Impl {
 public:
@@ -24,6 +33,10 @@ public:
     std::function<void(const std::string& path)> onNavigation;
     std::string currentPath;
     bool valid = false;
+    
+#ifdef __APPLE__
+    ObsidianMacOSRouterHandle macosRouterHandle = nullptr;
+#endif
 };
 
 Router::Router() : pImpl(std::make_unique<Impl>()) {}
@@ -31,7 +44,14 @@ Router::Router() : pImpl(std::make_unique<Impl>()) {}
 Router::Router(Router&&) noexcept = default;
 Router& Router::operator=(Router&&) noexcept = default;
 
-Router::~Router() = default;
+Router::~Router() {
+#ifdef __APPLE__
+    if (pImpl->macosRouterHandle) {
+        obsidian_macos_router_destroy(pImpl->macosRouterHandle);
+        pImpl->macosRouterHandle = nullptr;
+    }
+#endif
+}
 
 bool Router::initialize(const std::string& appDirectory) {
     pImpl->valid = false;
@@ -95,6 +115,13 @@ void Router::navigate(const std::string& path, const std::map<std::string, std::
         pImpl->onNavigation(routePath);
     }
     
+#ifdef __APPLE__
+    // Notify macOS router integration
+    if (pImpl->macosRouterHandle) {
+        obsidian_macos_router_handle_navigation(pImpl->macosRouterHandle, routePath.c_str());
+    }
+#endif
+    
     // Render route component
     if (pImpl->window) {
         pImpl->renderer.renderRoute(routeNode, *pImpl->window, *this, routeParams, query);
@@ -113,6 +140,13 @@ void Router::goBack() {
         if (pImpl->onNavigation) {
             pImpl->onNavigation(entry->path);
         }
+        
+#ifdef __APPLE__
+        // Notify macOS router integration
+        if (pImpl->macosRouterHandle) {
+            obsidian_macos_router_handle_navigation(pImpl->macosRouterHandle, entry->path.c_str());
+        }
+#endif
         
         // Render route component
         if (pImpl->window) {
@@ -136,6 +170,13 @@ void Router::goForward() {
         if (pImpl->onNavigation) {
             pImpl->onNavigation(entry->path);
         }
+        
+#ifdef __APPLE__
+        // Notify macOS router integration
+        if (pImpl->macosRouterHandle) {
+            obsidian_macos_router_handle_navigation(pImpl->macosRouterHandle, entry->path.c_str());
+        }
+#endif
         
         // Render route component
         if (pImpl->window) {
@@ -173,6 +214,13 @@ void Router::replace(const std::string& path) {
     if (pImpl->onNavigation) {
         pImpl->onNavigation(routePath);
     }
+    
+#ifdef __APPLE__
+    // Notify macOS router integration
+    if (pImpl->macosRouterHandle) {
+        obsidian_macos_router_handle_navigation(pImpl->macosRouterHandle, routePath.c_str());
+    }
+#endif
     
     // Render route component
     if (pImpl->window) {
@@ -228,6 +276,22 @@ int Router::getHistorySize() const {
 
 void Router::setWindow(Window& window) {
     pImpl->window = &window;
+    
+#ifdef __APPLE__
+    // Initialize macOS router integration if not already done
+    if (!pImpl->macosRouterHandle && window.getNativeHandle()) {
+        ObsidianMacOSRouterParams params;
+        params.routerHandle = this;
+        params.windowHandle = window.getNativeHandle();
+        
+        pImpl->macosRouterHandle = obsidian_macos_router_create(params);
+        
+        if (pImpl->macosRouterHandle) {
+            // Set up navigation callbacks
+            obsidian_macos_router_setup_navigation_callbacks(pImpl->macosRouterHandle);
+        }
+    }
+#endif
 }
 
 void Router::setOnNavigation(std::function<void(const std::string& path)> callback) {

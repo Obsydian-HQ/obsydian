@@ -132,3 +132,22 @@ cc_test(
         "@googletest//:gtest_main",
     ],
 )
+
+# macOS Router GUI tests
+# These tests require NSApplication and a GUI environment
+cc_test(
+    name = "macos_router_test",
+    size = "large",  # GUI tests may take longer
+    srcs = ["macos_router_test.cpp"],
+    copts = ["-std=c++20"],
+    tags = [
+        "manual",  # Don't run automatically in CI
+        "requires-gui",  # Mark as requiring GUI - will be skipped in headless CI
+    ],
+    deps = [
+        "//src:obsidian",
+        "//packages/apple:apple_ffi",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)

@@ -15,5 +15,7 @@ cc_library(
     hdrs = glob(["*.h"]),
     copts = ["-std=c++20"],
     includes = ["."],
-    deps = [],
+    deps = [
+        "//include:obsidian_headers",  # For RouteContext, Router, Window forward declarations/headers
+    ],
 )

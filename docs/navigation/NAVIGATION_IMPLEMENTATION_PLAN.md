@@ -6,7 +6,33 @@ This document outlines the implementation plan for adding **file-based routing**
 
 **Key Design Decision:** We are implementing **file-based routing** (like Next.js/Expo Router), NOT programmatic routing (like SwiftUI NavigationStack). This provides better developer experience, clearer project structure, and aligns with modern web/mobile development practices.
 
-**Current Status:** Planning phase - implementation not yet started.
+**Current Status:** Phases 1-4 complete, Phase 5 (macOS integration) in progress. Platform-specific implementations for Android, Windows, Linux, Web, and iOS are deferred until those platforms are added to the framework.
+
+## Implementation Status Summary
+
+**Completed Phases:**
+- ✅ Phase 0: Research & Design
+- ✅ Phase 1: Runtime Route Scanner & Registry Builder
+- ✅ Phase 2: Core Router Implementation
+- ✅ Phase 3: Route Context & Component Rendering
+- 🟡 Phase 4: Link Component (Implementation complete, needs verification & tests)
+
+**In Progress:**
+- ⏳ Phase 5: Platform-Specific Navigation Integration (macOS only - other platforms deferred)
+
+**Remaining Phases:**
+- ⏳ Phase 6: Example Applications
+- ⏳ Phase 7: Testing & Quality Assurance (partial - needs expansion)
+- ⏳ Phase 8: Documentation
+- ⏳ Phase 9: Final Verification & Release
+
+**Platform Status:**
+- **macOS:** ✅ Core routing complete, ⏳ Platform integration in progress
+- **iOS:** ⏳ Deferred until iOS platform is added to framework
+- **Android:** ⏳ Deferred until Android platform is added to framework
+- **Windows:** ⏳ Deferred until Windows platform is added to framework
+- **Linux:** ⏳ Deferred until Linux platform is added to framework
+- **Web:** ⏳ Deferred until Web platform is added to framework
 
 ## Route Generation Approach
 
@@ -441,91 +467,105 @@ test_apps/route_scanner_test/
 
 ### Phase 4: Link Component
 
-**Status:** ✅ Complete
+**Status:** 🟡 Mostly Complete (Needs Verification)
 
 **Goal:** Implement declarative Link component for navigation.
 
 **Tasks:**
 
 1. **Implement Link Component (C++)**
-   - Create Link class
-   - Handle click events
-   - Integrate with Router
-   - Support all Obsydian component types as children
+   - ✅ Create Link class
+   - ✅ Handle click events
+   - ✅ Integrate with Router
+   - ⚠️ Support all Obsydian component types as children (needs verification)
    - Location: `include/obsidian/link.h`, `src/obsidian/link.cpp`
 
 2. **Platform Implementations**
-   - macOS: Button-like component that navigates
-   - iOS: Similar to macOS
-   - Windows: Button-like component
-   - Linux: Button-like component
-   - Web: `<a>` tag with client-side navigation
+   - 🟡 macOS: Button-like component that navigates (needs verification)
+   - ⏳ iOS: Similar to macOS (Deferred - platform not yet implemented)
+   - ⏳ Windows: Button-like component (Deferred - platform not yet implemented)
+   - ⏳ Linux: Button-like component (Deferred - platform not yet implemented)
+   - ⏳ Web: `<a>` tag with client-side navigation (Deferred - platform not yet implemented)
    - Location: `packages/{apple,android,windows,linux,web}/`
 
 3. **Tests**
-   - Test Link navigation
-   - Test Link with different child components
+   - ⚠️ Test Link navigation (tests needed)
+   - ⚠️ Test Link with different child components (tests needed)
    - Location: `tests/integration/link_test.cpp`
 
 **Deliverables:**
-- ✅ Link component implementation
-- ✅ Platform-specific Link implementations
-- ✅ Tests
+- ✅ Link component implementation (C++ API complete)
+- 🟡 Platform-specific Link implementations (macOS needs verification, others deferred)
+- ⚠️ Tests (tests needed)
 
 **Checkpoint Requirements:**
-- ✅ Link navigates correctly
-- ✅ Link works with all component types
-- ✅ All tests pass
-- ✅ CI is green
-- ✅ Code reviewed and approved
+- ⚠️ Link navigates correctly (needs verification)
+- ⚠️ Link works with all component types (needs verification)
+- ⚠️ All tests pass (tests needed)
+- ⚠️ CI is green (needs verification)
+- ⚠️ Code reviewed and approved (needs verification)
 
 ---
 
 ### Phase 5: Platform-Specific Navigation Integration
 
-**Status:** ⏳ Pending
+**Status:** ⏳ In Progress (macOS only - other platforms deferred)
 
 **Goal:** Integrate router with native platform navigation APIs.
 
+**Note:** Only macOS platform is currently implemented in the Obsydian framework. Platform-specific router integrations for Android, Windows, Linux, Web, and iOS will be implemented as those platforms are added to the framework.
+
 **Tasks:**
 
-1. **macOS/iOS Integration**
-   - Use `UINavigationController` (iOS) or `NSViewController` (macOS)
-   - Handle native back button
-   - Handle swipe gestures (iOS)
-   - Location: `packages/apple/macos_router.*`, `packages/apple/ios_router.*`
+1. **macOS Integration (In Progress)**
+   - Use `NSViewController` for macOS navigation
+   - Handle native back button (if applicable)
+   - Integrate with existing macOS window/view controller system
+   - Location: `packages/apple/macos_router.*`
 
-2. **Android Integration**
+2. **iOS Integration (Deferred)**
+   - Use `UINavigationController` for iOS navigation
+   - Handle native back button
+   - Handle swipe gestures
+   - Location: `packages/apple/ios_router.*`
+   - **Status:** Deferred until iOS platform is added to framework
+
+3. **Android Integration (Deferred)**
    - Use `Activity` and `Fragment` navigation
    - Handle system back button
    - Location: `packages/android/android_router.*`
+   - **Status:** Deferred until Android platform is added to framework
 
-3. **Windows Integration**
+4. **Windows Integration (Deferred)**
    - Use Win32 navigation patterns
    - Handle window navigation
    - Location: `packages/windows/windows_router.*`
+   - **Status:** Deferred until Windows platform is added to framework
 
-4. **Linux Integration**
+5. **Linux Integration (Deferred)**
    - Use GTK navigation patterns
    - Location: `packages/linux/linux_router.*`
+   - **Status:** Deferred until Linux platform is added to framework
 
-5. **Web Integration**
+6. **Web Integration (Deferred)**
    - Use History API
    - Handle browser back/forward
    - Handle URL changes
    - Location: `packages/web/web_router.*`
+   - **Status:** Deferred until Web platform is added to framework
 
 **Deliverables:**
-- ✅ Platform-specific router implementations
-- ✅ Native navigation integration
-- ✅ Platform-specific tests
+- ⏳ Platform-specific router implementations (macOS in progress, others deferred)
+- ⏳ Native navigation integration (macOS in progress, others deferred)
+- ⏳ Platform-specific tests (macOS in progress, others deferred)
 
 **Checkpoint Requirements:**
-- ✅ Navigation works on all platforms
-- ✅ Native back button works
-- ✅ All platform tests pass
-- ✅ CI is green (all platforms)
-- ✅ Code reviewed and approved
+- ⏳ Navigation works on macOS (in progress)
+- ⏳ Native back button works (macOS - if applicable)
+- ⏳ macOS tests pass (in progress)
+- ⏳ CI is green for macOS (in progress)
+- ⏳ Code reviewed and approved (in progress)
+- ⏳ Other platforms: Deferred until platforms are added to framework
 
 ---
 

@@ -1,0 +1,44 @@
+/**
+ * Blog list route (/blog)
+ */
+
+#include <obsidian/obsidian.h>
+#include <obsidian/route_registry_helper.h>
+
+using namespace obsidian;
+
+void renderBlogRoute(RouteContext& ctx) {
+    Window& window = ctx.getWindow();
+    
+    VStack content;
+    content.setSpacing(20.0);
+    content.setPadding(Padding::all(20.0));
+    
+    TextView title;
+    title.create("Blog Posts", 0, 0, 0, 0);
+    title.setFontSize(28.0);
+    title.setFontWeight(FontWeight::Bold);
+    content.addChild(title);
+    
+    TextView description;
+    description.create("All blog posts:", 0, 0, 0, 0);
+    description.setFontSize(14.0);
+    content.addChild(description);
+    
+    VStack postList;
+    postList.setSpacing(10.0);
+    
+    Link post1;
+    post1.create("/blog/post-1", "Post 1: Getting Started", 0, 0, 200, 30);
+    postList.addChild(post1);
+    
+    Link post2;
+    post2.create("/blog/post-2", "Post 2: Advanced Topics", 0, 0, 200, 30);
+    postList.addChild(post2);
+    
+    content.addChild(postList);
+    
+    window.setContent(content);
+}
+
+REGISTER_ROUTE("/blog", renderBlogRoute);
