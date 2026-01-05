@@ -18,6 +18,7 @@ namespace obsidian {
 class Button;
 class TextField;
 class TextView;
+class Link;
 
 /**
  * ZStack class - Overlay stack layout container
@@ -63,9 +64,19 @@ public:
     void addChild(Button& button);
     
     /**
+     * Add a link as a child
+     */
+    void addChild(Link& link);
+    
+    /**
      * Remove a button child
      */
     void removeChild(Button& button);
+    
+    /**
+     * Remove a link child
+     */
+    void removeChild(Link& link);
     
     /**
      * Clear all children

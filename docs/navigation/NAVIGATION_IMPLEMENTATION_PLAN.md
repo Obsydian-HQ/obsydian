@@ -265,7 +265,7 @@ struct RouteMetadata {
 
 ### Phase 1: Runtime Route Scanner & Registry Builder
 
-**Status:** ⏳ Pending
+**Status:** ✅ Complete
 
 **Goal:** Create runtime route scanning system that scans the `app/` directory at application startup and builds route registry in memory.
 
@@ -334,7 +334,7 @@ test_apps/route_scanner_test/
 
 ### Phase 2: Core Router Implementation
 
-**Status:** ⏳ Pending
+**Status:** ✅ Complete
 
 **Goal:** Implement the core Router class that manages navigation state and route matching.
 
@@ -441,7 +441,7 @@ test_apps/route_scanner_test/
 
 ### Phase 4: Link Component
 
-**Status:** ⏳ Pending
+**Status:** ✅ Complete
 
 **Goal:** Implement declarative Link component for navigation.
 

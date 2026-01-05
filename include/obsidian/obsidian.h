@@ -41,6 +41,8 @@
 #include "obsidian/spacer.h"
 #include "obsidian/splitview.h"
 #include "obsidian/sidebar.h"
+#include "obsidian/router.h"
+#include "obsidian/link.h"
 
 /**
  * @namespace obsidian

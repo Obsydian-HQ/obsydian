@@ -28,6 +28,13 @@ namespace obsidian::routing {
 using RouteComponentFunction = std::function<void(obsidian::RouteContext&)>;
 
 /**
+ * Layout component function type
+ * Layout files should define functions with this signature.
+ * The function receives a RouteContext and a renderChild callback.
+ */
+using LayoutComponentFunction = std::function<void(obsidian::RouteContext&, std::function<void()>)>;
+
+/**
  * Route Renderer
  * 
  * Manages route component rendering, including layout nesting.

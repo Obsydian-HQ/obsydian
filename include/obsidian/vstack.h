@@ -19,6 +19,7 @@ class Button;
 class TextField;
 class TextView;
 class Spacer;
+class Link;
 
 /**
  * Padding structure for layout containers
@@ -113,6 +114,11 @@ public:
     void addChild(Button& button);
     
     /**
+     * Add a link as a child
+     */
+    void addChild(Link& link);
+    
+    /**
      * Add a spacer as a child
      */
     void addChild(Spacer& spacer);
@@ -121,6 +127,11 @@ public:
      * Remove a button child
      */
     void removeChild(Button& button);
+    
+    /**
+     * Remove a link child
+     */
+    void removeChild(Link& link);
     
     /**
      * Remove a spacer child

@@ -8,6 +8,7 @@
 #include "obsidian/zstack.h"
 #include "obsidian/window.h"
 #include "obsidian/button.h"
+#include "obsidian/link.h"
 #include <iostream>
 
 // Include internal headers (not exposed to users)
@@ -177,6 +178,42 @@ void ZStack::addChild(Button& button) {
 #endif
 }
 
+void ZStack::addChild(Link& link) {
+    if (!pImpl || !link.isValid()) {
+        return;
+    }
+    
+#ifdef __APPLE__
+    // Initialize ZStack if not already created
+    if (!pImpl->valid) {
+        ObsidianZStackParams params;
+        pImpl->zstackHandle = obsidian_macos_create_zstack(params);
+        if (!pImpl->zstackHandle) {
+            return;
+        }
+        pImpl->valid = true;
+    }
+    
+    // Get link's native view handle (which is the button's view)
+    void* linkView = link.getNativeViewHandle();
+    if (!linkView) {
+        return;
+    }
+    
+    // Remove link from current parent if it has one
+    link.removeFromParent();
+    
+    // Add child view to container
+    obsidian_macos_zstack_add_child_view(pImpl->zstackHandle, linkView);
+    pImpl->childViewHandles.push_back(linkView);
+    
+    // Update layout ONLY if container is already in window hierarchy
+    if (pImpl->parentView) {
+        updateLayout();
+    }
+#endif
+}
+
 void ZStack::removeChild(Button& button) {
     if (!pImpl || !pImpl->valid || !button.isValid()) {
         return;
@@ -192,6 +229,29 @@ void ZStack::removeChild(Button& button) {
     auto it = std::find(pImpl->childViewHandles.begin(), pImpl->childViewHandles.end(), buttonView);
     if (it != pImpl->childViewHandles.end()) {
         obsidian_macos_zstack_remove_child_view(pImpl->zstackHandle, buttonView);
+        pImpl->childViewHandles.erase(it);
+        
+        // Update layout
+        updateLayout();
+    }
+#endif
+}
+
+void ZStack::removeChild(Link& link) {
+    if (!pImpl || !pImpl->valid || !link.isValid()) {
+        return;
+    }
+    
+#ifdef __APPLE__
+    void* linkView = link.getNativeViewHandle();
+    if (!linkView) {
+        return;
+    }
+    
+    // Find and remove from child handles
+    auto it = std::find(pImpl->childViewHandles.begin(), pImpl->childViewHandles.end(), linkView);
+    if (it != pImpl->childViewHandles.end()) {
+        obsidian_macos_zstack_remove_child_view(pImpl->zstackHandle, linkView);
         pImpl->childViewHandles.erase(it);
         
         // Update layout
