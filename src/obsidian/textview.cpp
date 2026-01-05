@@ -263,6 +263,18 @@ void* TextView::getNativeHandle() const {
 #endif
 }
 
+void* TextView::getNativeViewHandle() const {
+    if (!pImpl->valid) {
+        return nullptr;
+    }
+    
+#ifdef __APPLE__
+    return pImpl->macosTextView.getViewHandle();
+#else
+    return nullptr;
+#endif
+}
+
 TextView::TextView(TextView&& other) noexcept = default;
 TextView& TextView::operator=(TextView&& other) noexcept = default;
 

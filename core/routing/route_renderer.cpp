@@ -93,7 +93,7 @@ bool RouteRenderer::renderRouteWithLayouts(const RouteNode* routeNode,
                                           obsidian::Router& router,
                                           const std::map<std::string, std::string>& params,
                                           const std::map<std::string, std::string>& query,
-                                          const std::string& currentPath) {
+                                          const std::string& /* currentPath */) {
     if (!routeNode) {
         return false;
     }

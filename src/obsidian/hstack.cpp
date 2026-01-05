@@ -332,8 +332,9 @@ void HStack::addChild(TextView& textView) {
         pImpl->valid = true;
     }
     
-    // Get text view's native view handle
-    void* textViewHandle = textView.getNativeHandle();
+    // Get text view's ACTUAL native view handle (NSTextView*, not the wrapper)
+    // This is critical because the HStack needs the real NSView to apply Auto Layout constraints
+    void* textViewHandle = textView.getNativeViewHandle();
     if (!textViewHandle) {
         return;
     }
@@ -499,7 +500,8 @@ void HStack::removeChild(TextView& textView) {
     }
     
 #ifdef __APPLE__
-    void* textViewHandle = textView.getNativeHandle();
+    // Use the ACTUAL native view handle to match what was added
+    void* textViewHandle = textView.getNativeViewHandle();
     if (!textViewHandle) {
         return;
     }

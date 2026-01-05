@@ -44,7 +44,7 @@
 
 extern "C" {
 
-ObsidianSplitViewControllerHandle obsidian_macos_create_splitviewcontroller(ObsidianSplitViewControllerParams params) {
+ObsidianSplitViewControllerHandle obsidian_macos_create_splitviewcontroller(ObsidianSplitViewControllerParams /* params */) {
     @autoreleasepool {
         ObsidianSplitViewControllerWrapper* w = [[ObsidianSplitViewControllerWrapper alloc] init];
         return w ? (__bridge_retained void*)w : nullptr;

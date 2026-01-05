@@ -56,12 +56,16 @@ bool Window::create(int width, int height, const std::string& title) {
 }
 
 void Window::show() {
+    std::cerr << "[Window DEBUG] show() called, valid=" << pImpl->valid << std::endl;
     if (!pImpl->valid) {
+        std::cerr << "[Window DEBUG] Window not valid, returning" << std::endl;
         return;
     }
     
 #ifdef __APPLE__
+    std::cerr << "[Window DEBUG] Calling macosWindow.show()" << std::endl;
     pImpl->macosWindow.show();
+    std::cerr << "[Window DEBUG] macosWindow.show() returned" << std::endl;
 #endif
 }
 

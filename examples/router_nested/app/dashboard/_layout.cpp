@@ -1,5 +1,5 @@
 /**
- * Dashboard layout - wraps /dashboard/* routes
+ * Dashboard layout - wraps /dashboard routes
  */
 
 #include <obsidian/obsidian.h>

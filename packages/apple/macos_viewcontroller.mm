@@ -76,7 +76,7 @@
 
 extern "C" {
 
-ObsidianViewControllerHandle obsidian_macos_create_viewcontroller(ObsidianViewControllerParams params) {
+ObsidianViewControllerHandle obsidian_macos_create_viewcontroller(ObsidianViewControllerParams /* params */) {
     @autoreleasepool {
         ObsidianViewControllerWrapper* w = [[ObsidianViewControllerWrapper alloc] init];
         return w ? (__bridge_retained void*)w : nullptr;

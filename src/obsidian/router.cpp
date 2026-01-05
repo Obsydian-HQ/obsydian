@@ -4,6 +4,7 @@
 
 #include "obsidian/router.h"
 #include "obsidian/window.h"
+#include "obsidian/route_registry_helper.h"  // For processPendingRegistrations
 #include "core/routing/route_scanner.h"
 #include "core/routing/route_registry.h"
 #include "core/routing/navigation_history.h"
@@ -58,6 +59,12 @@ bool Router::initialize(const std::string& appDirectory) {
     
     // Set global router instance for route registration
     g_router = this;
+    
+    // Process any pending route registrations that occurred during static initialization
+    // This is CRITICAL: static initializers in route files run BEFORE main(), 
+    // so g_router is null at that time. They queue their registrations,
+    // and we process them here after g_router is set.
+    processPendingRegistrations();
     
     // Scan app directory
     if (!pImpl->scanner.scan(appDirectory)) {

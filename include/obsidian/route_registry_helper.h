@@ -3,74 +3,113 @@
  * 
  * Provides convenient macros and functions for registering route components.
  * Route files should include this header and use the registration macros.
+ * 
+ * This system handles the C++ static initialization order problem:
+ * - Route files use static initializers (run BEFORE main())
+ * - The Router is created in main() (AFTER static initializers)
+ * - Solution: Queue registrations when g_router is null, process them when Router initializes
  */
 
 #pragma once
 
 #include "obsidian/router.h"
 #include <functional>
+#include <vector>
+#include <string>
 
 namespace obsidian {
 
 /**
- * Global router instance (set by application)
+ * Global router instance (set by Router::initialize())
  * Route files use this to register themselves
  */
 extern Router* g_router;
 
 /**
- * Register a route component
- * 
- * Usage in route files:
- * ```cpp
- * #include <obsidian/route_registry_helper.h>
- * 
- * void renderRoute(RouteContext& ctx) {
- *     // Route implementation
- * }
- * 
- * // Register at static initialization time
- * static bool _registered = []() {
- *     if (g_router) {
- *         g_router->registerRouteComponent("/about", renderRoute);
- *     }
- *     return true;
- * }();
- * ```
+ * Pending route registration (deferred until Router is ready)
+ */
+struct PendingRouteRegistration {
+    std::string path;
+    std::function<void(RouteContext&)> component;
+};
+
+/**
+ * Pending layout registration (deferred until Router is ready)
+ */
+struct PendingLayoutRegistration {
+    std::string path;
+    std::function<void(RouteContext&, std::function<void()>)> layout;
+};
+
+/**
+ * Get the pending route registrations queue.
+ * Uses the "construct on first use" idiom to avoid static initialization order issues.
+ */
+inline std::vector<PendingRouteRegistration>& getPendingRoutes() {
+    static std::vector<PendingRouteRegistration> pendingRoutes;
+    return pendingRoutes;
+}
+
+/**
+ * Get the pending layout registrations queue.
+ * Uses the "construct on first use" idiom to avoid static initialization order issues.
+ */
+inline std::vector<PendingLayoutRegistration>& getPendingLayouts() {
+    static std::vector<PendingLayoutRegistration> pendingLayouts;
+    return pendingLayouts;
+}
+
+/**
+ * Register a route component.
+ * If g_router is available, registers immediately.
+ * Otherwise, queues for deferred registration.
  */
 inline void registerRoute(const std::string& path, std::function<void(RouteContext&)> component) {
     if (g_router) {
         g_router->registerRouteComponent(path, component);
+    } else {
+        // Queue for later when Router is initialized
+        getPendingRoutes().push_back({path, component});
     }
 }
 
 /**
- * Register a layout component
- * 
- * Usage in layout files:
- * ```cpp
- * #include <obsidian/route_registry_helper.h>
- * 
- * void renderLayout(RouteContext& ctx, std::function<void()> renderChild) {
- *     // Layout implementation
- *     // Call renderChild() to render nested content
- *     renderChild();
- * }
- * 
- * // Register at static initialization time
- * static bool _registered = []() {
- *     if (g_router) {
- *         g_router->registerLayoutComponent("/", renderLayout);
- *     }
- *     return true;
- * }();
- * ```
+ * Register a layout component.
+ * If g_router is available, registers immediately.
+ * Otherwise, queues for deferred registration.
  */
 inline void registerLayout(const std::string& path, 
                           std::function<void(RouteContext&, std::function<void()>)> layout) {
     if (g_router) {
         g_router->registerLayoutComponent(path, layout);
+    } else {
+        // Queue for later when Router is initialized
+        getPendingLayouts().push_back({path, layout});
     }
+}
+
+/**
+ * Process all pending route and layout registrations.
+ * Called by Router::initialize() after setting g_router.
+ */
+inline void processPendingRegistrations() {
+    if (!g_router) {
+        return;
+    }
+    
+    // Process pending route registrations
+    auto& pendingRoutes = getPendingRoutes();
+    for (const auto& pending : pendingRoutes) {
+        g_router->registerRouteComponent(pending.path, pending.component);
+    }
+    pendingRoutes.clear();
+    
+    // Process pending layout registrations
+    auto& pendingLayouts = getPendingLayouts();
+    for (const auto& pending : pendingLayouts) {
+        g_router->registerLayoutComponent(pending.path, pending.layout);
+    }
+    pendingLayouts.clear();
 }
 
 /**
@@ -81,12 +120,13 @@ inline void registerLayout(const std::string& path,
  * void renderRoute(RouteContext& ctx) { ... }
  * REGISTER_ROUTE("/about", renderRoute);
  * ```
+ * 
+ * This registers at static initialization time. If the Router isn't ready yet,
+ * the registration is queued and processed when Router::initialize() is called.
  */
 #define REGISTER_ROUTE(path, component) \
     static bool _registered_route_##component = []() { \
-        if (g_router) { \
-            registerRoute(path, component); \
-        } \
+        ::obsidian::registerRoute(path, component); \
         return true; \
     }()
 
@@ -98,12 +138,13 @@ inline void registerLayout(const std::string& path,
  * void renderLayout(RouteContext& ctx, std::function<void()> renderChild) { ... }
  * REGISTER_LAYOUT("/", renderLayout);
  * ```
+ * 
+ * This registers at static initialization time. If the Router isn't ready yet,
+ * the registration is queued and processed when Router::initialize() is called.
  */
 #define REGISTER_LAYOUT(path, layout) \
     static bool _registered_layout_##layout = []() { \
-        if (g_router) { \
-            registerLayout(path, layout); \
-        } \
+        ::obsidian::registerLayout(path, layout); \
         return true; \
     }()
 

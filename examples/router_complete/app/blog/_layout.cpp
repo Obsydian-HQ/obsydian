@@ -1,5 +1,5 @@
 /**
- * Blog layout - wraps /blog/* routes
+ * Blog layout - wraps /blog routes
  */
 
 #include <obsidian/obsidian.h>

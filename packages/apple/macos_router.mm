@@ -2,6 +2,20 @@
  * macOS Router Integration Implementation
  * 
  * Integrates Obsydian Router with macOS NSViewController system.
+ * 
+ * IMPORTANT DESIGN NOTE:
+ * The router adds its root view as a subview of the window's existing contentView,
+ * rather than using setContentViewController:. This is intentional because:
+ * 
+ * 1. setContentViewController: replaces the window's contentView entirely, which
+ *    causes timing issues in programmatic (non-NIB) apps when called before
+ *    NSApplication is activated - the window may not appear on screen.
+ * 
+ * 2. Using addSubview: to the existing contentView is the standard approach
+ *    used by other C/C++ frameworks (SDL, GLFW, webui, sokol_app, etc.)
+ * 
+ * 3. This allows multiple components (Router, Sidebar, SplitView) to coexist
+ *    by adding their views as siblings in the window's content view hierarchy.
  */
 
 #import "macos_router.h"
@@ -41,13 +55,16 @@
         [rootView setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
         [_rootViewController setView:rootView];
         
-        // Set root view controller as window's content view controller
-        if (_window && @available(macOS 10.10, *)) {
-            [_window setContentViewController:_rootViewController];
-        } else if (_window) {
-            // Fallback for older macOS versions
-            [_window.contentView addSubview:rootView];
-            [rootView setFrame:_window.contentView.bounds];
+        // Add router's root view as a subview of window's content view
+        // NOTE: We do NOT use setContentViewController: as it prevents the window from displaying
+        // when called before the app is activated. Adding as subview works correctly.
+        if (_window) {
+            NSView* contentView = _window.contentView;
+            if (contentView) {
+                [rootView setFrame:contentView.bounds];
+                [rootView setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
+                [contentView addSubview:rootView];
+            }
         }
         
         _viewControllers = [[NSMutableDictionary alloc] init];

@@ -11,8 +11,39 @@
 
 #include <iostream>
 #include <obsidian/obsidian.h>
+#include <filesystem>
 
 using namespace obsidian;
+
+// Helper to find app directory - works when run via bazel or directly
+std::string findAppDirectory(const std::string& appDirName) {
+    // First, try relative to current working directory (works if run from example dir)
+    std::filesystem::path currentDir = std::filesystem::current_path();
+    std::filesystem::path testPath = currentDir / appDirName;
+    if (std::filesystem::exists(testPath) && std::filesystem::is_directory(testPath)) {
+        return testPath.string();
+    }
+    
+    // Try from workspace root (where bazel runs from)
+    std::filesystem::path searchPath = currentDir;
+    for (int i = 0; i < 10 && !searchPath.empty() && searchPath.has_parent_path(); ++i) {
+        // Check if this looks like workspace root
+        if (std::filesystem::exists(searchPath / "MODULE.bazel") ||
+            (std::filesystem::exists(searchPath / "BUILD") && 
+             std::filesystem::exists(searchPath / "examples"))) {
+            // Try examples/router_patterns/app
+            std::filesystem::path appPath = searchPath / "examples" / "router_patterns" / appDirName;
+            if (std::filesystem::exists(appPath) && std::filesystem::is_directory(appPath)) {
+                return appPath.string();
+            }
+            break;
+        }
+        searchPath = searchPath.parent_path();
+    }
+    
+    // Last resort: return original (will fail gracefully)
+    return appDirName;
+}
 
 int main(int /* argc */, char* /* argv */[]) {
     std::cout << "=== Obsidian Router Patterns Example ===\n\n";
@@ -38,9 +69,13 @@ int main(int /* argc */, char* /* argv */[]) {
     
     std::cout << "Window created successfully\n";
     
+    // Find app directory
+    std::string appDir = findAppDirectory("app");
+    std::cout << "Using app directory: " << appDir << std::endl;
+    
     // Initialize router with app directory
     Router router;
-    if (!router.initialize("app")) {
+    if (!router.initialize(appDir)) {
         std::cerr << "Failed to initialize router\n";
         app.shutdown();
         return 1;

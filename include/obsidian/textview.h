@@ -164,6 +164,12 @@ public:
      */
     void* getNativeHandle() const;
     
+    /**
+     * Get the native view handle (for use with layout containers)
+     * @return Platform-specific native view handle (NSTextView* on macOS), or nullptr if invalid
+     */
+    void* getNativeViewHandle() const;
+    
     // Non-copyable
     TextView(const TextView&) = delete;
     TextView& operator=(const TextView&) = delete;

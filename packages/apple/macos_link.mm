@@ -21,7 +21,6 @@
 
 @property (nonatomic, strong) NSView* wrapperView;
 @property (nonatomic, strong) NSView* childView;
-@property (nonatomic, strong) NSString* href;
 @property (nonatomic, assign) ObsidianLinkClickCallback callback;
 @property (nonatomic, assign) void* userData;
 
@@ -180,7 +179,7 @@
     return _childView;
 }
 
-- (NSString*)href {
+- (NSString*)hrefString {
     return _href;
 }
 

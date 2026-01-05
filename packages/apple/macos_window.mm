@@ -47,7 +47,8 @@ ObsidianWindowHandle obsidian_macos_create_window(ObsidianWindowParams params) {
 void obsidian_macos_show_window(ObsidianWindowHandle handle) {
     if (!handle) return;
     @autoreleasepool {
-        [((__bridge ObsidianWindowWrapper*)handle).window makeKeyAndOrderFront:nil];
+        NSWindow* window = ((__bridge ObsidianWindowWrapper*)handle).window;
+        [window makeKeyAndOrderFront:nil];
     }
 }
 
@@ -195,7 +196,7 @@ void obsidian_macos_window_get_min_size(ObsidianWindowHandle handle, double* out
     }
 }
 
-void obsidian_macos_window_update_constraints(ObsidianWindowHandle handle) {
+void obsidian_macos_window_update_constraints(ObsidianWindowHandle /* handle */) {
     // No-op - legacy function
 }
 

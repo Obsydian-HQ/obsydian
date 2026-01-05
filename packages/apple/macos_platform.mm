@@ -45,10 +45,21 @@ void obsidian_macos_platform_run() {
     @autoreleasepool {
         NSApplication* app = [NSApplication sharedApplication];
         
-        // Activate the app
+        // Activate the app and bring to foreground
         [app activateIgnoringOtherApps:YES];
         
-        // Run the event loop
+        // Ensure any visible windows become key/main after activation
+        // This is necessary for programmatic (non-NIB) apps where windows
+        // may be shown before the app is activated
+        for (NSWindow* window in app.windows) {
+            if (![window isKindOfClass:NSClassFromString(@"TUINSWindow")] && 
+                window.isVisible) {
+                [window makeKeyAndOrderFront:nil];
+                break;  // Only need to make one window key
+            }
+        }
+        
+        // Run the main event loop
         [app run];
     }
 }

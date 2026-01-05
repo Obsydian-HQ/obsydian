@@ -163,19 +163,19 @@ TEST_F(RouteRenderingTest, LayoutNesting) {
     router.setWindow(window);
     
     // Register root layout
-    router.registerLayoutComponent("/", [&](RouteContext& ctx, std::function<void()> renderChild) {
+    router.registerLayoutComponent("/", [&](RouteContext& /* ctx */, std::function<void()> renderChild) {
         renderOrder.push_back("root_layout");
         renderChild();
     });
     
     // Register nested layout
-    router.registerLayoutComponent("/products", [&](RouteContext& ctx, std::function<void()> renderChild) {
+    router.registerLayoutComponent("/products", [&](RouteContext& /* ctx */, std::function<void()> renderChild) {
         renderOrder.push_back("products_layout");
         renderChild();
     });
     
     // Register route component
-    router.registerRouteComponent("/products", [&](RouteContext& ctx) {
+    router.registerRouteComponent("/products", [&](RouteContext& /* ctx */) {
         renderOrder.push_back("products_route");
     });
     
@@ -191,7 +191,7 @@ TEST_F(RouteRenderingTest, LayoutNesting) {
 TEST_F(RouteRenderingTest, LayoutWithoutChild) {
     bool layoutCalled = false;
     
-    router.registerLayoutComponent("/", [&](RouteContext& ctx, std::function<void()> renderChild) {
+    router.registerLayoutComponent("/", [&](RouteContext& /* ctx */, std::function<void()> /* renderChild */) {
         layoutCalled = true;
         // Don't call renderChild - layout can render without child
     });
@@ -209,11 +209,11 @@ TEST_F(RouteRenderingTest, MultipleRouteRegistrations) {
     ASSERT_TRUE(router.initialize(testAppDirectory));
     router.setWindow(window);
     
-    router.registerRouteComponent("/about", [&](RouteContext& ctx) {
+    router.registerRouteComponent("/about", [&](RouteContext& /* ctx */) {
         callCount++;
     });
     
-    router.registerRouteComponent("/", [&](RouteContext& ctx) {
+    router.registerRouteComponent("/", [&](RouteContext& /* ctx */) {
         callCount++;
     });
     
