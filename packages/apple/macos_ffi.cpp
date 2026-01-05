@@ -18,6 +18,7 @@
 #include "macos_process.h"
 #include "macos_process_list.h"
 #include "macos_platform.h"
+#include "macos_splitview.h"
 #include <cstring>
 #include <cstdlib>
 #include <vector>
@@ -959,6 +960,129 @@ void List::onSelectionCallback(int itemIndex, void* userData) {
     if (list && list->callback_) {
         list->callback_(itemIndex);
     }
+}
+
+// SplitView implementation
+SplitView::SplitView() : handle_(nullptr) {}
+
+SplitView::~SplitView() {
+    if (handle_) {
+        obsidian_macos_destroy_splitview(handle_);
+        handle_ = nullptr;
+    }
+}
+
+bool SplitView::create(int position, double initialSidebarWidth, 
+                      double minSidebarWidth, double maxSidebarWidth) {
+    if (handle_) {
+        return false; // Already created
+    }
+    
+    ObsidianSplitViewParams params;
+    params.position = (ObsidianSidebarPosition)position;
+    params.initialSidebarWidth = initialSidebarWidth;
+    params.minSidebarWidth = minSidebarWidth;
+    params.maxSidebarWidth = maxSidebarWidth;
+    
+    handle_ = obsidian_macos_create_splitview(params);
+    return handle_ != nullptr;
+}
+
+void SplitView::setSidebarWidth(double width) {
+    if (handle_) {
+        obsidian_macos_splitview_set_sidebar_width(handle_, width);
+    }
+}
+
+double SplitView::getSidebarWidth() const {
+    if (!handle_) {
+        return 0.0;
+    }
+    return obsidian_macos_splitview_get_sidebar_width(handle_);
+}
+
+void SplitView::setMinimumSidebarWidth(double width) {
+    if (handle_) {
+        obsidian_macos_splitview_set_minimum_sidebar_width(handle_, width);
+    }
+}
+
+void SplitView::setMaximumSidebarWidth(double width) {
+    if (handle_) {
+        obsidian_macos_splitview_set_maximum_sidebar_width(handle_, width);
+    }
+}
+
+void SplitView::collapseSidebar() {
+    if (handle_) {
+        obsidian_macos_splitview_collapse_sidebar(handle_);
+    }
+}
+
+void SplitView::expandSidebar() {
+    if (handle_) {
+        obsidian_macos_splitview_expand_sidebar(handle_);
+    }
+}
+
+void SplitView::toggleSidebar() {
+    if (handle_) {
+        obsidian_macos_splitview_toggle_sidebar(handle_);
+    }
+}
+
+bool SplitView::isSidebarCollapsed() const {
+    if (!handle_) {
+        return false;
+    }
+    return obsidian_macos_splitview_is_sidebar_collapsed(handle_);
+}
+
+void SplitView::setSidebarView(void* viewHandle) {
+    if (handle_) {
+        obsidian_macos_splitview_set_sidebar_view(handle_, viewHandle);
+    }
+}
+
+void SplitView::setMainView(void* viewHandle) {
+    if (handle_) {
+        obsidian_macos_splitview_set_main_view(handle_, viewHandle);
+    }
+}
+
+void SplitView::addToWindow(Window& window) {
+    if (handle_ && window.isValid()) {
+        void* windowHandle = window.getHandle();
+        obsidian_macos_splitview_add_to_window(handle_, windowHandle);
+    }
+}
+
+void SplitView::removeFromParent() {
+    if (handle_) {
+        obsidian_macos_splitview_remove_from_parent(handle_);
+    }
+}
+
+bool SplitView::isValid() const {
+    if (!handle_) {
+        return false;
+    }
+    return obsidian_macos_splitview_is_valid(handle_);
+}
+
+SplitView::SplitView(SplitView&& other) noexcept : handle_(other.handle_) {
+    other.handle_ = nullptr;
+}
+
+SplitView& SplitView::operator=(SplitView&& other) noexcept {
+    if (this != &other) {
+        if (handle_) {
+            obsidian_macos_destroy_splitview(handle_);
+        }
+        handle_ = other.handle_;
+        other.handle_ = nullptr;
+    }
+    return *this;
 }
 
 // Process implementation

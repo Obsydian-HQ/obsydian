@@ -609,6 +609,19 @@ bool VStack::isValid() const {
     return pImpl ? pImpl->valid : false;
 }
 
+void* VStack::getNativeViewHandle() const {
+    if (!pImpl || !pImpl->valid) {
+        return nullptr;
+    }
+    
+#ifdef __APPLE__
+    if (pImpl->vstackHandle) {
+        return obsidian_macos_vstack_get_view(pImpl->vstackHandle);
+    }
+#endif
+    return nullptr;
+}
+
 VStack::VStack(VStack&&) noexcept = default;
 VStack& VStack::operator=(VStack&&) noexcept = default;
 

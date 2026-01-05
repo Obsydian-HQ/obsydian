@@ -612,6 +612,19 @@ bool HStack::isValid() const {
     return pImpl ? pImpl->valid : false;
 }
 
+void* HStack::getNativeViewHandle() const {
+    if (!pImpl || !pImpl->valid) {
+        return nullptr;
+    }
+    
+#ifdef __APPLE__
+    if (pImpl->hstackHandle) {
+        return obsidian_macos_hstack_get_view(pImpl->hstackHandle);
+    }
+#endif
+    return nullptr;
+}
+
 HStack::HStack(HStack&&) noexcept = default;
 HStack& HStack::operator=(HStack&&) noexcept = default;
 

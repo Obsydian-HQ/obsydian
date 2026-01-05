@@ -449,3 +449,14 @@ bool obsidian_macos_list_is_valid(ObsidianListHandle handle) {
     return wrapper != nil;
 }
 
+void* obsidian_macos_list_get_view(ObsidianListHandle handle) {
+    if (!handle) return nullptr;
+    
+    @autoreleasepool {
+        ObsidianListWrapper* wrapper = (__bridge ObsidianListWrapper*)handle;
+        if (wrapper && wrapper.scrollView) {
+            return (__bridge void*)wrapper.scrollView;
+        }
+    }
+    return nullptr;
+}

@@ -221,5 +221,19 @@ bool List::isValid() const {
     return pImpl->valid;
 }
 
+void* List::getNativeViewHandle() const {
+    if (!pImpl || !pImpl->valid) {
+        return nullptr;
+    }
+    
+#ifdef __APPLE__
+    void* listHandle = pImpl->macosList.getHandle();
+    if (listHandle) {
+        return obsidian_macos_list_get_view(listHandle);
+    }
+#endif
+    return nullptr;
+}
+
 } // namespace obsidian
 

@@ -665,6 +665,109 @@ private:
 };
 
 /**
+ * SplitView handle (opaque pointer)
+ * Provides sidebar layout with collapse/expand and resizing capabilities
+ */
+class SplitView {
+public:
+    SplitView();
+    ~SplitView();
+    
+    /**
+     * Create a SplitView with the given parameters
+     * @param position Sidebar position (leading or trailing)
+     * @param initialSidebarWidth Initial sidebar width in points (default: 200.0)
+     * @param minSidebarWidth Minimum sidebar width in points (default: 150.0)
+     * @param maxSidebarWidth Maximum sidebar width in points (default: 400.0)
+     */
+    bool create(int position, double initialSidebarWidth = 200.0, 
+                double minSidebarWidth = 150.0, double maxSidebarWidth = 400.0);
+    
+    /**
+     * Set the sidebar width (in points)
+     */
+    void setSidebarWidth(double width);
+    
+    /**
+     * Get the current sidebar width (in points)
+     */
+    double getSidebarWidth() const;
+    
+    /**
+     * Set minimum sidebar width (in points)
+     */
+    void setMinimumSidebarWidth(double width);
+    
+    /**
+     * Set maximum sidebar width (in points)
+     */
+    void setMaximumSidebarWidth(double width);
+    
+    /**
+     * Collapse the sidebar pane
+     */
+    void collapseSidebar();
+    
+    /**
+     * Expand the sidebar pane
+     */
+    void expandSidebar();
+    
+    /**
+     * Toggle sidebar collapse/expand state
+     */
+    void toggleSidebar();
+    
+    /**
+     * Check if sidebar is currently collapsed
+     */
+    bool isSidebarCollapsed() const;
+    
+    /**
+     * Set the sidebar content view
+     * @param viewHandle NSView handle to use as sidebar content
+     */
+    void setSidebarView(void* viewHandle);
+    
+    /**
+     * Set the main content view
+     * @param viewHandle NSView handle to use as main content
+     */
+    void setMainView(void* viewHandle);
+    
+    /**
+     * Add SplitView to a window's content view
+     */
+    void addToWindow(Window& window);
+    
+    /**
+     * Remove SplitView from its parent view
+     */
+    void removeFromParent();
+    
+    /**
+     * Check if SplitView is valid
+     */
+    bool isValid() const;
+    
+    /**
+     * Get the internal SplitView handle (for internal use)
+     */
+    void* getHandle() const { return handle_; }
+    
+    // Non-copyable
+    SplitView(const SplitView&) = delete;
+    SplitView& operator=(const SplitView&) = delete;
+    
+    // Movable
+    SplitView(SplitView&&) noexcept;
+    SplitView& operator=(SplitView&&) noexcept;
+
+private:
+    void* handle_;  // Opaque handle to native SplitView
+};
+
+/**
  * Process handle (opaque pointer)
  */
 class Process {

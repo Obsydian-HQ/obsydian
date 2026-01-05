@@ -39,6 +39,7 @@
 #include "obsidian/hstack.h"
 #include "obsidian/zstack.h"
 #include "obsidian/spacer.h"
+#include "obsidian/splitview.h"
 
 /**
  * @namespace obsidian

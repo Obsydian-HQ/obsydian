@@ -160,6 +160,13 @@ public:
      */
     bool isValid() const;
     
+    /**
+     * Get the native view handle for this VStack
+     * Returns an opaque pointer to the underlying NSView, or nullptr if invalid
+     * This is useful for integrating with other components that need direct view access (e.g., SplitView)
+     */
+    void* getNativeViewHandle() const;
+    
     // Non-copyable
     VStack(const VStack&) = delete;
     VStack& operator=(const VStack&) = delete;

@@ -211,5 +211,17 @@ bool obsidian_macos_scrollview_is_valid(ObsidianScrollViewHandle handle) {
     }
 }
 
+void* obsidian_macos_scrollview_get_view(ObsidianScrollViewHandle handle) {
+    if (!handle) return nullptr;
+    
+    @autoreleasepool {
+        ObsidianScrollViewWrapper* wrapper = (__bridge ObsidianScrollViewWrapper*)handle;
+        if (wrapper && wrapper.scrollView) {
+            return (__bridge void*)wrapper.scrollView;
+        }
+    }
+    return nullptr;
+}
+
 } // extern "C"
 

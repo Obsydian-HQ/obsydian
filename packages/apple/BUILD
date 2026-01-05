@@ -31,6 +31,7 @@ cc_library(
         "macos_hstack.h",
         "macos_zstack.h",
         "macos_spacer.h",
+        "macos_splitview.h",
     ],
     aspect_hints = [":apple_c_headers_interop"],
     copts = ["-std=c++20"],
@@ -57,6 +58,7 @@ objc_library(
         "macos_hstack.mm",
         "macos_zstack.mm",
         "macos_spacer.mm",
+        "macos_splitview.mm",
     ],
     hdrs = [
         "macos_button.h",
@@ -74,6 +76,7 @@ objc_library(
         "macos_hstack.h",
         "macos_zstack.h",
         "macos_spacer.h",
+        "macos_splitview.h",
     ],
     copts = [
         "-std=c++20",

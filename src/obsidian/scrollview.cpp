@@ -157,6 +157,20 @@ bool ScrollView::isValid() const {
     return pImpl->valid;
 }
 
+void* ScrollView::getNativeViewHandle() const {
+    if (!pImpl || !pImpl->valid) {
+        return nullptr;
+    }
+    
+#ifdef __APPLE__
+    void* scrollViewHandle = pImpl->macosScrollView.getHandle();
+    if (scrollViewHandle) {
+        return obsidian_macos_scrollview_get_view(scrollViewHandle);
+    }
+#endif
+    return nullptr;
+}
+
 ScrollView::ScrollView(ScrollView&& other) noexcept = default;
 ScrollView& ScrollView::operator=(ScrollView&& other) noexcept = default;
 
