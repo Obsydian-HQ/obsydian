@@ -162,6 +162,26 @@ ObsidianWindowTitlebarSeparatorStyle obsidian_macos_window_get_titlebar_separato
  */
 void obsidian_macos_window_configure_for_sidebar(ObsidianWindowHandle handle);
 
+/**
+ * Set the minimum size for the window.
+ * IMPORTANT for sidebar collapse behavior: Setting a minimum size prevents the window
+ * from shrinking when the sidebar collapses. The content area will expand to fill the space.
+ * 
+ * @param handle Window handle
+ * @param minWidth Minimum width in points
+ * @param minHeight Minimum height in points
+ */
+void obsidian_macos_window_set_min_size(ObsidianWindowHandle handle, double minWidth, double minHeight);
+
+/**
+ * Get the minimum size for the window.
+ * 
+ * @param handle Window handle
+ * @param outWidth Pointer to receive minimum width (can be NULL)
+ * @param outHeight Pointer to receive minimum height (can be NULL)
+ */
+void obsidian_macos_window_get_min_size(ObsidianWindowHandle handle, double* outWidth, double* outHeight);
+
 #ifdef __cplusplus
 }
 #endif

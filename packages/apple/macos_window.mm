@@ -177,6 +177,24 @@ void obsidian_macos_window_configure_for_sidebar(ObsidianWindowHandle handle) {
     }
 }
 
+void obsidian_macos_window_set_min_size(ObsidianWindowHandle handle, double minWidth, double minHeight) {
+    if (!handle) return;
+    @autoreleasepool {
+        NSWindow* window = ((__bridge ObsidianWindowWrapper*)handle).window;
+        [window setMinSize:NSMakeSize(minWidth, minHeight)];
+    }
+}
+
+void obsidian_macos_window_get_min_size(ObsidianWindowHandle handle, double* outWidth, double* outHeight) {
+    if (!handle) return;
+    @autoreleasepool {
+        NSWindow* window = ((__bridge ObsidianWindowWrapper*)handle).window;
+        NSSize minSize = [window minSize];
+        if (outWidth) *outWidth = minSize.width;
+        if (outHeight) *outHeight = minSize.height;
+    }
+}
+
 void obsidian_macos_window_update_constraints(ObsidianWindowHandle handle) {
     // No-op - legacy function
 }

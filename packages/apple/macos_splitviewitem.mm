@@ -35,7 +35,12 @@ ObsidianSplitViewItemHandle obsidian_macos_splitviewitem_sidebar_with_viewcontro
         }
         [item setCanCollapse:YES];
         [item setSpringLoaded:YES];
-        [item setCollapseBehavior:NSSplitViewItemCollapseBehaviorPreferResizingSplitViewWithFixedSiblings];
+        // CRITICAL FIX: Use PreferResizingSiblingsWithFixedSplitView to keep window size fixed
+        // when sidebar collapses. The siblings (content area) will expand to fill the space.
+        // Previously used PreferResizingSplitViewWithFixedSiblings which was causing the window
+        // to shrink instead of the sidebar collapsing within the window.
+        // Reference: VLC, CodeEdit, and Apple's recommended sidebar behavior.
+        [item setCollapseBehavior:NSSplitViewItemCollapseBehaviorPreferResizingSiblingsWithFixedSplitView];
         
         ObsidianSplitViewItemWrapper* w = [[ObsidianSplitViewItemWrapper alloc] initWithSplitViewItem:item];
         return (__bridge_retained void*)w;
