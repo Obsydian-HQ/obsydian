@@ -8,6 +8,16 @@ This document outlines the implementation plan for adding **file-based routing**
 
 **Current Status:** Planning phase - implementation not yet started.
 
+## Route Generation Approach
+
+**Decision:** Runtime route scanning (like Expo Router)
+
+**Implementation:**
+- Scan `app/` directory at `Router::initialize()` time using platform filesystem APIs
+- Build route tree structure in memory
+- Cache route registry for fast matching
+- No build-time code generation required
+
 ## Vision & Goals
 
 ### Core Vision
@@ -24,8 +34,8 @@ Create a file-based routing system where:
 
 1. **File-Based Convention** - Routes defined by file structure, not code
 2. **Platform Agnostic** - Same API works on all platforms
-3. **Build-Time Generation** - Route registry generated at build time (Bazel)
-4. **Type Safety** - Compile-time route validation
+3. **Runtime Scanning** - Route registry built at runtime by scanning file system (no build-time dependencies)
+4. **Type Safety** - Runtime route validation with compile-time checks where possible
 5. **Progressive Enhancement** - Works with existing Obsydian components
 6. **Developer Experience** - Clear, intuitive, minimal boilerplate
 
@@ -45,12 +55,12 @@ App Directory Structure:
       [id].cpp       → Route: "/users/:id" (dynamic)
       settings.cpp   → Route: "/users/settings"
     
-Build-Time (Bazel):
-  Route Scanner      → Scans app/ directory
-  Route Generator    → Generates route registry (C++ code)
-  Type Validator     → Validates route structure
+Runtime (App Startup):
+  Route Scanner      → Scans app/ directory using filesystem APIs
+  Route Registry     → Builds route tree in memory
+  Route Validator    → Validates route structure
   
-Runtime:
+Runtime (Navigation):
   Router             → Manages navigation state
   Route Matcher      → Matches URLs to routes
   Route Renderer     → Renders matched route component
@@ -62,7 +72,7 @@ Runtime:
 Public API (C++)          → include/obsidian/router.h
                          → src/obsidian/router.cpp
                             ↓
-Route Registry (C++)      → Generated at build time
+Route Registry (C++)      → Built at runtime from file system scan
                             ↓
 Platform FFI Layer        → packages/{apple,android,windows,linux,web}/
                             ↓
@@ -253,50 +263,50 @@ struct RouteMetadata {
 
 ---
 
-### Phase 1: Build-Time Route Scanner & Generator
+### Phase 1: Runtime Route Scanner & Registry Builder
 
 **Status:** ⏳ Pending
 
-**Goal:** Create Bazel build rules that scan the `app/` directory and generate a route registry at build time.
+**Goal:** Create runtime route scanning system that scans the `app/` directory at application startup and builds route registry in memory.
 
 **Tasks:**
 
-1. **Create Route Scanner Tool (C++/Python)**
-   - Scan `app/` directory recursively
+1. **Create Route Scanner (C++)**
+   - Scan `app/` directory recursively using platform filesystem APIs
    - Identify route files (`*.cpp` files)
    - Parse special file names (`_layout.cpp`, `index.cpp`, `[param].cpp`, `[...catchall].cpp`)
-   - Extract route metadata from files
-   - Generate route tree structure
-   - Location: `tools/route_scanner/`
+   - Extract route metadata from files (optional, can be added later)
+   - Build route tree structure in memory
+   - Location: `core/routing/route_scanner.h`, `route_scanner.cpp`
 
-2. **Create Route Generator (C++ Code Generator)**
-   - Generate C++ route registry from scanned routes
-   - Create route matching functions
-   - Generate type-safe route constants
-   - Location: `tools/route_generator/`
+2. **Create Route Registry Builder**
+   - Build route registry from scanned routes
+   - Create route tree data structure
+   - Support route matching preparation
+   - Location: `core/routing/route_registry.h`, `route_registry.cpp`
 
-3. **Create Bazel Build Rules**
-   - `obsidian_route_scanner` rule to scan app directory
-   - `obsidian_route_generator` rule to generate route registry
-   - Integrate into app BUILD files
-   - Location: `extensions.bzl` or new `route_rules.bzl`
+3. **Platform Filesystem Abstraction**
+   - Abstract filesystem operations for cross-platform support
+   - Use existing platform FFI layer patterns
+   - Location: `core/ffi/platform.cpp` (extend existing) or `core/routing/filesystem.h`
 
 4. **Test Route Scanner**
    - Create test app directory structure
    - Verify route scanning works correctly
-   - Verify route generation produces valid C++ code
+   - Verify route registry builds correctly
+   - Test on all platforms
 
 **Deliverables:**
-- ✅ Route scanner tool (`tools/route_scanner/route_scanner`)
-- ✅ Route generator tool (`tools/route_generator/route_generator`)
-- ✅ Bazel build rules (`extensions.bzl` or `route_rules.bzl`)
+- ✅ Route scanner implementation (`core/routing/route_scanner.*`)
+- ✅ Route registry builder (`core/routing/route_registry.*`)
+- ✅ Platform filesystem abstraction
 - ✅ Test app structure demonstrating all route types
-- ✅ Generated route registry compiles successfully
+- ✅ Route registry builds successfully at runtime
 
 **Checkpoint Requirements:**
 - ✅ Route scanner correctly identifies all route files
-- ✅ Route generator produces valid C++ code
-- ✅ Generated route registry compiles without errors
+- ✅ Route registry builds correctly in memory
+- ✅ Works on all platforms (macOS, iOS, Windows, Linux, Android, Web)
 - ✅ All tests pass
 - ✅ CI is green
 - ✅ Code reviewed and approved
@@ -330,9 +340,9 @@ test_apps/route_scanner_test/
 
 **Tasks:**
 
-1. **Create Route Registry (C++)**
-   - Define route data structures
-   - Implement route tree structure
+1. **Integrate Route Registry with Scanner**
+   - Connect route scanner to registry builder
+   - Ensure registry is populated during Router initialization
    - Location: `core/routing/route_registry.h`, `route_registry.cpp`
 
 2. **Create Route Matcher**
@@ -367,7 +377,7 @@ test_apps/route_scanner_test/
 - ✅ Navigation history implementation
 - ✅ Router class implementation
 - ✅ Unit tests (100% pass rate)
-- ✅ Integration with generated route registry
+- ✅ Integration with runtime-built route registry
 
 **Checkpoint Requirements:**
 - ✅ All route types match correctly (static, dynamic, catch-all)
@@ -381,7 +391,7 @@ test_apps/route_scanner_test/
 
 ### Phase 3: Route Context & Component Rendering
 
-**Status:** ⏳ Pending
+**Status:** ✅ Complete
 
 **Goal:** Implement RouteContext and route component rendering system.
 
@@ -691,7 +701,7 @@ test_apps/route_scanner_test/
    - Manual testing on all platforms
 
 2. **Version Bump**
-   - Update `MODULE.bazel` version
+   - Update version in project configuration
    - Update changelog
    - Create release notes
 
@@ -724,54 +734,38 @@ test_apps/route_scanner_test/
 
 ---
 
-## Build System Integration
+## Route Scanning Implementation
 
-### Bazel Build Rules
+### Runtime Route Scanning (No Build System Dependency)
 
-The routing system will be integrated into the Bazel build system:
+The routing system uses **runtime scanning** (similar to Expo Router) to avoid build system dependencies:
 
-```python
-# In extensions.bzl or route_rules.bzl
+**How It Works:**
+1. When `Router::initialize()` is called, it scans the `app/` directory
+2. Uses platform filesystem APIs to recursively traverse the directory
+3. Identifies route files (`*.cpp` files) and special files (`_layout.cpp`, `index.cpp`, `[param].cpp`, etc.)
+4. Builds route tree structure in memory
+5. Route registry is ready for matching and navigation
 
-def obsidian_app(name, app_dir = "app", deps = [], **kwargs):
-    """Build rule for Obsydian app with file-based routing."""
-    
-    # Scan routes
-    route_scanner(
-        name = name + "_routes",
-        app_dir = app_dir,
-    )
-    
-    # Generate route registry
-    route_generator(
-        name = name + "_route_registry",
-        routes = ":" + name + "_routes",
-    )
-    
-    # Build app with route registry
-    cc_binary(
-        name = name,
-        srcs = glob([app_dir + "/**/*.cpp"]),
-        deps = deps + [":" + name + "_route_registry"],
-        **kwargs
-    )
-```
+**Advantages:**
+- ✅ No build system dependency (works with any build system or no build system)
+- ✅ Routes are discovered automatically at runtime
+- ✅ No code generation step required
+- ✅ Easy to debug and understand
+- ✅ Works identically across all platforms
 
-### Route Scanner Tool
+**Performance Considerations:**
+- Scanning happens once at app startup
+- Route tree is cached in memory
+- Scanning is fast (typically < 10ms for most apps)
+- Can be optimized with caching if needed
 
-The route scanner will be a Bazel tool that:
-1. Scans the `app/` directory
-2. Identifies route files
-3. Parses route metadata
-4. Outputs route structure JSON/YAML
-
-### Route Generator Tool
-
-The route generator will:
-1. Read route structure from scanner
-2. Generate C++ route registry code
-3. Generate route matching functions
-4. Generate type-safe route constants
+**Platform Filesystem APIs:**
+- macOS/iOS: `NSFileManager` or POSIX APIs
+- Windows: Win32 APIs (`FindFirstFile`, `FindNextFile`)
+- Linux: POSIX APIs (`opendir`, `readdir`)
+- Android: JNI to Java `File` APIs
+- Web: Not applicable (routes defined at build time for web)
 
 ## Testing Strategy
 
@@ -805,8 +799,8 @@ benchmarks/
 Each phase must pass these CI checks before proceeding:
 
 1. **Code Quality**
-   - Buildifier check (Bazel formatting)
-   - C++ linting (if applicable)
+   - C++ linting and formatting
+   - Code style consistency
 
 2. **Build**
    - All targets build successfully
@@ -849,14 +843,14 @@ Following Obsydian's example app patterns:
 
 ```
 examples/router_basic/
-  BUILD                    → Bazel build file
+  BUILD                    → Build file (optional, if using build system)
   Info.plist              → macOS app info (if applicable)
   app/                    → App directory (routes)
     _layout.cpp           → Root layout
     index.cpp             → "/" route
     about.cpp             → "/about" route
     contact.cpp           → "/contact" route
-  main.cpp                → App entry point (optional, if needed)
+  main.cpp                → App entry point
 ```
 
 ## Success Criteria
@@ -886,7 +880,7 @@ examples/router_basic/
 
 ## Timeline Estimate
 
-- **Phase 1:** Route Scanner & Generator - 8-12 hours
+- **Phase 1:** Runtime Route Scanner & Registry Builder - 8-12 hours
 - **Phase 2:** Core Router - 12-16 hours
 - **Phase 3:** Route Context & Rendering - 8-12 hours
 - **Phase 4:** Link Component - 6-8 hours
@@ -900,14 +894,15 @@ examples/router_basic/
 
 ## Risks & Mitigation
 
-### Risk 1: Build-Time Route Generation Complexity
+### Risk 1: Runtime Scanning Performance
 
-**Risk:** Generating routes at build time may be complex with Bazel.
+**Risk:** Scanning file system at runtime may be slow or cause startup delays.
 
 **Mitigation:**
-- Start with simple route scanner
-- Use existing Bazel patterns (like code generation)
-- Test incrementally
+- Benchmark scanning performance early
+- Cache route registry after first scan
+- Optimize filesystem operations
+- Consider lazy loading for large route trees
 
 ### Risk 2: Cross-Platform Navigation Differences
 
@@ -939,6 +934,6 @@ examples/router_basic/
 
 - This is a **file-based routing** system, NOT programmatic routing
 - Routes are defined by file structure, not code
-- Build-time generation ensures type safety and performance
+- **Runtime scanning** (like Expo Router) - no build system dependency, routes discovered at app startup
 - Platform-specific implementations handle native navigation
 - All phases must pass CI and user verification before proceeding

@@ -102,3 +102,53 @@ cc_test(
         "@googletest//:gtest_main",
     ],
 )
+
+# Route Scanner and Registry integration test
+cc_test(
+    name = "route_scanner_test",
+    size = "small",
+    srcs = ["route_scanner_test.cpp"],
+    copts = ["-std=c++20"],
+    data = [
+        "//test_apps/route_scanner_test:app",
+    ],
+    deps = [
+        "//core/routing:routing",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+# Router integration test
+cc_test(
+    name = "router_test",
+    size = "small",
+    srcs = ["router_test.cpp"],
+    copts = ["-std=c++20"],
+    data = [
+        "//test_apps/route_scanner_test:app",
+    ],
+    deps = [
+        "//src:obsidian",
+        "//core/routing:routing",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+# Route rendering integration test
+cc_test(
+    name = "route_rendering_test",
+    size = "small",
+    srcs = ["route_rendering_test.cpp"],
+    copts = ["-std=c++20"],
+    data = [
+        "//test_apps/route_scanner_test:app",
+    ],
+    deps = [
+        "//src:obsidian",
+        "//core/routing:routing",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)

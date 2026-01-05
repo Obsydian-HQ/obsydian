@@ -16,6 +16,7 @@ cc_library(
         "//core:ffi_base",
         "//core:runtime",
         "//core/layout:layout",  # Layout engine for VStack
+        "//core/routing:routing",  # Routing system
         "//include:obsidian_headers",  # Need headers for implementation
         "//packages/apple:apple_ffi",
         "//packages/apple:apple_layout_ffi",  # Layout constraint FFI
