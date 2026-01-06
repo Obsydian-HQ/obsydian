@@ -116,8 +116,11 @@ void LayoutEngine::layoutFlexContainer(LayoutNode* node,
                       style.flexDirection == FlexDirection::RowReverse);
     
     // Content area (excluding padding)
-    float contentWidth = layout.width - layout.paddingLeft - layout.paddingRight;
-    float contentHeight = layout.height - layout.paddingTop - layout.paddingBottom;
+    // CRITICAL FIX: Following Yoga's BoundAxis.h approach - content dimensions must never be negative.
+    // Yoga uses maxOrDefined(value, paddingAndBorderForAxis) to ensure this.
+    // When padding exceeds available space, content should be 0, not negative.
+    float contentWidth = std::max(0.0f, layout.width - layout.paddingLeft - layout.paddingRight);
+    float contentHeight = std::max(0.0f, layout.height - layout.paddingTop - layout.paddingBottom);
     
     // Main axis is column (vertical) or row (horizontal)
     float mainAxisSize = isColumn ? contentHeight : contentWidth;

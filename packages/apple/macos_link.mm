@@ -1,8 +1,14 @@
 /**
  * macOS Link FFI - Objective-C++ Implementation
  * 
- * Simple navigation component - attaches click handler to child view
- * NO wrapper view - directly uses the child view
+ * Simple navigation component - attaches click handler to child view.
+ * NO wrapper view - directly uses the child view.
+ * 
+ * Following Apple's AppKit patterns and React Native's approach:
+ * - For NSButton/NSControl: Use native target/action mechanism (no conflict)
+ * - For other views: Use NSClickGestureRecognizer
+ * 
+ * This avoids the gesture recognizer conflict with NSButton's native click handling.
  */
 
 #import "macos_link.h"
@@ -10,13 +16,18 @@
 #import <AppKit/AppKit.h>
 #import <objc/runtime.h>
 
+// Associated object key for storing the original button target/action
+static const void* kOriginalTargetKey = &kOriginalTargetKey;
+static const void* kOriginalActionKey = &kOriginalActionKey;
+
 // Internal link handler - attaches click behavior to any view
 @interface ObsidianLinkHandler : NSObject {
     NSView* _childView;            // The child view (we don't wrap it, just use it directly)
     NSString* _href;               // Route path for navigation
     ObsidianLinkClickCallback _callback;
     void* _userData;
-    NSClickGestureRecognizer* _clickRecognizer;
+    NSClickGestureRecognizer* _clickRecognizer;  // Used only for non-button views
+    BOOL _usesButtonTargetAction;                // True if child is NSButton/NSControl
 }
 
 @property (nonatomic, strong) NSView* childView;
@@ -50,13 +61,40 @@
         
         // Get the child view - NO WRAPPER, use it directly
         _childView = (__bridge NSView*)params.childView;
+        _usesButtonTargetAction = NO;
+        _clickRecognizer = nil;
+        
         NSLog(@"[Link DEBUG] Created link with childView: %@ frame: %@", 
               NSStringFromClass([_childView class]),
               NSStringFromRect(_childView.frame));
         
-        // Attach click gesture recognizer directly to the child view
-        _clickRecognizer = [[NSClickGestureRecognizer alloc] initWithTarget:self action:@selector(handleClick:)];
-        [_childView addGestureRecognizer:_clickRecognizer];
+        // CRITICAL FIX: Different handling for NSButton vs other views
+        // Following Apple's AppKit patterns - use native mechanisms for controls
+        if ([_childView isKindOfClass:[NSButton class]]) {
+            // For NSButton: Use native target/action mechanism
+            // This avoids gesture recognizer conflict with button's built-in click handling
+            NSButton* button = (NSButton*)_childView;
+            
+            // Store original target/action (if any) to optionally chain calls
+            id originalTarget = [button target];
+            SEL originalAction = [button action];
+            if (originalTarget && originalAction) {
+                objc_setAssociatedObject(button, kOriginalTargetKey, originalTarget, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+                objc_setAssociatedObject(button, kOriginalActionKey, [NSValue valueWithPointer:originalAction], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+            }
+            
+            // Set Link handler as the button's target
+            [button setTarget:self];
+            [button setAction:@selector(handleClick:)];
+            
+            _usesButtonTargetAction = YES;
+            NSLog(@"[Link DEBUG] Using NSButton native target/action for click handling");
+        } else {
+            // For non-button views: Use gesture recognizer
+            _clickRecognizer = [[NSClickGestureRecognizer alloc] initWithTarget:self action:@selector(handleClick:)];
+            [_childView addGestureRecognizer:_clickRecognizer];
+            NSLog(@"[Link DEBUG] Using gesture recognizer for click handling");
+        }
         
         // Store href
         if (params.href) {
@@ -108,19 +146,26 @@
 }
 
 - (void)setEnabled:(bool)enabled {
-    if (_clickRecognizer) {
-        _clickRecognizer.enabled = enabled;
-    }
+    // For NSButton/NSControl: Use native enabled property
+    // For other views: Disable the gesture recognizer
     if (_childView && [_childView respondsToSelector:@selector(setEnabled:)]) {
         [(id)_childView setEnabled:enabled];
+    }
+    if (_clickRecognizer) {
+        _clickRecognizer.enabled = enabled;
     }
 }
 
 - (bool)isEnabled {
+    // Check native enabled state for controls
+    if (_childView && [_childView respondsToSelector:@selector(isEnabled)]) {
+        return [(id)_childView isEnabled];
+    }
+    // For non-controls, check gesture recognizer
     if (_clickRecognizer) {
         return _clickRecognizer.enabled;
     }
-    return false;
+    return YES; // Default to enabled if neither applies
 }
 
 - (void)addToWindow:(void*)windowHandle {
@@ -145,10 +190,31 @@
 }
 
 - (void)cleanup {
-    // Full cleanup - remove gesture and from superview
+    // Full cleanup - restore original state and remove from superview
     if (!_childView) return;
     
-    if (_clickRecognizer) {
+    if (_usesButtonTargetAction && [_childView isKindOfClass:[NSButton class]]) {
+        // Restore original target/action for NSButton
+        NSButton* button = (NSButton*)_childView;
+        
+        id originalTarget = objc_getAssociatedObject(button, kOriginalTargetKey);
+        NSValue* actionValue = objc_getAssociatedObject(button, kOriginalActionKey);
+        
+        if (originalTarget && actionValue) {
+            // Restore original target/action
+            [button setTarget:originalTarget];
+            [button setAction:(SEL)[actionValue pointerValue]];
+        } else {
+            // Clear target/action
+            [button setTarget:nil];
+            [button setAction:nil];
+        }
+        
+        // Clear associated objects
+        objc_setAssociatedObject(button, kOriginalTargetKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        objc_setAssociatedObject(button, kOriginalActionKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    } else if (_clickRecognizer) {
+        // Remove gesture recognizer for non-button views
         [_childView removeGestureRecognizer:_clickRecognizer];
         _clickRecognizer = nil;
     }
@@ -159,8 +225,29 @@
 }
 
 - (void)handleClick:(id)sender {
+    // First, call the Link's navigation callback
     if (_callback) {
         _callback(_userData);
+    }
+    
+    // Then, chain to the original button callback if this is an NSButton
+    // This ensures the Button's Fabric callback still works when wrapped in Link
+    if (_usesButtonTargetAction && [_childView isKindOfClass:[NSButton class]]) {
+        NSButton* button = (NSButton*)_childView;
+        
+        id originalTarget = objc_getAssociatedObject(button, kOriginalTargetKey);
+        NSValue* actionValue = objc_getAssociatedObject(button, kOriginalActionKey);
+        
+        if (originalTarget && actionValue) {
+            SEL originalAction = (SEL)[actionValue pointerValue];
+            if ([originalTarget respondsToSelector:originalAction]) {
+                // Suppress clang warning for performSelector with SEL from variable
+                #pragma clang diagnostic push
+                #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+                [originalTarget performSelector:originalAction withObject:sender];
+                #pragma clang diagnostic pop
+            }
+        }
     }
 }
 

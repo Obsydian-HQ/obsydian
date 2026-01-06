@@ -106,10 +106,8 @@ bool Window::setupToolbarForSidebar() {
     }
     
     // Insert sidebar toggle button at index 0
+    // NOTE: This now also inserts the sidebar tracking separator automatically
     pImpl->toolbar.insertSidebarToggleItem(0);
-    
-    // Insert sidebar tracking separator at index 1 (macOS 11+)
-    pImpl->toolbar.insertSidebarTrackingSeparator(1);
     
     // Get the NSToolbar handle
     void* nsToolbarHandle = pImpl->toolbar.getNSToolbarHandle();

@@ -42,13 +42,41 @@
 - (void)insertSidebarToggleItemAtIndex:(int)index {
     if (!_toolbar || !_itemIdentifiers) return;
     
+    // CRITICAL: Based on HelloAppKit and other native Mac apps, the toolbar items order must be:
+    // 1. NSToolbarToggleSidebarItemIdentifier (the collapse/expand button)
+    // 2. NSToolbarSidebarTrackingSeparatorItemIdentifier (positions button in sidebar area)
+    // 3. NSToolbarFlexibleSpaceItemIdentifier (pushes remaining items to the right)
+    // This order is essential for the toggle button to appear in the correct position
+    // (in the sidebar area, not next to the traffic light buttons)
+    
     NSToolbarItemIdentifier toggleId = NSToolbarToggleSidebarItemIdentifier;
-    if (index >= 0 && index <= (int)[_itemIdentifiers count]) {
-        [_itemIdentifiers insertObject:toggleId atIndex:index];
-    } else {
-        [_itemIdentifiers addObject:toggleId];
+    NSUInteger insertIndex = (index >= 0 && index <= (int)[_itemIdentifiers count]) ? (NSUInteger)index : [_itemIdentifiers count];
+    
+    // 1. Insert toggle button
+    [_itemIdentifiers insertObject:toggleId atIndex:insertIndex];
+    
+    // 2. Insert sidebar tracking separator right after toggle button (macOS 11+)
+    if (@available(macOS 11.0, *)) {
+        NSToolbarItemIdentifier separatorId = NSToolbarSidebarTrackingSeparatorItemIdentifier;
+        [_itemIdentifiers insertObject:separatorId atIndex:insertIndex + 1];
     }
-    [_toolbar insertItemWithItemIdentifier:toggleId atIndex:index];
+    
+    // 3. Insert flexible space after the separator
+    // This pushes any other toolbar items to the right side
+    NSToolbarItemIdentifier flexibleSpaceId = NSToolbarFlexibleSpaceItemIdentifier;
+    NSUInteger flexSpaceIndex = insertIndex + 2;
+    if (@available(macOS 11.0, *)) {
+        // Already have separator, add flex space at position 2
+    } else {
+        // No separator on older macOS, add flex space at position 1
+        flexSpaceIndex = insertIndex + 1;
+    }
+    [_itemIdentifiers insertObject:flexibleSpaceId atIndex:flexSpaceIndex];
+    
+    // Note: We don't need to call insertItemWithItemIdentifier: here because
+    // the toolbar will use toolbarDefaultItemIdentifiers: to get the items
+    // and will create them automatically when the toolbar is attached to the window.
+    // The toolbar delegate handles this through toolbarDefaultItemIdentifiers:.
 }
 
 - (void)insertSidebarTrackingSeparatorAtIndex:(int)index {
@@ -56,25 +84,26 @@
     
     if (@available(macOS 11.0, *)) {
         NSToolbarItemIdentifier separatorId = NSToolbarSidebarTrackingSeparatorItemIdentifier;
-        if (index >= 0 && index <= (int)[_itemIdentifiers count]) {
-            [_itemIdentifiers insertObject:separatorId atIndex:index];
-        } else {
-            [_itemIdentifiers addObject:separatorId];
-        }
-        [_toolbar insertItemWithItemIdentifier:separatorId atIndex:index];
+        
+        // Don't insert if already present (insertSidebarToggleItemAtIndex: adds this automatically)
+        if ([_itemIdentifiers containsObject:separatorId]) return;
+        
+        NSUInteger insertIndex = (index >= 0 && index <= (int)[_itemIdentifiers count]) ? (NSUInteger)index : [_itemIdentifiers count];
+        [_itemIdentifiers insertObject:separatorId atIndex:insertIndex];
     }
 }
 
 - (void)insertFlexibleSpaceAtIndex:(int)index {
     if (!_toolbar || !_itemIdentifiers) return;
     
+    // Flexible space can be added multiple times (unlike toggle and separator)
     NSToolbarItemIdentifier flexibleSpaceId = NSToolbarFlexibleSpaceItemIdentifier;
     if (index >= 0 && index <= (int)[_itemIdentifiers count]) {
         [_itemIdentifiers insertObject:flexibleSpaceId atIndex:index];
     } else {
         [_itemIdentifiers addObject:flexibleSpaceId];
     }
-    [_toolbar insertItemWithItemIdentifier:flexibleSpaceId atIndex:index];
+    // Don't insert directly - let the delegate handle it
 }
 
 - (bool)isValid {

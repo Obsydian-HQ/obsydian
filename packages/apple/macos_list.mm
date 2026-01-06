@@ -25,6 +25,7 @@ struct ObsidianListItem {
 @interface ObsidianListWrapper : NSObject <NSTableViewDataSource, NSTableViewDelegate> {
     NSTableView* _tableView;
     NSScrollView* _scrollView;
+    NSTableColumn* _column;
     std::vector<ObsidianListItem> _items;
     ObsidianListSelectionCallback _callback;
     void* _userData;
@@ -52,9 +53,9 @@ struct ObsidianListItem {
 
 // NSTableViewDataSource methods
 - (NSInteger)numberOfRowsInTableView:(NSTableView*)tableView;
-- (id)tableView:(NSTableView*)tableView objectValueForTableColumn:(NSTableColumn*)tableColumn row:(NSInteger)row;
 
-// NSTableViewDelegate methods
+// NSTableViewDelegate methods (VIEW-BASED)
+- (NSView*)tableView:(NSTableView*)tableView viewForTableColumn:(NSTableColumn*)tableColumn row:(NSInteger)row;
 - (void)tableViewSelectionDidChange:(NSNotification*)notification;
 
 @end
@@ -67,28 +68,57 @@ struct ObsidianListItem {
         // Create NSTableView
         _tableView = [[NSTableView alloc] init];
         
-        // Configure table view for simple list behavior
+        // NATIVE SIDEBAR STYLE (macOS 11+)
+        // Based on iTerm2, Finder, and other native apps:
+        // - Use source list style
+        // - Use automatic row heights
+        // - Disable focus ring
+        // - Hide header view
+        if (@available(macOS 11.0, *)) {
+            [_tableView setStyle:NSTableViewStyleSourceList];
+        }
+        
+        // Configure table view for native sidebar behavior
         [_tableView setAllowsColumnReordering:NO];
         [_tableView setAllowsColumnResizing:NO];
         [_tableView setAllowsColumnSelection:NO];
         [_tableView setAllowsMultipleSelection:NO];
-        [_tableView setUsesAlternatingRowBackgroundColors:YES];
-        // No grid lines for simple list appearance
+        
+        // CRITICAL: Use default row size to match system sidebar icon size preference
+        // This respects the user's System Preferences > General > Sidebar icon size
+        [_tableView setRowSizeStyle:NSTableViewRowSizeStyleDefault];
+        
+        // Source list style handles backgrounds automatically - no alternating colors
+        [_tableView setUsesAlternatingRowBackgroundColors:NO];
+        
+        // No grid lines for sidebar list appearance
         [_tableView setGridStyleMask:NSTableViewGridNone];
         
-        // Hide header view (no column headers for simple list)
+        // CRITICAL: Remove header view completely (native sidebars don't have headers)
         [_tableView setHeaderView:nil];
         
+        // Source list selection highlight style for native sidebar look
+        [_tableView setSelectionHighlightStyle:NSTableViewSelectionHighlightStyleSourceList];
+        
+        // No focus ring (native sidebars don't show focus rings)
+        [_tableView setFocusRingType:NSFocusRingTypeNone];
+        
+        // CRITICAL: Use automatic row heights (from iTerm2 implementation)
+        // This allows cells to size properly based on content
+        [_tableView setUsesAutomaticRowHeights:YES];
+        
+        // CRITICAL: Disable floating group rows (from iTerm2 implementation)
+        [_tableView setFloatsGroupRows:NO];
+        
         // Create a single column for the list
-        NSTableColumn* column = [[NSTableColumn alloc] initWithIdentifier:@"item"];
-        [column setWidth:params.width];
-        [column setMinWidth:50];
-        [column setResizingMask:NSTableColumnAutoresizingMask];
-        // Hide the column header
-        [[column headerCell] setStringValue:@""];
+        _column = [[NSTableColumn alloc] initWithIdentifier:@"SidebarItem"];
+        
+        // CRITICAL: Let column resize automatically with table view width
+        // Don't set a fixed width - this causes horizontal scrolling issues
+        [_column setResizingMask:NSTableColumnAutoresizingMask];
         
         // Add the single column to the table view
-        [_tableView addTableColumn:column];
+        [_tableView addTableColumn:_column];
         
         // Set data source and delegate
         [_tableView setDataSource:self];
@@ -97,15 +127,31 @@ struct ObsidianListItem {
         // Create NSScrollView to wrap the table view (for scrolling)
         NSRect frame = NSMakeRect(params.x, params.y, params.width, params.height);
         _scrollView = [[NSScrollView alloc] initWithFrame:frame];
+        
+        // CRITICAL: Only vertical scrolling, never horizontal
+        // This is how native sidebars work - they truncate text, not scroll horizontally
         [_scrollView setHasVerticalScroller:YES];
-        [_scrollView setHasHorizontalScroller:NO];  // No horizontal scrolling for simple list
+        [_scrollView setHasHorizontalScroller:NO];
         [_scrollView setAutohidesScrollers:YES];
-        [_scrollView setBorderType:NSBezelBorder];
+        
+        // No border for native sidebar look
+        [_scrollView setBorderType:NSNoBorder];
+        
+        // Transparent backgrounds for vibrancy effect
+        [_scrollView setDrawsBackground:NO];
+        [[_scrollView contentView] setDrawsBackground:NO];
+        
+        // Set document view
         [_scrollView setDocumentView:_tableView];
         
-        // CRITICAL: Set autoresizingMask so scroll view resizes with parent
-        // This is required for proper split view integration
+        // CRITICAL: Scroll view must resize with parent for split view integration
         [_scrollView setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
+        
+        // CRITICAL: Also set table view to resize with scroll view
+        [_tableView setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
+        
+        // Ensure the table view background is transparent
+        [_tableView setBackgroundColor:[NSColor clearColor]];
         
         _callback = nullptr;
         _userData = nullptr;
@@ -266,15 +312,80 @@ struct ObsidianListItem {
     return (NSInteger)_items.size();
 }
 
-- (id)tableView:(NSTableView*)tableView objectValueForTableColumn:(NSTableColumn*)tableColumn row:(NSInteger)row {
+// NSTableViewDelegate methods - VIEW-BASED TABLE VIEW
+// Based on iTerm2 SSHFilePanelSidebar implementation
+- (NSView*)tableView:(NSTableView*)tableView viewForTableColumn:(NSTableColumn*)tableColumn row:(NSInteger)row {
     if (row < 0 || row >= (NSInteger)_items.size()) {
         return nil;
     }
     
-    return [NSString stringWithUTF8String:_items[row].text.c_str()];
+    static NSUserInterfaceItemIdentifier cellID = @"SidebarCellView";
+    
+    // Try to reuse an existing cell
+    NSTableCellView* cellView = [tableView makeViewWithIdentifier:cellID owner:self];
+    
+    if (!cellView) {
+        // Create a new cell view with proper native sidebar configuration
+        cellView = [[NSTableCellView alloc] init];
+        [cellView setIdentifier:cellID];
+        
+        // Create text field for the cell
+        NSTextField* textField = [[NSTextField alloc] init];
+        [textField setTranslatesAutoresizingMaskIntoConstraints:NO];
+        
+        // CRITICAL: Configure text field for native sidebar appearance
+        // Based on iTerm2 and other native Mac apps:
+        [textField setBordered:NO];
+        [textField setEditable:NO];
+        [textField setSelectable:NO];
+        [textField setDrawsBackground:NO];
+        [textField setBackgroundColor:[NSColor clearColor]];
+        
+        // Use system font for native look
+        [textField setFont:[NSFont systemFontOfSize:[NSFont systemFontSize]]];
+        
+        // Text color adapts to selection state automatically with source list style
+        [textField setTextColor:[NSColor labelColor]];
+        
+        // CRITICAL: Line break mode to truncate text instead of causing horizontal scroll
+        [[textField cell] setLineBreakMode:NSLineBreakByTruncatingTail];
+        [[textField cell] setTruncatesLastVisibleLine:YES];
+        
+        // Single line for sidebar items
+        [textField setMaximumNumberOfLines:1];
+        [textField setAllowsDefaultTighteningForTruncation:NO];
+        
+        // Don't allow text field to compress - it should fill available width
+        [textField setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow forOrientation:NSLayoutConstraintOrientationHorizontal];
+        [textField setContentHuggingPriority:NSLayoutPriorityDefaultLow forOrientation:NSLayoutConstraintOrientationHorizontal];
+        
+        // Add text field to cell view
+        [cellView addSubview:textField];
+        [cellView setTextField:textField];
+        
+        // Set up constraints for proper layout
+        // Native sidebar has specific padding: leading ~12pt, trailing ~8pt
+        NSLayoutConstraint* leadingConstraint = [textField.leadingAnchor constraintEqualToAnchor:cellView.leadingAnchor constant:3.0];
+        NSLayoutConstraint* trailingConstraint = [textField.trailingAnchor constraintLessThanOrEqualToAnchor:cellView.trailingAnchor constant:-3.0];
+        NSLayoutConstraint* centerYConstraint = [textField.centerYAnchor constraintEqualToAnchor:cellView.centerYAnchor];
+        
+        // Make trailing constraint not required so text can expand
+        [trailingConstraint setPriority:NSLayoutPriorityDefaultHigh];
+        
+        [NSLayoutConstraint activateConstraints:@[
+            leadingConstraint,
+            trailingConstraint,
+            centerYConstraint
+        ]];
+    }
+    
+    // Set the text value
+    NSString* text = [NSString stringWithUTF8String:_items[row].text.c_str()];
+    [cellView.textField setStringValue:text];
+    
+    return cellView;
 }
 
-// NSTableViewDelegate methods
 - (void)tableViewSelectionDidChange:(NSNotification*)notification {
     if (_callback) {
         NSInteger selectedRow = [_tableView selectedRow];
