@@ -30,9 +30,10 @@ protected:
 TEST_F(VStackTest, VStackCanBeCreated) {
     VStack vstack;
     
-    // VStack should be invalid until it has a container view
-    // Container view is created when first child is added or when added to window
-    EXPECT_FALSE(vstack.isValid());
+    // VStack is now eagerly initialized (frame-based layout approach)
+    // The native container view is created immediately in the constructor
+    // This makes the API more predictable and avoids lazy initialization issues
+    EXPECT_TRUE(vstack.isValid());
 }
 
 TEST_F(VStackTest, VStackConfiguration) {

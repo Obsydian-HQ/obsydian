@@ -43,6 +43,7 @@
 #include "obsidian/sidebar.h"
 #include "obsidian/router.h"
 #include "obsidian/link.h"
+#include "obsidian/screen_container.h"
 #include "obsidian/route_registry_helper.h"
 
 /**
