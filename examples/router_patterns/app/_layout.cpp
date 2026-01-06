@@ -44,11 +44,6 @@ void renderRootLayout(RouteContext& ctx, std::function<void()> renderChild) {
     
     layout.addChild(navLinks);
     
-    // Add separator
-    TextView separator;
-    separator.create("────────────────────────────────────", 0, 0, 0, 0);
-    layout.addChild(separator);
-    
     // Content slot for child routes
     VStack contentSlot;
     contentSlot.setSpacing(10.0);
