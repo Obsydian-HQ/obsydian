@@ -64,7 +64,8 @@
         NSTableView* tv = (NSTableView*)view;
         [tv setBackgroundColor:[NSColor clearColor]];
         [tv setUsesAlternatingRowBackgroundColors:NO];
-        [tv setSelectionHighlightStyle:NSTableViewSelectionHighlightStyleSourceList];
+        // Note: Selection highlight style is automatically set when using NSTableViewStyleSourceList
+        // Removed deprecated setSelectionHighlightStyle call (deprecated in macOS 12.0+)
         [tv setFocusRingType:NSFocusRingTypeNone];
     }
     for (NSView* sub in [view subviews]) {

@@ -97,8 +97,8 @@ struct ObsidianListItem {
         // CRITICAL: Remove header view completely (native sidebars don't have headers)
         [_tableView setHeaderView:nil];
         
-        // Source list selection highlight style for native sidebar look
-        [_tableView setSelectionHighlightStyle:NSTableViewSelectionHighlightStyleSourceList];
+        // Note: Selection highlight style is automatically set when using NSTableViewStyleSourceList
+        // No need to call setSelectionHighlightStyle (deprecated in macOS 12.0+)
         
         // No focus ring (native sidebars don't show focus rings)
         [_tableView setFocusRingType:NSFocusRingTypeNone];
