@@ -14,7 +14,7 @@
 #include <iostream>
 
 #ifdef __APPLE__
-#include "packages/apple/macos_router.h"
+#include "platform/apple/macos/macos_router.h"
 #endif
 
 using namespace obsidian;

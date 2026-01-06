@@ -6,8 +6,8 @@
 #include "obsidian/window.h"
 
 #ifdef __APPLE__
-#include "../../packages/apple/macos_screen_container.h"
-#include "../../packages/apple/macos_window.h"
+#include "../../platform/apple/macos/macos_screen_container.h"
+#include "../../platform/apple/macos/macos_window.h"
 #endif
 
 #include <unordered_map>

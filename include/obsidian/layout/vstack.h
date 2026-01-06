@@ -10,7 +10,7 @@
 #include <cstdint>
 #include <memory>
 #include "obsidian/window.h"
-#include "core/layout/alignment.h"
+#include "obsidian/layout/alignment.h"
 
 namespace obsidian {
 

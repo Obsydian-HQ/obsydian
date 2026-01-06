@@ -11,7 +11,7 @@
 #include <memory>
 #include "obsidian/window.h"
 #include "obsidian/layout/vstack.h"  // For Padding struct
-#include "core/layout/alignment.h"
+#include "obsidian/layout/alignment.h"
 
 namespace obsidian {
 

@@ -5,7 +5,7 @@
 #include "platform.h"
 
 #ifdef __APPLE__
-#include "packages/apple/macos_ffi.h"
+#include "platform/apple/macos/macos_ffi.h"
 #endif
 
 namespace obsidian::ffi {

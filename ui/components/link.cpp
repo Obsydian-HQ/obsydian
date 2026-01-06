@@ -16,7 +16,7 @@
 #include "obsidian/layout/zstack.h"
 
 #ifdef __APPLE__
-#include "packages/apple/macos_link.h"
+#include "platform/apple/macos/macos_link.h"
 #endif
 
 namespace obsidian {

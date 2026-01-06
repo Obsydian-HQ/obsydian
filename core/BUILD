@@ -20,8 +20,8 @@ cc_library(
     includes = ["runtime"],
     deps = [
         ":ffi_base",
-        "//include:obsidian_headers",  # For AppCallbacks definition
-        "//packages/apple/renderer:fabric",  # For renderer/mounting system
+        "//include:obsidian_headers",
+        "//platform/apple/renderer:fabric",
     ],
 )
 
@@ -39,12 +39,11 @@ cc_library(
     copts = ["-std=c++20"],
     includes = ["ffi"],
     deps = [
-        # Platform-specific FFI implementations
-        "//packages/apple:apple_ffi",
+        "//platform/apple/macos:apple_ffi",
     ],
 )
 
-# UI abstraction layer
+# UI abstraction layer (internal core UI types)
 cc_library(
     name = "ui",
     srcs = glob(
