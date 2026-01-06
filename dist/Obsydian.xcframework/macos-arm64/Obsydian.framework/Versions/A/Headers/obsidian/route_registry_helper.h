@@ -44,21 +44,15 @@ struct PendingLayoutRegistration {
 
 /**
  * Get the pending route registrations queue.
- * Uses the "construct on first use" idiom to avoid static initialization order issues.
+ * Defined in route_registry_helper.cpp to ensure single definition across all translation units.
  */
-inline std::vector<PendingRouteRegistration>& getPendingRoutes() {
-    static std::vector<PendingRouteRegistration> pendingRoutes;
-    return pendingRoutes;
-}
+std::vector<PendingRouteRegistration>& getPendingRoutes();
 
 /**
  * Get the pending layout registrations queue.
- * Uses the "construct on first use" idiom to avoid static initialization order issues.
+ * Defined in route_registry_helper.cpp to ensure single definition across all translation units.
  */
-inline std::vector<PendingLayoutRegistration>& getPendingLayouts() {
-    static std::vector<PendingLayoutRegistration> pendingLayouts;
-    return pendingLayouts;
-}
+std::vector<PendingLayoutRegistration>& getPendingLayouts();
 
 /**
  * Register a route component.
