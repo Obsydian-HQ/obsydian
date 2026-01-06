@@ -24,13 +24,6 @@ namespace obsidian {
 // Forward declaration for the global navigation callback
 static void linkNavigationCallback(void* userData);
 
-/**
- * Link callback data - heap allocated, owned by native handler
- * 
- * Following React Native's pattern: callback data lives as long as the
- * native handler. Ownership is transferred to native side, which deletes
- * it when the handler is deallocated.
- */
 struct LinkCallbackData {
     std::string href;
     std::function<void()> onClickCallback;
@@ -61,8 +54,6 @@ public:
     // For legacy text-based API
     Button internalButton;
     
-    // Callback data - ownership transferred to native handler
-    // DO NOT delete here - native handler deletes it when deallocated
     LinkCallbackData* callbackData = nullptr;
     
 #ifdef __APPLE__
@@ -92,24 +83,13 @@ public:
         return nullptr;
     }
     
-    /**
-     * Release handle reference (like VStack pattern)
-     * 
-     * The native view stays in the view hierarchy - superview retains it.
-     * The ObsidianLinkHandler is retained by the child view via associated object.
-     * When the child view is deallocated, the handler is deallocated,
-     * which then deletes the callbackData via releaseUserData callback.
-     */
     void releaseHandle() {
 #ifdef __APPLE__
         if (macosLinkHandle) {
-            // Just release our reference - native handler lives on
-            // (retained by associated object on child view)
             obsidian_macos_release_link_handle(macosLinkHandle);
             macosLinkHandle = nullptr;
         }
 #endif
-        // DO NOT delete callbackData - native handler owns it now
         callbackData = nullptr;
         valid = false;
     }
@@ -142,9 +122,7 @@ Link::Link() : pImpl(std::make_unique<Impl>()) {
 Link::Link(Link&&) noexcept = default;
 Link& Link::operator=(Link&&) noexcept = default;
 
-Link::~Link() {
-    // Impl's destructor handles cleanup
-}
+Link::~Link() = default;
 
 // Create with Button child
 bool Link::create(const std::string& href, Button& child) {
@@ -174,7 +152,6 @@ bool Link::create(const std::string& href, Button& child) {
         return false;
     }
     
-    // Allocate callback data on heap - ownership transfers to native handler
     pImpl->callbackData = new LinkCallbackData(href);
     obsidian_macos_link_set_on_click(pImpl->macosLinkHandle, linkNavigationCallback, 
                                       pImpl->callbackData, releaseCallbackData);
@@ -212,7 +189,6 @@ bool Link::create(const std::string& href, TextView& child) {
         return false;
     }
     
-    // Allocate callback data on heap - ownership transfers to native handler
     pImpl->callbackData = new LinkCallbackData(href);
     obsidian_macos_link_set_on_click(pImpl->macosLinkHandle, linkNavigationCallback,
                                       pImpl->callbackData, releaseCallbackData);
@@ -250,7 +226,6 @@ bool Link::create(const std::string& href, VStack& child) {
         return false;
     }
     
-    // Allocate callback data on heap - ownership transfers to native handler
     pImpl->callbackData = new LinkCallbackData(href);
     obsidian_macos_link_set_on_click(pImpl->macosLinkHandle, linkNavigationCallback,
                                       pImpl->callbackData, releaseCallbackData);
@@ -288,7 +263,6 @@ bool Link::create(const std::string& href, HStack& child) {
         return false;
     }
     
-    // Allocate callback data on heap - ownership transfers to native handler
     pImpl->callbackData = new LinkCallbackData(href);
     obsidian_macos_link_set_on_click(pImpl->macosLinkHandle, linkNavigationCallback,
                                       pImpl->callbackData, releaseCallbackData);

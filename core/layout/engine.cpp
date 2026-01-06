@@ -115,19 +115,12 @@ void LayoutEngine::layoutFlexContainer(LayoutNode* node,
     bool isReverse = (style.flexDirection == FlexDirection::ColumnReverse ||
                       style.flexDirection == FlexDirection::RowReverse);
     
-    // Content area (excluding padding)
-    // CRITICAL FIX: Following Yoga's BoundAxis.h approach - content dimensions must never be negative.
-    // Yoga uses maxOrDefined(value, paddingAndBorderForAxis) to ensure this.
-    // When padding exceeds available space, content should be 0, not negative.
     float contentWidth = std::max(0.0f, layout.width - layout.paddingLeft - layout.paddingRight);
     float contentHeight = std::max(0.0f, layout.height - layout.paddingTop - layout.paddingBottom);
     
-    // Main axis is column (vertical) or row (horizontal)
     float mainAxisSize = isColumn ? contentHeight : contentWidth;
     float crossAxisSize = isColumn ? contentWidth : contentHeight;
     
-    // Determine if cross axis needs to be calculated from children
-    // (This is the KEY fix - like Yoga's SizingMode::MaxContent/FitContent)
     bool crossAxisFromChildren = (crossAxisSize <= 0);
     
     // Collect children that are in normal flow
@@ -143,12 +136,9 @@ void LayoutEngine::layoutFlexContainer(LayoutNode* node,
     // Calculate total gap space
     float totalGap = style.gap * (flowChildren.size() - 1);
     
-    // ==========================================================================
-    // FIRST PASS: Measure children and calculate sizes (like Yoga's STEP 3 & 6)
-    // ==========================================================================
     float totalFlexGrow = 0.0f;
     float totalFixedSize = 0.0f;
-    float maxChildCrossSize = 0.0f;  // Track max cross dimension from children
+    float maxChildCrossSize = 0.0f;
     
     // Store measured sizes for second pass
     struct ChildMeasurement {
@@ -201,7 +191,6 @@ void LayoutEngine::layoutFlexContainer(LayoutNode* node,
         childMeasurements[i].mainSize = childMainSize;
         childMeasurements[i].crossSize = childCrossSize;
         
-        // Track max cross size (like Yoga's justifyMainAxis)
         if (childCrossSize > maxChildCrossSize) {
             maxChildCrossSize = childCrossSize;
         }
@@ -211,10 +200,6 @@ void LayoutEngine::layoutFlexContainer(LayoutNode* node,
         totalFixedSize += childMainSize;
     }
     
-    // ==========================================================================
-    // KEY FIX: If cross axis size is undefined, use max child cross size
-    // (This is what Yoga does in STEP 9)
-    // ==========================================================================
     if (crossAxisFromChildren && maxChildCrossSize > 0) {
         crossAxisSize = maxChildCrossSize;
         
@@ -234,9 +219,6 @@ void LayoutEngine::layoutFlexContainer(LayoutNode* node,
                          ? remainingSpace / totalFlexGrow 
                          : 0.0f;
     
-    // ==========================================================================
-    // SECOND PASS: Position children (like Yoga's STEP 7)
-    // ==========================================================================
     float mainOffset = isColumn ? layout.paddingTop : layout.paddingLeft;
     
     // Handle justifyContent start offset
@@ -347,14 +329,10 @@ void LayoutEngine::layoutFlexContainer(LayoutNode* node,
             childLayout.height = finalCrossSize;
         }
         
-        // Recursively layout child's children
         if (child->getChildCount() > 0) {
             float childContentWidth = childLayout.width;
             float childContentHeight = childLayout.height;
             
-            // Following Yoga's pattern: when a child has no explicit size,
-            // use AtMost mode with parent's available space as constraint.
-            // This allows the child to size to fit its children.
             MeasureMode childWidthMode = (childContentWidth > 0) ? MeasureMode::Exactly : MeasureMode::AtMost;
             MeasureMode childHeightMode = (childContentHeight > 0) ? MeasureMode::Exactly : MeasureMode::AtMost;
             
@@ -364,8 +342,6 @@ void LayoutEngine::layoutFlexContainer(LayoutNode* node,
             layoutFlexContainer(child, childAvailableWidth, childWidthMode,
                                childAvailableHeight, childHeightMode);
             
-            // After recursively laying out child's children, the child's actual size may have changed.
-            // Update mainOffset to use the actual child size, not the initial estimate.
             float actualChildMainSize = isColumn ? childLayout.height : childLayout.width;
             if (actualChildMainSize != childMainSize) {
                 if (isColumn) {
@@ -387,9 +363,6 @@ void LayoutEngine::layoutFlexContainer(LayoutNode* node,
         }
     }
     
-    // Update container's main axis size based on children when not explicitly defined.
-    // Following Yoga's pattern: when container height/width is not explicitly defined,
-    // it should be calculated from children's total size.
     float requiredMainSize = mainOffset - (isColumn ? layout.paddingTop : layout.paddingLeft);
     
     bool mainAxisNotDefined = isColumn ? !style.height.isDefined() : !style.width.isDefined();

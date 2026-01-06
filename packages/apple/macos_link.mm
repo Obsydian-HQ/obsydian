@@ -68,13 +68,9 @@ static const void* kOriginalActionKey = &kOriginalActionKey;
         _usesButtonTargetAction = NO;
         _clickRecognizer = nil;
         
-        // Different handling for NSButton vs other views
-        // Following Apple's AppKit patterns - use native mechanisms for controls
         if ([_childView isKindOfClass:[NSButton class]]) {
-            // For NSButton: Use native target/action mechanism
             NSButton* button = (NSButton*)_childView;
             
-            // Store original target/action (if any) to optionally chain calls
             id originalTarget = [button target];
             SEL originalAction = [button action];
             if (originalTarget && originalAction) {
@@ -82,18 +78,15 @@ static const void* kOriginalActionKey = &kOriginalActionKey;
                 objc_setAssociatedObject(button, kOriginalActionKey, [NSValue valueWithPointer:originalAction], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
             }
             
-            // Set Link handler as the button's target
             [button setTarget:self];
             [button setAction:@selector(handleClick:)];
             
             _usesButtonTargetAction = YES;
         } else {
-            // For non-button views: Use gesture recognizer
             _clickRecognizer = [[NSClickGestureRecognizer alloc] initWithTarget:self action:@selector(handleClick:)];
             [_childView addGestureRecognizer:_clickRecognizer];
         }
         
-        // Store href
         if (params.href) {
             _href = [NSString stringWithUTF8String:params.href];
         } else {
@@ -104,7 +97,6 @@ static const void* kOriginalActionKey = &kOriginalActionKey;
         _userData = nullptr;
         _releaseCallback = nullptr;
         
-        // Retain self via associated object on child view
         objc_setAssociatedObject(_childView, @selector(handleClick:), self, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
     return self;
@@ -138,7 +130,6 @@ static const void* kOriginalActionKey = &kOriginalActionKey;
 - (void)setOnClick:(ObsidianLinkClickCallback)callback 
           userData:(void*)userData 
    releaseCallback:(ObsidianLinkReleaseCallback)releaseCallback {
-    // Clean up old userData if we had a release callback
     if (_releaseCallback && _userData) {
         _releaseCallback(_userData);
     }
@@ -206,31 +197,24 @@ static const void* kOriginalActionKey = &kOriginalActionKey;
 }
 
 - (void)cleanup {
-    // Full cleanup - restore original state and remove from superview
     if (!_childView) return;
     
     if (_usesButtonTargetAction && [_childView isKindOfClass:[NSButton class]]) {
-        // Restore original target/action for NSButton
         NSButton* button = (NSButton*)_childView;
-        
         id originalTarget = objc_getAssociatedObject(button, kOriginalTargetKey);
         NSValue* actionValue = objc_getAssociatedObject(button, kOriginalActionKey);
         
         if (originalTarget && actionValue) {
-            // Restore original target/action
             [button setTarget:originalTarget];
             [button setAction:(SEL)[actionValue pointerValue]];
         } else {
-            // Clear target/action
             [button setTarget:nil];
             [button setAction:nil];
         }
         
-        // Clear associated objects
         objc_setAssociatedObject(button, kOriginalTargetKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         objc_setAssociatedObject(button, kOriginalActionKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     } else if (_clickRecognizer) {
-        // Remove gesture recognizer for non-button views
         [_childView removeGestureRecognizer:_clickRecognizer];
         _clickRecognizer = nil;
     }
@@ -241,15 +225,12 @@ static const void* kOriginalActionKey = &kOriginalActionKey;
 }
 
 - (void)handleClick:(id)sender {
-    // Call the Link's navigation callback
     if (_callback) {
         _callback(_userData);
     }
     
-    // Chain to the original button callback if this is an NSButton
     if (_usesButtonTargetAction && [_childView isKindOfClass:[NSButton class]]) {
         NSButton* button = (NSButton*)_childView;
-        
         id originalTarget = objc_getAssociatedObject(button, kOriginalTargetKey);
         NSValue* actionValue = objc_getAssociatedObject(button, kOriginalActionKey);
         
@@ -400,7 +381,6 @@ void* obsidian_macos_link_get_view(ObsidianLinkHandle handle) {
     
     @autoreleasepool {
         ObsidianLinkHandler* handler = (__bridge ObsidianLinkHandler*)handle;
-        // Return the child view directly - NO WRAPPER
         return (__bridge void*)handler.childView;
     }
 }

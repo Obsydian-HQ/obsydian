@@ -19,8 +19,6 @@
 // Static key for associated object
 static char ObsidianVStackHandleKey;
 
-// Simple container view - does NOT compute layout
-// The Layout Engine sets frames directly on this and its children
 @interface ObsidianVStackContainerView : NSView {
     CGFloat _paddingTop;
     CGFloat _paddingBottom;
@@ -52,9 +50,6 @@ static char ObsidianVStackHandleKey;
         _paddingLeading = 0.0;
         _paddingTrailing = 0.0;
         _spacing = 0.0;
-        
-        // IMPORTANT: We do NOT set autoresizingMask or any automatic layout
-        // The layout engine is responsible for setting our frame
     }
     return self;
 }
@@ -76,15 +71,12 @@ static char ObsidianVStackHandleKey;
 - (CGFloat)paddingTrailing { return _paddingTrailing; }
 - (CGFloat)spacing { return _spacing; }
 
-// Use top-left coordinate system (matches layout engine)
 - (BOOL)isFlipped {
     return YES;
 }
 
-// Override layout to be a no-op - the layout engine sets frames
 - (void)layout {
     [super layout];
-    // NO AUTOMATIC LAYOUT - frames are set by the layout engine
 }
 
 - (void)addSubview:(NSView*)view {
@@ -152,12 +144,10 @@ static char ObsidianVStackHandleKey;
         return;
     }
     
-    // Remove from previous parent if any
     if ([childView superview]) {
         [childView removeFromSuperview];
     }
     
-    // Simply add the child - the layout engine will set frames
     [_containerView addSubview:childView];
 }
 
@@ -207,9 +197,6 @@ static char ObsidianVStackHandleKey;
 - (void)removeFromParent {
     if (!_containerView) return;
     
-    // IMPORTANT: Only remove the container from its parent superview.
-    // Do NOT remove the container's children - they should stay attached.
-    // This allows the container to be moved to a new parent without losing its contents.
     if ([_containerView superview]) {
         [_containerView removeFromSuperview];
     }
@@ -225,7 +212,6 @@ ObsidianVStackHandle obsidian_macos_create_vstack(ObsidianVStackParams params) {
         ObsidianVStackWrapper* wrapper = [[ObsidianVStackWrapper alloc] initWithParams:params];
         if (wrapper && wrapper.containerView) {
             ObsidianVStackHandle handle = (__bridge_retained void*)wrapper;
-            // Associate handle with view for reverse lookup
             obsidian_macos_vstack_associate_handle_with_view(handle);
             return handle;
         }
@@ -327,8 +313,6 @@ bool obsidian_macos_vstack_is_valid(ObsidianVStackHandle handle) {
 }
 
 void obsidian_macos_vstack_request_layout_update(ObsidianVStackHandle handle) {
-    // NO-OP: Layout is now handled by the layout engine
-    // This function exists for API compatibility but does nothing
 }
 
 void obsidian_macos_vstack_set_padding(ObsidianVStackHandle handle,
@@ -351,7 +335,6 @@ void obsidian_macos_vstack_set_spacing(ObsidianVStackHandle handle, double spaci
     }
 }
 
-// NEW: Set frame directly - called by the layout engine
 void obsidian_macos_vstack_set_frame(ObsidianVStackHandle handle,
                                       double x, double y,
                                       double width, double height) {
@@ -365,7 +348,6 @@ void obsidian_macos_vstack_set_frame(ObsidianVStackHandle handle,
     }
 }
 
-// Get layoutNode from VStack handle
 void* obsidian_macos_vstack_get_layout_node(ObsidianVStackHandle handle) {
     if (!handle) return nullptr;
     
@@ -375,7 +357,6 @@ void* obsidian_macos_vstack_get_layout_node(ObsidianVStackHandle handle) {
     }
 }
 
-// Set layoutNode on VStack handle
 void obsidian_macos_vstack_set_layout_node(ObsidianVStackHandle handle, void* layoutNode) {
     if (!handle) return;
     
@@ -387,7 +368,6 @@ void obsidian_macos_vstack_set_layout_node(ObsidianVStackHandle handle, void* la
     }
 }
 
-// Get VStack handle from native view (if the view is a VStack container)
 ObsidianVStackHandle obsidian_macos_vstack_get_handle_from_view(void* viewHandle) {
     if (!viewHandle) return nullptr;
     
@@ -395,13 +375,10 @@ ObsidianVStackHandle obsidian_macos_vstack_get_handle_from_view(void* viewHandle
         NSView* view = (__bridge NSView*)viewHandle;
         if (!view) return nullptr;
         
-        // Check if this is a VStack container view
         if (![view isKindOfClass:[ObsidianVStackContainerView class]]) {
             return nullptr;
         }
         
-        // Get the associated handle using Objective-C runtime
-        // The handle is stored as an associated object when the VStack is created
         id associatedHandle = objc_getAssociatedObject(view, &ObsidianVStackHandleKey);
         if (associatedHandle) {
             return (__bridge ObsidianVStackHandle)associatedHandle;
@@ -411,15 +388,12 @@ ObsidianVStackHandle obsidian_macos_vstack_get_handle_from_view(void* viewHandle
     }
 }
 
-// Associate VStack handle with its container view (called during creation)
 void obsidian_macos_vstack_associate_handle_with_view(ObsidianVStackHandle handle) {
     if (!handle) return;
     
     @autoreleasepool {
         ObsidianVStackWrapper* wrapper = (__bridge ObsidianVStackWrapper*)handle;
         if (wrapper && wrapper.containerView) {
-            // Store the handle as an associated object on the view
-            // Use RETAIN_NONATOMIC to keep the handle alive while the view exists
             objc_setAssociatedObject(wrapper.containerView, 
                                    &ObsidianVStackHandleKey,
                                    (__bridge id)handle,

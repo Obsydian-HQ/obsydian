@@ -5,7 +5,6 @@
 #include "node.h"
 #include "engine.h"
 #include <algorithm>
-#include <iostream>
 
 namespace obsidian::layout {
 
@@ -97,16 +96,6 @@ Size LayoutNode::measure(float width, MeasureMode widthMode,
 }
 
 void LayoutNode::printTree(int indent) const {
-    std::string prefix(indent * 2, ' ');
-    
-    std::cout << prefix << "Node: "
-              << "pos=(" << layout_.left << "," << layout_.top << ") "
-              << "size=(" << layout_.width << "x" << layout_.height << ")"
-              << std::endl;
-    
-    for (const auto* child : children_) {
-        child->printTree(indent + 1);
-    }
 }
 
 } // namespace obsidian::layout
