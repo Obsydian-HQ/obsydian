@@ -62,8 +62,7 @@
         _textView.textContainer.widthTracksTextView = NO;
         _textView.textContainer.containerSize = NSMakeSize(FLT_MAX, FLT_MAX);
         
-        // Horizontal resize only
-        _textView.autoresizingMask = NSViewWidthSizable;
+        // NO autoresizingMask - layout engine sets frames directly
     }
     return self;
 }

@@ -21,25 +21,15 @@
 - (instancetype)initWithFrame:(NSRect)frameRect {
     self = [super initWithFrame:frameRect];
     if (self) {
-        // Use autoresizing mask to fill parent
-        self.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+        // NO autoresizingMask - layout engine sets frames
     }
     return self;
 }
 
-// CORE LAYOUT METHOD - All children fill the container bounds
+// Layout is a no-op - layout engine sets frames
 - (void)layout {
     [super layout];
-    
-    NSRect bounds = self.bounds;
-    
-    // ZStack: all children fill the entire container
-    for (NSView* subview in self.subviews) {
-        if (subview.isHidden) continue;
-        
-        // Set frame to fill bounds - NO CONSTRAINTS
-        subview.frame = bounds;
-    }
+    // NO AUTOMATIC LAYOUT - frames are set by the layout engine
 }
 
 - (void)addSubview:(NSView*)view {

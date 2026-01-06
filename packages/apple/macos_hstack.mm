@@ -1,9 +1,8 @@
 /**
  * macOS HStack FFI - Objective-C++ Implementation
  * 
- * Frame-based layout container for horizontal stacking
- * Following React Native's pattern: compute layout and set frames directly
- * NO AUTO LAYOUT - Pure frame-based positioning
+ * DUMB CONTAINER: This view does NOT compute layout.
+ * The Layout Engine will compute positions/sizes and set frames directly.
  */
 
 #import "macos_hstack.h"
@@ -12,8 +11,7 @@
 #import <objc/runtime.h>
 #import <memory>
 
-// Custom NSView subclass that performs frame-based horizontal layout
-// This is the React Native approach: calculate positions and set frames directly
+// Simple container view - does NOT compute layout
 @interface ObsidianHStackContainerView : NSView {
     CGFloat _paddingTop;
     CGFloat _paddingBottom;
@@ -25,6 +23,13 @@
 - (instancetype)initWithFrame:(NSRect)frameRect;
 - (void)setPaddingTop:(CGFloat)top bottom:(CGFloat)bottom leading:(CGFloat)leading trailing:(CGFloat)trailing;
 - (void)setSpacing:(CGFloat)spacing;
+
+// Getters for layout engine to read
+- (CGFloat)paddingTop;
+- (CGFloat)paddingBottom;
+- (CGFloat)paddingLeading;
+- (CGFloat)paddingTrailing;
+- (CGFloat)spacing;
 
 @end
 
@@ -38,9 +43,7 @@
         _paddingLeading = 0.0;
         _paddingTrailing = 0.0;
         _spacing = 0.0;
-        
-        // Use autoresizing mask for flexible sizing within parent
-        self.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+        // NO autoresizingMask - layout engine sets frames
     }
     return self;
 }
@@ -50,88 +53,30 @@
     _paddingBottom = bottom;
     _paddingLeading = leading;
     _paddingTrailing = trailing;
-    [self setNeedsLayout:YES];
 }
 
 - (void)setSpacing:(CGFloat)spacing {
     _spacing = spacing;
-    [self setNeedsLayout:YES];
 }
 
-// CORE LAYOUT METHOD - Frame-based horizontal stacking
+- (CGFloat)paddingTop { return _paddingTop; }
+- (CGFloat)paddingBottom { return _paddingBottom; }
+- (CGFloat)paddingLeading { return _paddingLeading; }
+- (CGFloat)paddingTrailing { return _paddingTrailing; }
+- (CGFloat)spacing { return _spacing; }
+
+// Override layout to be a no-op
 - (void)layout {
     [super layout];
-    
-    if (self.subviews.count == 0) {
-        return;
-    }
-    
-    NSRect bounds = self.bounds;
-    CGFloat availableHeight = bounds.size.height - _paddingTop - _paddingBottom;
-    
-    // For HStack: layout from left to right
-    CGFloat currentX = _paddingLeading;
-    
-    for (NSView* subview in self.subviews) {
-        if (subview.isHidden) continue;
-        
-        // Get the child's preferred size
-        NSSize childSize = [self preferredSizeForChild:subview availableHeight:availableHeight];
-        
-        // Position the child
-        // X: currentX (advancing left to right)
-        // Y: centered vertically, or at bottom padding (macOS coords)
-        CGFloat childX = currentX;
-        CGFloat childY = _paddingBottom;  // Start from bottom in macOS coordinates
-        CGFloat childWidth = childSize.width;
-        CGFloat childHeight = availableHeight;  // Fill available height
-        
-        // Set the frame directly - NO CONSTRAINTS
-        subview.frame = NSMakeRect(childX, childY, childWidth, childHeight);
-        
-        // Move X right for next child
-        currentX += childWidth + _spacing;
-    }
-}
-
-// Helper to get preferred size for a child view
-- (NSSize)preferredSizeForChild:(NSView*)child availableHeight:(CGFloat)availableHeight {
-    // First try fittingSize
-    NSSize fittingSize = child.fittingSize;
-    
-    if (fittingSize.width > 0 && fittingSize.height > 0) {
-        return NSMakeSize(fittingSize.width, availableHeight);
-    }
-    
-    // Fallback: check intrinsicContentSize
-    NSSize intrinsicSize = child.intrinsicContentSize;
-    if (intrinsicSize.width > 0 && intrinsicSize.width != NSViewNoIntrinsicMetric) {
-        return NSMakeSize(intrinsicSize.width, availableHeight);
-    }
-    
-    // Last resort: use current frame size or a default
-    NSSize currentSize = child.frame.size;
-    if (currentSize.width > 0) {
-        return NSMakeSize(currentSize.width, availableHeight);
-    }
-    
-    // Absolute fallback: default width
-    return NSMakeSize(80.0, availableHeight);
+    // NO AUTOMATIC LAYOUT - frames are set by the layout engine
 }
 
 - (void)addSubview:(NSView*)view {
     [super addSubview:view];
-    [self setNeedsLayout:YES];
 }
 
 - (void)willRemoveSubview:(NSView*)subview {
     [super willRemoveSubview:subview];
-    [self setNeedsLayout:YES];
-}
-
-- (void)resizeSubviewsWithOldSize:(NSSize)oldSize {
-    [super resizeSubviewsWithOldSize:oldSize];
-    [self setNeedsLayout:YES];
 }
 
 @end
@@ -159,7 +104,7 @@
 - (instancetype)initWithParams:(ObsidianHStackParams)params {
     self = [super init];
     if (self) {
-        NSRect frame = NSMakeRect(0, 0, 300, 200);
+        NSRect frame = NSMakeRect(0, 0, 0, 0);  // Start with zero frame
         _containerView = [[ObsidianHStackContainerView alloc] initWithFrame:frame];
     }
     return self;
@@ -187,9 +132,7 @@
         return;
     }
     
-    // FRAME-BASED: Do NOT disable translatesAutoresizingMaskIntoConstraints
     [_containerView addSubview:childView];
-    [_containerView setNeedsLayout:YES];
 }
 
 - (void)removeChildView:(void*)childViewHandle {
@@ -228,7 +171,6 @@
         NSView* contentView = (__bridge NSView*)contentViewPtr;
         _containerView.frame = contentView.bounds;
         [contentView addSubview:_containerView];
-        [_containerView setNeedsLayout:YES];
     }
 }
 
@@ -353,16 +295,7 @@ bool obsidian_macos_hstack_is_valid(ObsidianHStackHandle handle) {
 }
 
 void obsidian_macos_hstack_request_layout_update(ObsidianHStackHandle handle) {
-    if (!handle) return;
-
-    @autoreleasepool {
-        ObsidianHStackWrapper* wrapper = (__bridge ObsidianHStackWrapper*)handle;
-        if (wrapper && wrapper.containerView) {
-            NSView* containerView = wrapper.containerView;
-            [containerView setNeedsLayout:YES];
-            [containerView layoutSubtreeIfNeeded];
-        }
-    }
+    // NO-OP: Layout is now handled by the layout engine
 }
 
 void obsidian_macos_hstack_set_padding(ObsidianHStackHandle handle,
@@ -382,6 +315,20 @@ void obsidian_macos_hstack_set_spacing(ObsidianHStackHandle handle, double spaci
     @autoreleasepool {
         ObsidianHStackWrapper* wrapper = (__bridge ObsidianHStackWrapper*)handle;
         [wrapper setSpacing:(CGFloat)spacing];
+    }
+}
+
+// NEW: Set frame directly - called by the layout engine
+void obsidian_macos_hstack_set_frame(ObsidianHStackHandle handle,
+                                      double x, double y,
+                                      double width, double height) {
+    if (!handle) return;
+    
+    @autoreleasepool {
+        ObsidianHStackWrapper* wrapper = (__bridge ObsidianHStackWrapper*)handle;
+        if (wrapper && wrapper.containerView) {
+            wrapper.containerView.frame = NSMakeRect(x, y, width, height);
+        }
     }
 }
 

@@ -1,8 +1,8 @@
 /**
  * macOS HStack FFI - C Interface
  * 
- * Provides C interface for creating and managing HStack container views
- * from C++ code. This header is C-compatible and can be included from C++.
+ * DUMB CONTAINER: This view does NOT compute layout.
+ * The Layout Engine sets frames directly on this view and its children.
  */
 
 #pragma once
@@ -24,27 +24,21 @@ typedef void* ObsidianHStackHandle;
  * HStack creation parameters
  */
 typedef struct {
-    // No parameters needed - container view is created empty
-    // Add dummy field to avoid empty struct warning
-    int _reserved;
+    int _reserved;  // Placeholder
 } ObsidianHStackParams;
 
 /**
  * Create a new HStack container view
- * Returns a handle to the HStack, or NULL on failure
  */
 ObsidianHStackHandle obsidian_macos_create_hstack(ObsidianHStackParams params);
 
 /**
  * Get the underlying NSView from an HStack handle
- * This is the container view that holds child views
  */
 void* obsidian_macos_hstack_get_view(ObsidianHStackHandle handle);
 
 /**
  * Add a child view to the HStack container
- * @param hstackHandle HStack container handle
- * @param childViewHandle Child view handle (must be an NSView*)
  */
 void obsidian_macos_hstack_add_child_view(ObsidianHStackHandle hstackHandle,
                                           void* childViewHandle);
@@ -83,7 +77,6 @@ void obsidian_macos_destroy_hstack(ObsidianHStackHandle handle);
 
 /**
  * Release the HStack handle WITHOUT removing from parent.
- * The container view stays in the view hierarchy (retained by superview).
  */
 void obsidian_macos_release_hstack_handle(ObsidianHStackHandle handle);
 
@@ -93,24 +86,28 @@ void obsidian_macos_release_hstack_handle(ObsidianHStackHandle handle);
 bool obsidian_macos_hstack_is_valid(ObsidianHStackHandle handle);
 
 /**
- * Request immediate layout update for HStack container
- * This forces Auto Layout to apply constraints immediately
+ * Request layout update (NO-OP: layout is handled by layout engine)
  */
 void obsidian_macos_hstack_request_layout_update(ObsidianHStackHandle handle);
 
 /**
- * Set padding values for the HStack container
- * This updates the container's intrinsic content size calculation
+ * Set padding values (stored for layout engine to read)
  */
 void obsidian_macos_hstack_set_padding(ObsidianHStackHandle handle,
                                        double top, double bottom,
                                        double leading, double trailing);
 
 /**
- * Set spacing between children in the HStack
- * This updates the container's intrinsic content size calculation
+ * Set spacing between children (stored for layout engine to read)
  */
 void obsidian_macos_hstack_set_spacing(ObsidianHStackHandle handle, double spacing);
+
+/**
+ * Set frame directly - called by the layout engine
+ */
+void obsidian_macos_hstack_set_frame(ObsidianHStackHandle handle,
+                                      double x, double y,
+                                      double width, double height);
 
 #ifdef __cplusplus
 }

@@ -94,5 +94,21 @@ void obsidian_macos_platform_cleanup() {
     g_platform_initialized = false;
 }
 
+void obsidian_macos_view_set_frame(void* viewHandle, 
+                                    double x, double y, 
+                                    double width, double height) {
+    if (!viewHandle) return;
+    
+    @autoreleasepool {
+        NSView* view = (__bridge NSView*)viewHandle;
+        if (view) {
+            // Note: macOS uses bottom-left origin, so Y may need adjustment
+            // depending on the parent view's coordinate system.
+            // For now, we set the frame directly as calculated by layout engine.
+            view.frame = NSMakeRect(x, y, width, height);
+        }
+    }
+}
+
 } // extern "C"
 

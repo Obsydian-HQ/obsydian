@@ -25,8 +25,7 @@
     if (self) {
         _routePath = [routePath copy];
         _isActive = NO;
-        // FRAME-BASED: Use autoresizing to fill parent
-        self.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+        // NO autoresizingMask - layout engine sets frames
         [self setWantsLayer:YES];
     }
     return self;
@@ -69,8 +68,7 @@
     if (self) {
         _screens = [[NSMutableDictionary alloc] init];
         _activeScreen = nil;
-        // FRAME-BASED: Use autoresizing to fill parent
-        self.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+        // NO autoresizingMask - layout engine sets frames
         [self setWantsLayer:YES];
     }
     return self;

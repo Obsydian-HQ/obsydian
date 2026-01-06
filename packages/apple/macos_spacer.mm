@@ -47,11 +47,7 @@
     return self;
 }
 
-// FRAME-BASED: Spacer returns its min size for fittingSize
-// The parent container will use this to calculate layout
-- (NSSize)fittingSize {
-    return NSMakeSize(_minWidth, _minHeight);
-}
+// REMOVED: fittingSize - layout engine reads min/max directly via FFI
 
 - (void)setMinWidth:(double)minWidth {
     _minWidth = minWidth;

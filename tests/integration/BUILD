@@ -60,21 +60,6 @@ cc_test(
     ],
 )
 
-# Layout constraint API integration test
-cc_test(
-    name = "layout_constraint_test",
-    size = "small",
-    srcs = ["layout_constraint_test.cpp"],
-    copts = ["-std=c++20"],
-    deps = [
-        "//packages/apple:apple_layout_ffi",
-        "//packages/apple:apple_ffi",
-        "//packages/apple:apple_c_headers",
-        "@googletest//:gtest",
-        "@googletest//:gtest_main",
-    ],
-)
-
 # VStack API integration test
 cc_test(
     name = "vstack_test",

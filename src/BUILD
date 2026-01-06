@@ -15,11 +15,10 @@ cc_library(
     deps = [
         "//core:ffi_base",
         "//core:runtime",
-        "//core/layout:layout",  # Layout engine for VStack
+        "//core/layout:layout",  # Layout engine (to be rebuilt with proper frame-based system)
         "//core/routing:routing",  # Routing system
         "//include:obsidian_headers",  # Need headers for implementation
         "//packages/apple:apple_ffi",
-        "//packages/apple:apple_layout_ffi",  # Layout constraint FFI
     ],
     # No custom includes needed - dependencies expose their headers
     # through their own include paths (e.g., //core:runtime exposes runtime/)

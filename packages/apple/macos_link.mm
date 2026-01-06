@@ -66,9 +66,8 @@
         // Add child view to wrapper
         [_wrapperView addSubview:_childView];
         
-        // FRAME-BASED: Set child frame to fill wrapper
+        // Set child frame to fill wrapper (no autoresizingMask - layout engine handles sizing)
         _childView.frame = _wrapperView.bounds;
-        _childView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
         
         // Create click gesture recognizer
         _clickRecognizer = [[NSClickGestureRecognizer alloc] initWithTarget:self action:@selector(handleClick:)];

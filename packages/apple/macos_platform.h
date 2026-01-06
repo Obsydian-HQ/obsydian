@@ -40,6 +40,20 @@ void obsidian_macos_platform_stop();
  */
 void obsidian_macos_platform_cleanup();
 
+/**
+ * Set frame on any NSView
+ * Used by the Layout Engine to apply computed layouts
+ * 
+ * @param viewHandle NSView* pointer
+ * @param x X position relative to parent
+ * @param y Y position relative to parent
+ * @param width Width of the view
+ * @param height Height of the view
+ */
+void obsidian_macos_view_set_frame(void* viewHandle, 
+                                    double x, double y, 
+                                    double width, double height);
+
 #ifdef __cplusplus
 }
 #endif
