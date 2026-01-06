@@ -1,27 +1,35 @@
 /**
- * Obsidian Runtime - Core Implementation
+ * Obsidian Core Runtime Implementation
+ * 
+ * This is the heart of the Obsidian framework - manages the application lifecycle.
  */
 
 #include "obsidian.h"
-// Include public API for AppCallbacks definition (single source of truth)
-#include "obsidian/app.h"
 #include <iostream>
 
 #ifdef __APPLE__
-#include "macos_mounting.h"  // For obsidian_macos_mounting_initialize
+// Fabric bridge - the new clean mounting system
+extern "C" {
+    void obs_fabric_initialize(void);
+    void obs_fabric_shutdown(void);
+}
 #endif
 
 namespace obsidian {
 
 class Runtime::Impl {
 public:
-    bool hmrEnabled = false;
     bool initialized = false;
+    bool hmrEnabled = false;
 };
 
 Runtime::Runtime() : pImpl(std::make_unique<Impl>()) {}
 
-Runtime::~Runtime() = default;
+Runtime::~Runtime() {
+    if (pImpl && pImpl->initialized) {
+        shutdown();
+    }
+}
 
 bool Runtime::initialize() {
     if (pImpl->initialized) {
@@ -29,74 +37,41 @@ bool Runtime::initialize() {
     }
     
 #ifdef __APPLE__
-    // Initialize the mounting system (ComponentViewRegistry and factories)
-    obsidian_macos_mounting_initialize();
+    // Initialize the Fabric mounting system
+    obs_fabric_initialize();
 #endif
     
     pImpl->initialized = true;
-    std::cout << "[Obsidian] Runtime initialized\n";
+    std::cout << "[Runtime] Obsidian runtime initialized" << std::endl;
     return true;
 }
 
-void Runtime::run(const AppCallbacks& callbacks) {
-    if (!pImpl->initialized) {
-        if (!initialize()) {
-            return;
-        }
-    }
-
-    if (callbacks.onInit) {
-        callbacks.onInit();
-    }
-
-    // Main loop
-    bool running = true;
-    while (running) {
-        if (callbacks.onUpdate) {
-            callbacks.onUpdate();
-        }
-        
-        // Platform-specific event loop integration will go here
-        // For now, this is a placeholder
-        break;
-    }
-
-    if (callbacks.onShutdown) {
-        callbacks.onShutdown();
-    }
+void Runtime::run(const AppCallbacks& /* callbacks */) {
+    // Main run loop is handled by platform code (NSApplication)
+    // This is a placeholder for future cross-platform implementation
 }
 
 void Runtime::shutdown() {
 #ifdef __APPLE__
-    // Shutdown the mounting system
-    obsidian_macos_mounting_shutdown();
+    // Shutdown the Fabric mounting system
+    obs_fabric_shutdown();
 #endif
     
     pImpl->initialized = false;
-    std::cout << "[Obsidian] Runtime shutdown\n";
+    std::cout << "[Runtime] Obsidian runtime shutdown" << std::endl;
 }
 
 void Runtime::enableHMR(bool enabled) {
     pImpl->hmrEnabled = enabled;
-    std::cout << "[Obsidian] HMR " << (enabled ? "enabled" : "disabled") << "\n";
 }
 
 bool Runtime::isHMREnabled() const {
     return pImpl->hmrEnabled;
 }
 
-int run(int /* argc */, char* /* argv */[], const AppCallbacks& callbacks) {
-    Runtime runtime;
-    
-    if (!runtime.initialize()) {
-        return 1;
-    }
-
-    runtime.run(callbacks);
-    runtime.shutdown();
-    
+int run(int /* argc */, char* /* argv */[], const AppCallbacks& /* callbacks */) {
+    // Placeholder for main entry point
     return 0;
 }
 
 } // namespace obsidian
-

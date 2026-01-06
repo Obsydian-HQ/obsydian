@@ -16,13 +16,11 @@ cc_library(
         "//core:ffi_base",
         "//core:runtime",
         "//core/layout:layout",  # Layout engine
-        "//core/mounting:mounting",  # ComponentViewRegistry and MountingCoordinator
         "//core/routing:routing",  # Routing system
         "//include:obsidian_headers",  # Need headers for implementation
         "//packages/apple:apple_ffi",
+        "//platform/apple/Fabric:fabric",  # New Fabric mounting system
     ],
-    # No custom includes needed - dependencies expose their headers
-    # through their own include paths (e.g., //core:runtime exposes runtime/)
 )
 
 # Combined public API library (headers + implementation)

@@ -38,7 +38,6 @@ cc_library(
         "macos_router.h",
         "macos_link.h",
         "macos_screen_container.h",
-        "macos_mounting.h",
     ],
     aspect_hints = [":apple_c_headers_interop"],
     copts = ["-std=c++20"],
@@ -72,7 +71,6 @@ objc_library(
         "macos_router.mm",
         "macos_link.mm",
         "macos_screen_container.mm",
-        "macos_mounting.mm",
     ],
     hdrs = [
         "macos_button.h",
@@ -97,14 +95,11 @@ objc_library(
         "macos_router.h",
         "macos_link.h",
         "macos_screen_container.h",
-        "macos_mounting.h",
     ],
     copts = [
         "-std=c++20",
         "-fobjc-arc",
         # Suppress false positive warnings about __bridge_retained/__bridge_transfer
-        # These casts ARE effective when ARC is enabled (which it is via -fobjc-arc)
-        # The linter incorrectly reports these warnings, but the compiler knows ARC is enabled
         "-Wno-error=arc-bridge-casts-disallowed-in-nonarc",
     ],
     includes = ["."],
@@ -113,7 +108,7 @@ objc_library(
         "Foundation",
     ],
     deps = [
-        "//core/mounting:mounting",
+        "//platform/apple/Fabric:fabric",
     ],
 )
 
@@ -135,8 +130,6 @@ cc_library(
     }),
     deps = [
         ":apple_objc_bridge",
-        # Note: Does NOT depend on //core:ffi_base to avoid circular dependency
-        # ffi_base depends on apple_ffi, not the other way around
     ],
 )
 
