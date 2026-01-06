@@ -5,13 +5,13 @@
  * platform-specific implementations.
  */
 
-#include "obsidian/splitview.h"
+#include "obsidian/layout/splitview.h"
 #include "obsidian/window.h"
-#include "obsidian/vstack.h"
-#include "obsidian/hstack.h"
-#include "obsidian/list.h"
-#include "obsidian/button.h"
-#include "obsidian/scrollview.h"
+#include "obsidian/layout/vstack.h"
+#include "obsidian/layout/hstack.h"
+#include "obsidian/ui/list.h"
+#include "obsidian/ui/button.h"
+#include "obsidian/ui/scrollview.h"
 
 // Include internal headers (not exposed to users)
 #ifdef __APPLE__

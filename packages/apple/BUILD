@@ -104,14 +104,14 @@ objc_library(
     ],
     includes = [
         ".",
-        "../../platform/apple/Fabric",
+        "renderer",
     ],
     sdk_frameworks = [
         "AppKit",
         "Foundation",
     ],
     deps = [
-        "//platform/apple/Fabric:fabric",
+        "//packages/apple/renderer:fabric",
     ],
 )
 

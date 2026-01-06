@@ -2,7 +2,7 @@
  * ScreenContainer Implementation
  */
 
-#include "obsidian/screen_container.h"
+#include "obsidian/navigation/screen_container.h"
 #include "obsidian/window.h"
 
 #ifdef __APPLE__

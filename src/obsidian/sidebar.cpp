@@ -9,15 +9,15 @@
  * That's it. No fighting auto layout, no 10000px workarounds.
  */
 
-#include "obsidian/sidebar.h"
+#include "obsidian/layout/sidebar.h"
 #include "obsidian/window.h"
-#include "obsidian/vstack.h"
-#include "obsidian/hstack.h"
-#include "obsidian/list.h"
-#include "obsidian/button.h"
-#include "obsidian/scrollview.h"
-#include "obsidian/router.h"
-#include "obsidian/screen_container.h"
+#include "obsidian/layout/vstack.h"
+#include "obsidian/layout/hstack.h"
+#include "obsidian/ui/list.h"
+#include "obsidian/ui/button.h"
+#include "obsidian/ui/scrollview.h"
+#include "obsidian/navigation/router.h"
+#include "obsidian/navigation/screen_container.h"
 
 #ifdef __APPLE__
 #include "macos_ffi.h"

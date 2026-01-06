@@ -5,15 +5,15 @@
  * and handling navigation through the Router.
  */
 
-#include "obsidian/link.h"
-#include "obsidian/router.h"
-#include "obsidian/route_registry_helper.h"
+#include "obsidian/ui/link.h"
+#include "obsidian/navigation/router.h"
+#include "obsidian/navigation/route_registry_helper.h"
 #include "obsidian/window.h"
-#include "obsidian/button.h"
-#include "obsidian/textview.h"
-#include "obsidian/vstack.h"
-#include "obsidian/hstack.h"
-#include "obsidian/zstack.h"
+#include "obsidian/ui/button.h"
+#include "obsidian/ui/textview.h"
+#include "obsidian/layout/vstack.h"
+#include "obsidian/layout/hstack.h"
+#include "obsidian/layout/zstack.h"
 
 #ifdef __APPLE__
 #include "packages/apple/macos_link.h"

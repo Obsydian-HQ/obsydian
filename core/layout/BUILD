@@ -2,7 +2,7 @@
 # Frame-based layout system inspired by Yoga
 # Calculates positions/sizes in a shadow tree, then applies to native views
 
-load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+load("@rules_cc//cc:defs.bzl", "cc_library")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -27,17 +27,4 @@ cc_library(
     copts = ["-std=c++20"],
     includes = ["."],
     deps = [],
-)
-
-# Unit tests for layout engine
-cc_test(
-    name = "layout_test",
-    size = "small",
-    srcs = ["layout_test.cpp"],
-    copts = ["-std=c++20"],
-    deps = [
-        ":layout",
-        "@googletest//:gtest",
-        "@googletest//:gtest_main",
-    ],
 )

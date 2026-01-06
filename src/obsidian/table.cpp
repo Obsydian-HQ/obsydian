@@ -5,7 +5,7 @@
  * platform-specific implementations.
  */
 
-#include "obsidian/table.h"
+#include "obsidian/ui/table.h"
 #include "obsidian/window.h"
 
 // Include internal headers (not exposed to users)

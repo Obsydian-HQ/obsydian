@@ -2,10 +2,10 @@
  * Obsidian Router Implementation
  */
 
-#include "obsidian/router.h"
+#include "obsidian/navigation/router.h"
 #include "obsidian/window.h"
-#include "obsidian/screen_container.h"
-#include "obsidian/route_registry_helper.h"  // For processPendingRegistrations
+#include "obsidian/navigation/screen_container.h"
+#include "obsidian/navigation/route_registry_helper.h"  // For processPendingRegistrations
 #include "core/routing/route_scanner.h"
 #include "core/routing/route_registry.h"
 #include "core/routing/navigation_history.h"

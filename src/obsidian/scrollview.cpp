@@ -5,9 +5,9 @@
  * platform-specific implementations.
  */
 
-#include "obsidian/scrollview.h"
+#include "obsidian/ui/scrollview.h"
 #include "obsidian/window.h"
-#include "obsidian/textview.h"
+#include "obsidian/ui/textview.h"
 
 // Include internal headers (not exposed to users)
 #ifdef __APPLE__

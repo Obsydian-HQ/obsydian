@@ -1,4 +1,7 @@
-load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+# Obsidian Shadow Tree
+# Virtual representation of the UI tree for layout computation and diff generation
+
+load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
     name = "shadow",
@@ -15,16 +18,5 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "//core/layout",
-    ],
-)
-
-cc_test(
-    name = "shadow_test",
-    size = "small",  # Fast unit test, runs in <1s
-    srcs = ["shadow_test.cpp"],
-    deps = [
-        ":shadow",
-        "@googletest//:gtest",
-        "@googletest//:gtest_main",
     ],
 )

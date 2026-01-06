@@ -5,7 +5,7 @@
  * platform-specific implementations.
  */
 
-#include "obsidian/textview.h"
+#include "obsidian/ui/textview.h"
 #include "obsidian/window.h"
 
 // Include internal headers (not exposed to users)

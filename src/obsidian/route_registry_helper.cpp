@@ -6,7 +6,7 @@
  * of the static storage across the framework and any apps that link against it.
  */
 
-#include "obsidian/route_registry_helper.h"
+#include "obsidian/navigation/route_registry_helper.h"
 
 namespace obsidian {
 

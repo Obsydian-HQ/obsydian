@@ -19,7 +19,7 @@ cc_library(
         "//core/routing",  # Routing system
         "//include:obsidian_headers",  # Need headers for implementation
         "//packages/apple:apple_ffi",
-        "//platform/apple/Fabric:fabric",  # New Fabric mounting system
+        "//packages/apple/renderer:fabric",  # Renderer/mounting system
     ],
 )
 

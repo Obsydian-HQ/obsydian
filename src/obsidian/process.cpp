@@ -5,7 +5,7 @@
  * platform-specific implementations.
  */
 
-#include "obsidian/process.h"
+#include "obsidian/system/process.h"
 
 // Include internal headers (not exposed to users)
 #ifdef __APPLE__

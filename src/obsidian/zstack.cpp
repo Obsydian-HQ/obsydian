@@ -5,10 +5,10 @@
  * handles all layout in layoutSubviews - NO AUTO LAYOUT CONSTRAINTS.
  */
 
-#include "obsidian/zstack.h"
+#include "obsidian/layout/zstack.h"
 #include "obsidian/window.h"
-#include "obsidian/button.h"
-#include "obsidian/link.h"
+#include "obsidian/ui/button.h"
+#include "obsidian/ui/link.h"
 #include <iostream>
 
 // Include internal headers (not exposed to users)

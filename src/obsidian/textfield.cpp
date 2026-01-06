@@ -5,7 +5,7 @@
  * platform-specific implementations.
  */
 
-#include "obsidian/textfield.h"
+#include "obsidian/ui/textfield.h"
 #include "obsidian/window.h"
 
 // Include internal headers (not exposed to users)

@@ -5,14 +5,14 @@
  * The C++ Layout Engine computes frames, then applies them to native views.
  */
 
-#include "obsidian/hstack.h"
+#include "obsidian/layout/hstack.h"
 #include "obsidian/window.h"
-#include "obsidian/screen_container.h"
-#include "obsidian/button.h"
-#include "obsidian/link.h"
-#include "obsidian/spacer.h"
-#include "obsidian/textview.h"
-#include "obsidian/vstack.h"
+#include "obsidian/navigation/screen_container.h"
+#include "obsidian/ui/button.h"
+#include "obsidian/ui/link.h"
+#include "obsidian/layout/spacer.h"
+#include "obsidian/ui/textview.h"
+#include "obsidian/layout/vstack.h"
 #include <iostream>
 
 // Layout Engine

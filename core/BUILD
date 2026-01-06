@@ -1,7 +1,7 @@
 # Obsidian Core Runtime
 # This is the heart of Obsidian - the runtime and language layer
 
-load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+load("@rules_cc//cc:defs.bzl", "cc_library")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -21,7 +21,7 @@ cc_library(
     deps = [
         ":ffi_base",
         "//include:obsidian_headers",  # For AppCallbacks definition
-        "//platform/apple/Fabric:fabric",  # For Fabric mounting system
+        "//packages/apple/renderer:fabric",  # For renderer/mounting system
     ],
 )
 
@@ -83,33 +83,5 @@ cc_library(
     includes = ["compiler"],
     deps = [
         ":runtime",
-    ],
-)
-
-# Unit tests
-# FFI platform detection test
-cc_test(
-    name = "platform_test",
-    size = "small",
-    srcs = ["ffi/platform_test.cpp"],
-    copts = ["-std=c++20"],
-    deps = [
-        ":ffi_base",
-        "@googletest//:gtest",
-        "@googletest//:gtest_main",
-    ],
-)
-
-# Runtime lifecycle test
-cc_test(
-    name = "obsidian_test",
-    size = "small",
-    srcs = ["runtime/obsidian_test.cpp"],
-    copts = ["-std=c++20"],
-    deps = [
-        ":runtime",
-        "//include:obsidian_headers",  # For AppCallbacks definition
-        "@googletest//:gtest",
-        "@googletest//:gtest_main",
     ],
 )

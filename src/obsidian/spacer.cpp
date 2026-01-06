@@ -5,7 +5,7 @@
  * platform-specific implementations.
  */
 
-#include "obsidian/spacer.h"
+#include "obsidian/layout/spacer.h"
 
 #ifdef __APPLE__
 #include "macos_spacer.h"

@@ -3,9 +3,9 @@
  */
 
 #include "route_renderer.h"
-#include "obsidian/router.h"
+#include "obsidian/navigation/router.h"
 #include "obsidian/window.h"
-#include "obsidian/screen_container.h"
+#include "obsidian/navigation/screen_container.h"
 #include <iostream>
 #include <sstream>
 

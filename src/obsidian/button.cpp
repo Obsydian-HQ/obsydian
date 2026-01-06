@@ -5,7 +5,7 @@
  * Views are created via Create mutation, properties set via bridge functions.
  */
 
-#include "obsidian/button.h"
+#include "obsidian/ui/button.h"
 #include "obsidian/window.h"
 #include <iostream>
 
