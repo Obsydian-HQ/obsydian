@@ -1,7 +1,8 @@
 /**
  * macOS TextView FFI - Objective-C++ Implementation
  * 
- * Bridges C++ calls to Objective-C NSTextView APIs
+ * Frame-based text view component
+ * NO AUTO LAYOUT - Pure frame-based positioning
  */
 
 #import "macos_textview.h"
@@ -10,60 +11,12 @@
 #import <objc/runtime.h>
 #import <memory>
 
-// Custom NSTextView subclass that returns intrinsic content size based on text
-// This is essential for Auto Layout to size the text view correctly
-@interface ObsidianTextView : NSTextView
-@end
-
-@implementation ObsidianTextView
-
-- (NSSize)intrinsicContentSize {
-    // Calculate the size needed to display all the text
-    if (self.textStorage.length == 0) {
-        // No text - return a small minimum size
-        return NSMakeSize(10, 20);
-    }
-    
-    // Use the layout manager to calculate the text bounds
-    NSLayoutManager* layoutManager = self.layoutManager;
-    NSTextContainer* textContainer = self.textContainer;
-    
-    // Force layout
-    [layoutManager ensureLayoutForTextContainer:textContainer];
-    
-    // Get the bounding rect for all glyphs
-    NSRange glyphRange = [layoutManager glyphRangeForTextContainer:textContainer];
-    NSRect usedRect = [layoutManager usedRectForTextContainer:textContainer];
-    
-    // Add some padding
-    CGFloat width = usedRect.size.width + 4;
-    CGFloat height = usedRect.size.height + 4;
-    
-    // Minimum size
-    if (width < 10) width = 10;
-    if (height < 20) height = 20;
-    
-    return NSMakeSize(width, height);
-}
-
-- (void)setString:(NSString *)string {
-    [super setString:string];
-    [self invalidateIntrinsicContentSize];
-}
-
-- (void)setFont:(NSFont *)font {
-    [super setFont:font];
-    [self invalidateIntrinsicContentSize];
-}
-
-@end
-
 // Internal text view wrapper class
 @interface ObsidianTextViewWrapper : NSObject {
-    ObsidianTextView* _textView;
+    NSTextView* _textView;
 }
 
-@property (nonatomic, strong) ObsidianTextView* textView;
+@property (nonatomic, strong) NSTextView* textView;
 
 - (instancetype)initWithParams:(ObsidianTextViewParams)params;
 - (void)setString:(const char*)text;
@@ -90,21 +43,27 @@
 - (instancetype)initWithParams:(ObsidianTextViewParams)params {
     self = [super init];
     if (self) {
-        // Create custom ObsidianTextView with frame
+        // Create NSTextView with initial frame
         NSRect frame = NSMakeRect(params.x, params.y, params.width, params.height);
-        _textView = [[ObsidianTextView alloc] initWithFrame:frame];
+        if (frame.size.width == 0) frame.size.width = 100;
+        if (frame.size.height == 0) frame.size.height = 24;
         
-        // CRITICAL: Disable autoresizing mask for Auto Layout
-        _textView.translatesAutoresizingMaskIntoConstraints = NO;
+        _textView = [[NSTextView alloc] initWithFrame:frame];
+        
+        // FRAME-BASED: Leave translatesAutoresizingMaskIntoConstraints = YES (default)
+        // The text view will be positioned by its parent container via setFrame
         
         // Configure for use as a label-like view by default
         _textView.drawsBackground = NO;
         _textView.editable = NO;
         _textView.selectable = YES;
         
-        // Make text container non-wrapping so text stays on one line (unless explicitly set otherwise)
+        // Allow the text to expand to fit
         _textView.textContainer.widthTracksTextView = NO;
         _textView.textContainer.containerSize = NSMakeSize(FLT_MAX, FLT_MAX);
+        
+        // Horizontal resize only
+        _textView.autoresizingMask = NSViewWidthSizable;
     }
     return self;
 }
@@ -113,6 +72,9 @@
     if (_textView && text) {
         NSString* textStr = [NSString stringWithUTF8String:text];
         [_textView setString:textStr];
+        
+        // Resize to fit text content
+        [_textView sizeToFit];
     }
 }
 
@@ -144,7 +106,7 @@
     if (_textView) {
         double size = [self fontSize];
         if (size <= 0) {
-            size = 13.0; // Default size
+            size = 13.0;
         }
         
         NSFont* font = nil;
@@ -185,7 +147,6 @@
             NSNumber* weightNumber = [traits objectForKey:NSFontWeightTrait];
             if (weightNumber) {
                 CGFloat weight = [weightNumber floatValue];
-                // Map NSFontWeight to our enum
                 if (weight >= 0.6) return 1; // Bold
                 if (weight >= 0.4) return 2; // Semibold
                 if (weight >= 0.23) return 3; // Medium
@@ -194,7 +155,7 @@
             }
         }
     }
-    return 0; // Regular
+    return 0;
 }
 
 - (const char*)getString {
@@ -234,17 +195,11 @@
 - (void)setEnabled:(bool)enabled {
     if (_textView) {
         [_textView setEditable:enabled];
-        // Note: NSTextView doesn't have a direct setEnabled method
-        // We use setEditable as a proxy for enabled/disabled state
-        // If you want to disable editing but keep it enabled for selection, 
-        // you'd need to manage editable and selectable separately
     }
 }
 
 - (bool)isEnabled {
     if (_textView) {
-        // NSTextView doesn't have isEnabled, so we check if it's editable
-        // This is a reasonable proxy for "enabled" state
         return [_textView isEditable];
     }
     return false;
@@ -268,7 +223,6 @@
         return;
     }
     
-    // Get the content view from the window handle
     void* contentViewPtr = obsidian_macos_window_get_content_view(windowHandle);
     if (contentViewPtr) {
         NSView* contentView = (__bridge NSView*)contentViewPtr;
@@ -279,7 +233,6 @@
 - (void)removeFromParent {
     if (!_textView) return;
     
-    // Remove from superview
     if ([_textView superview]) {
         [_textView removeFromSuperview];
     }
@@ -298,7 +251,6 @@ ObsidianTextViewHandle obsidian_macos_create_textview(ObsidianTextViewParams par
     @autoreleasepool {
         ObsidianTextViewWrapper* wrapper = [[ObsidianTextViewWrapper alloc] initWithParams:params];
         if (wrapper && wrapper.textView) {
-            // Retain the wrapper and return as opaque handle
             return (__bridge_retained void*)wrapper;
         }
         return nullptr;
@@ -419,11 +371,7 @@ void obsidian_macos_destroy_textview(ObsidianTextViewHandle handle) {
     
     @autoreleasepool {
         ObsidianTextViewWrapper* wrapper = (__bridge_transfer ObsidianTextViewWrapper*)handle;
-        
-        // Remove from parent first
         [wrapper removeFromParent];
-        
-        // Clear the text view reference
         wrapper.textView = nil;
     }
 }
@@ -432,11 +380,7 @@ void obsidian_macos_release_textview_handle(ObsidianTextViewHandle handle) {
     if (!handle) return;
     
     @autoreleasepool {
-        // Release our reference to the wrapper without removing from parent.
-        // The textView stays in the view hierarchy (retained by superview).
         (void)(__bridge_transfer ObsidianTextViewWrapper*)handle;
-        
-        // ARC will handle cleanup of the wrapper when it goes out of scope
     }
 }
 
@@ -455,8 +399,6 @@ void* obsidian_macos_textview_get_view_handle(ObsidianTextViewHandle handle) {
     @autoreleasepool {
         ObsidianTextViewWrapper* wrapper = (__bridge ObsidianTextViewWrapper*)handle;
         if (wrapper && wrapper.textView) {
-            // Return the NSTextView as an opaque handle
-            // This is a borrowed reference, caller should not release it
             return (__bridge void*)wrapper.textView;
         }
     }
@@ -500,4 +442,3 @@ ObsidianFontWeight obsidian_macos_textview_get_font_weight(ObsidianTextViewHandl
 }
 
 } // extern "C"
-

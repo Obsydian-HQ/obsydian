@@ -1,7 +1,9 @@
 /**
  * macOS HStack FFI - Objective-C++ Implementation
  * 
- * Bridges C++ calls to Objective-C NSView APIs for container view management
+ * Frame-based layout container for horizontal stacking
+ * Following React Native's pattern: compute layout and set frames directly
+ * NO AUTO LAYOUT - Pure frame-based positioning
  */
 
 #import "macos_hstack.h"
@@ -10,8 +12,8 @@
 #import <objc/runtime.h>
 #import <memory>
 
-// Custom NSView subclass that calculates intrinsic content size based on children + padding
-// This is the proper Auto Layout approach for sizing a container to its content
+// Custom NSView subclass that performs frame-based horizontal layout
+// This is the React Native approach: calculate positions and set frames directly
 @interface ObsidianHStackContainerView : NSView {
     CGFloat _paddingTop;
     CGFloat _paddingBottom;
@@ -36,6 +38,9 @@
         _paddingLeading = 0.0;
         _paddingTrailing = 0.0;
         _spacing = 0.0;
+        
+        // Use autoresizing mask for flexible sizing within parent
+        self.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
     }
     return self;
 }
@@ -45,81 +50,88 @@
     _paddingBottom = bottom;
     _paddingLeading = leading;
     _paddingTrailing = trailing;
-    [self invalidateIntrinsicContentSize];
+    [self setNeedsLayout:YES];
 }
 
 - (void)setSpacing:(CGFloat)spacing {
     _spacing = spacing;
-    [self invalidateIntrinsicContentSize];
+    [self setNeedsLayout:YES];
 }
 
-- (NSSize)intrinsicContentSize {
-    // Calculate size based on children + padding + spacing
-    // This is the proper Auto Layout way to size a container to its content
-    // For HStack: width = sum(child widths) + spacing + padding, height = max(child height) + padding
+// CORE LAYOUT METHOD - Frame-based horizontal stacking
+- (void)layout {
+    [super layout];
     
     if (self.subviews.count == 0) {
-        // No children - return size with just padding
-        return NSMakeSize(_paddingLeading + _paddingTrailing, _paddingTop + _paddingBottom);
+        return;
     }
     
-    // Calculate width: sum of all child widths + spacing between them + horizontal padding
-    CGFloat totalWidth = _paddingLeading + _paddingTrailing;
+    NSRect bounds = self.bounds;
+    CGFloat availableHeight = bounds.size.height - _paddingTop - _paddingBottom;
     
-    // Calculate height: maximum child height + vertical padding
-    CGFloat maxChildHeight = 0.0;
-    BOOL isFirstChild = YES;
-    BOOL hasValidChildren = NO;
+    // For HStack: layout from left to right
+    CGFloat currentX = _paddingLeading;
     
     for (NSView* subview in self.subviews) {
-        NSSize subviewSize = [subview intrinsicContentSize];
+        if (subview.isHidden) continue;
         
-        // For width: sum all child widths + spacing between them
-        CGFloat childWidth = 0.0;
-        if (subviewSize.width != NSViewNoIntrinsicMetric) {
-            childWidth = subviewSize.width;
-        }
+        // Get the child's preferred size
+        NSSize childSize = [self preferredSizeForChild:subview availableHeight:availableHeight];
         
-        // For height: take the maximum child height
-        CGFloat childHeight = 0.0;
-        if (subviewSize.height != NSViewNoIntrinsicMetric) {
-            childHeight = subviewSize.height;
-        }
+        // Position the child
+        // X: currentX (advancing left to right)
+        // Y: centered vertically, or at bottom padding (macOS coords)
+        CGFloat childX = currentX;
+        CGFloat childY = _paddingBottom;  // Start from bottom in macOS coordinates
+        CGFloat childWidth = childSize.width;
+        CGFloat childHeight = availableHeight;  // Fill available height
         
-        // Only count children with valid intrinsic sizes
-        if (childWidth > 0 && childHeight > 0) {
-            if (!isFirstChild) {
-                // Add spacing between children
-                totalWidth += _spacing;
-            }
-            totalWidth += childWidth;
-            maxChildHeight = MAX(maxChildHeight, childHeight);
-            isFirstChild = NO;
-            hasValidChildren = YES;
-        }
+        // Set the frame directly - NO CONSTRAINTS
+        subview.frame = NSMakeRect(childX, childY, childWidth, childHeight);
+        
+        // Move X right for next child
+        currentX += childWidth + _spacing;
+    }
+}
+
+// Helper to get preferred size for a child view
+- (NSSize)preferredSizeForChild:(NSView*)child availableHeight:(CGFloat)availableHeight {
+    // First try fittingSize
+    NSSize fittingSize = child.fittingSize;
+    
+    if (fittingSize.width > 0 && fittingSize.height > 0) {
+        return NSMakeSize(fittingSize.width, availableHeight);
     }
     
-    // If no valid child sizes found, return minimum size with padding
-    // This can happen if children don't have intrinsic content size yet
-    // Auto Layout will call this again after children are laid out
-    if (!hasValidChildren) {
-        return NSMakeSize(_paddingLeading + _paddingTrailing, _paddingTop + _paddingBottom);
+    // Fallback: check intrinsicContentSize
+    NSSize intrinsicSize = child.intrinsicContentSize;
+    if (intrinsicSize.width > 0 && intrinsicSize.width != NSViewNoIntrinsicMetric) {
+        return NSMakeSize(intrinsicSize.width, availableHeight);
     }
     
-    // Add vertical padding
-    CGFloat totalHeight = maxChildHeight + _paddingTop + _paddingBottom;
+    // Last resort: use current frame size or a default
+    NSSize currentSize = child.frame.size;
+    if (currentSize.width > 0) {
+        return NSMakeSize(currentSize.width, availableHeight);
+    }
     
-    return NSMakeSize(totalWidth, totalHeight);
+    // Absolute fallback: default width
+    return NSMakeSize(80.0, availableHeight);
 }
 
 - (void)addSubview:(NSView*)view {
     [super addSubview:view];
-    [self invalidateIntrinsicContentSize];
+    [self setNeedsLayout:YES];
 }
 
 - (void)willRemoveSubview:(NSView*)subview {
     [super willRemoveSubview:subview];
-    [self invalidateIntrinsicContentSize];
+    [self setNeedsLayout:YES];
+}
+
+- (void)resizeSubviewsWithOldSize:(NSSize)oldSize {
+    [super resizeSubviewsWithOldSize:oldSize];
+    [self setNeedsLayout:YES];
 }
 
 @end
@@ -147,16 +159,8 @@
 - (instancetype)initWithParams:(ObsidianHStackParams)params {
     self = [super init];
     if (self) {
-        // Create custom container view with zero frame (will be constrained by layout)
-        // The custom view overrides intrinsicContentSize to size itself based on children + padding
-        NSRect frame = NSMakeRect(0, 0, 0, 0);
+        NSRect frame = NSMakeRect(0, 0, 300, 200);
         _containerView = [[ObsidianHStackContainerView alloc] initWithFrame:frame];
-        
-        // Disable autoresizing mask - we'll use Auto Layout
-        [_containerView setTranslatesAutoresizingMaskIntoConstraints:NO];
-        
-        // HStack should be transparent (no background) - it's just a layout container
-        // No background color set - container is transparent by default
     }
     return self;
 }
@@ -183,17 +187,8 @@
         return;
     }
     
-    // CRITICAL: Disable autoresizing mask BEFORE adding to superview
-    // This prevents frame-based positioning from interfering with Auto Layout
-    [childView setTranslatesAutoresizingMaskIntoConstraints:NO];
-    
-    // Add child view as subview
-    // The custom container view will automatically invalidate its intrinsic content size
+    // FRAME-BASED: Do NOT disable translatesAutoresizingMaskIntoConstraints
     [_containerView addSubview:childView];
-    
-    // Mark container as needing layout update
-    // Constraints will be set up by updateLayout() from the C++ side
-    // Do NOT call layoutSubtreeIfNeeded here - it causes crashes when constraints haven't been set up yet
     [_containerView setNeedsLayout:YES];
 }
 
@@ -207,7 +202,6 @@
         return;
     }
     
-    // Remove from superview
     [childView removeFromSuperview];
 }
 
@@ -229,24 +223,23 @@
         return;
     }
     
-    // Get the content view from the window handle
     void* contentViewPtr = obsidian_macos_window_get_content_view(windowHandle);
     if (contentViewPtr) {
         NSView* contentView = (__bridge NSView*)contentViewPtr;
+        _containerView.frame = contentView.bounds;
         [contentView addSubview:_containerView];
+        [_containerView setNeedsLayout:YES];
     }
 }
 
 - (void)removeFromParent {
     if (!_containerView) return;
     
-    // Remove all child views first
     NSArray<NSView*>* subviews = [_containerView.subviews copy];
     for (NSView* subview in subviews) {
         [subview removeFromSuperview];
     }
     
-    // Remove from superview
     if ([_containerView superview]) {
         [_containerView removeFromSuperview];
     }
@@ -261,7 +254,6 @@ ObsidianHStackHandle obsidian_macos_create_hstack(ObsidianHStackParams params) {
     @autoreleasepool {
         ObsidianHStackWrapper* wrapper = [[ObsidianHStackWrapper alloc] initWithParams:params];
         if (wrapper && wrapper.containerView) {
-            // Retain the wrapper and return as opaque handle
             return (__bridge_retained void*)wrapper;
         }
         return nullptr;
@@ -339,9 +331,7 @@ void obsidian_macos_destroy_hstack(ObsidianHStackHandle handle) {
     
     @autoreleasepool {
         ObsidianHStackWrapper* wrapper = (__bridge_transfer ObsidianHStackWrapper*)handle;
-        // Remove from parent and clean up children
         [wrapper removeFromParent];
-        // wrapper is automatically released due to __bridge_transfer
     }
 }
 
@@ -349,8 +339,6 @@ void obsidian_macos_release_hstack_handle(ObsidianHStackHandle handle) {
     if (!handle) return;
     
     @autoreleasepool {
-        // Release our reference to the wrapper without removing from parent.
-        // The containerView stays in the view hierarchy (retained by superview).
         (void)(__bridge_transfer ObsidianHStackWrapper*)handle;
     }
 }
@@ -371,9 +359,6 @@ void obsidian_macos_hstack_request_layout_update(ObsidianHStackHandle handle) {
         ObsidianHStackWrapper* wrapper = (__bridge ObsidianHStackWrapper*)handle;
         if (wrapper && wrapper.containerView) {
             NSView* containerView = wrapper.containerView;
-            
-            // CRITICAL: Force immediate layout update to apply Auto Layout constraints
-            // This ensures views are positioned correctly, not at default frame positions
             [containerView setNeedsLayout:YES];
             [containerView layoutSubtreeIfNeeded];
         }

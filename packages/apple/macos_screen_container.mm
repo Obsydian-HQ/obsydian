@@ -3,6 +3,8 @@
  * 
  * Based on react-native-screens' RNSScreenContainerView.
  * Container owns all screens and manages their lifecycle.
+ * 
+ * FRAME-BASED LAYOUT - NO AUTO LAYOUT
  */
 
 #import "macos_screen_container.h"
@@ -23,7 +25,8 @@
     if (self) {
         _routePath = [routePath copy];
         _isActive = NO;
-        [self setTranslatesAutoresizingMaskIntoConstraints:NO];
+        // FRAME-BASED: Use autoresizing to fill parent
+        self.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
         [self setWantsLayer:YES];
     }
     return self;
@@ -34,6 +37,20 @@
     for (NSView* subview in subviews) {
         [subview removeFromSuperview];
     }
+}
+
+// FRAME-BASED: Set children to fill bounds on layout
+- (void)layout {
+    [super layout];
+    
+    for (NSView* subview in self.subviews) {
+        subview.frame = self.bounds;
+    }
+}
+
+- (void)resizeSubviewsWithOldSize:(NSSize)oldSize {
+    [super resizeSubviewsWithOldSize:oldSize];
+    [self setNeedsLayout:YES];
 }
 
 @end
@@ -52,7 +69,8 @@
     if (self) {
         _screens = [[NSMutableDictionary alloc] init];
         _activeScreen = nil;
-        [self setTranslatesAutoresizingMaskIntoConstraints:NO];
+        // FRAME-BASED: Use autoresizing to fill parent
+        self.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
         [self setWantsLayer:YES];
     }
     return self;
@@ -65,21 +83,14 @@
         return existing;
     }
     
-    // Create new screen
+    // Create new screen with frame filling container
     ObsidianScreenView* screen = [[ObsidianScreenView alloc] initWithRoutePath:routePath];
+    screen.frame = self.bounds;
     _screens[routePath] = screen;
     
     // Add as subview but hidden
     [self addSubview:screen];
     [screen setHidden:YES];
-    
-    // Pin to container edges
-    [NSLayoutConstraint activateConstraints:@[
-        [screen.leadingAnchor constraintEqualToAnchor:self.leadingAnchor],
-        [screen.trailingAnchor constraintEqualToAnchor:self.trailingAnchor],
-        [screen.topAnchor constraintEqualToAnchor:self.topAnchor],
-        [screen.bottomAnchor constraintEqualToAnchor:self.bottomAnchor]
-    ]];
     
     return screen;
 }
@@ -102,6 +113,7 @@
     // Show new active screen
     _activeScreen = screen;
     if (screen) {
+        screen.frame = self.bounds;
         [screen setHidden:NO];
         screen.isActive = YES;
         [self setNeedsLayout:YES];
@@ -136,13 +148,19 @@
     _activeScreen = nil;
 }
 
+// FRAME-BASED: Position all screens to fill container
 - (void)layout {
     [super layout];
     
-    // Ensure active screen fills container
-    if (_activeScreen) {
-        _activeScreen.frame = self.bounds;
+    NSRect bounds = self.bounds;
+    for (ObsidianScreenView* screen in _screens.allValues) {
+        screen.frame = bounds;
     }
+}
+
+- (void)resizeSubviewsWithOldSize:(NSSize)oldSize {
+    [super resizeSubviewsWithOldSize:oldSize];
+    [self setNeedsLayout:YES];
 }
 
 @end
@@ -175,22 +193,13 @@ void obsidian_macos_screen_container_attach_to_window(ObsidianScreenContainerHan
         void* contentViewPtr = obsidian_macos_window_get_content_view(windowHandle);
         if (contentViewPtr) {
             NSView* contentView = (__bridge NSView*)contentViewPtr;
+            
+            // FRAME-BASED: Set frame to fill content view
+            container.frame = contentView.bounds;
             [contentView addSubview:container];
             
-            NSLog(@"[ScreenContainer] Attached to window contentView. Container frame: %@", NSStringFromRect(container.frame));
-            NSLog(@"[ScreenContainer] ContentView frame: %@", NSStringFromRect(contentView.frame));
-            
-            // Pin container to fill window's content view
-            [NSLayoutConstraint activateConstraints:@[
-                [container.leadingAnchor constraintEqualToAnchor:contentView.leadingAnchor],
-                [container.trailingAnchor constraintEqualToAnchor:contentView.trailingAnchor],
-                [container.topAnchor constraintEqualToAnchor:contentView.topAnchor],
-                [container.bottomAnchor constraintEqualToAnchor:contentView.bottomAnchor]
-            ]];
-            
-            NSLog(@"[ScreenContainer] Constraints activated. Container has %lu subviews", (unsigned long)container.subviews.count);
-        } else {
-            NSLog(@"[ScreenContainer] ERROR: Could not get contentView from window!");
+            // Trigger layout
+            [container setNeedsLayout:YES];
         }
     }
 }
@@ -234,29 +243,10 @@ void obsidian_macos_screen_container_set_active_screen(
     @autoreleasepool {
         ObsidianScreenContainerView* container = (__bridge ObsidianScreenContainerView*)containerHandle;
         ObsidianScreenView* screen = screenHandle ? (__bridge ObsidianScreenView*)screenHandle : nil;
-        NSLog(@"[ScreenContainer] setActiveScreen called. Screen: %@, path: %@", screen, screen.routePath);
-        NSLog(@"[ScreenContainer] Screen has %lu subviews", (unsigned long)screen.subviews.count);
-        
-        // Debug: print screen's subview hierarchy
-        if (screen.subviews.count > 0) {
-            NSView* firstSubview = screen.subviews[0];
-            NSLog(@"[ScreenContainer] Screen's first subview: %@ with %lu children, frame: %@", 
-                  [firstSubview class], (unsigned long)firstSubview.subviews.count, 
-                  NSStringFromRect(firstSubview.frame));
-            for (NSView* child in firstSubview.subviews) {
-                NSLog(@"[ScreenContainer]   Child: %@ frame: %@", [child class], NSStringFromRect(child.frame));
-            }
-        }
-        
         [container setActiveScreen:screen];
-        NSLog(@"[ScreenContainer] Screen isHidden: %d, Container has %lu subviews", screen.isHidden, (unsigned long)container.subviews.count);
-        NSLog(@"[ScreenContainer] Container frame: %@, Screen frame: %@", 
-              NSStringFromRect(container.frame), NSStringFromRect(screen.frame));
         
         // Force layout
         [container layoutSubtreeIfNeeded];
-        NSLog(@"[ScreenContainer] After layout - Container frame: %@, Screen frame: %@", 
-              NSStringFromRect(container.frame), NSStringFromRect(screen.frame));
     }
 }
 
@@ -300,7 +290,11 @@ void obsidian_macos_screen_add_subview(ObsidianScreenHandle handle, void* viewHa
     @autoreleasepool {
         ObsidianScreenView* screen = (__bridge ObsidianScreenView*)handle;
         NSView* view = (__bridge NSView*)viewHandle;
+        
+        // FRAME-BASED: Set view frame to fill screen
+        view.frame = screen.bounds;
         [screen addSubview:view];
+        [screen setNeedsLayout:YES];
     }
 }
 

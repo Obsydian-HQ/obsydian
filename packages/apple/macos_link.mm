@@ -1,7 +1,8 @@
 /**
  * macOS Link FFI - Objective-C++ Implementation
  * 
- * Bridges C++ calls to Objective-C to create clickable wrappers around any view
+ * Frame-based clickable wrapper component
+ * NO AUTO LAYOUT - Pure frame-based positioning
  */
 
 #import "macos_link.h"
@@ -9,49 +10,17 @@
 #import <AppKit/AppKit.h>
 #import <objc/runtime.h>
 
-// Custom wrapper view that forwards intrinsic content size from its child
-// This is essential for Auto Layout to size the Link correctly
-@interface ObsidianLinkWrapperView : NSView
-@property (nonatomic, weak) NSView* childView;
-@end
-
-@implementation ObsidianLinkWrapperView
-
-- (NSSize)intrinsicContentSize {
-    // Forward intrinsic content size from child
-    if (_childView) {
-        return [_childView intrinsicContentSize];
-    }
-    return NSMakeSize(NSViewNoIntrinsicMetric, NSViewNoIntrinsicMetric);
-}
-
-- (void)addSubview:(NSView *)view {
-    [super addSubview:view];
-    _childView = view;
-    [self invalidateIntrinsicContentSize];
-}
-
-- (void)willRemoveSubview:(NSView *)subview {
-    [super willRemoveSubview:subview];
-    if (_childView == subview) {
-        _childView = nil;
-    }
-    [self invalidateIntrinsicContentSize];
-}
-
-@end
-
 // Internal link wrapper class - wraps any view and makes it clickable
 @interface ObsidianLinkWrapper : NSObject {
-    ObsidianLinkWrapperView* _wrapperView;      // Container view that wraps the child
-    NSView* _childView;        // The child view being wrapped
-    NSString* _href;           // Route path for navigation
+    NSView* _wrapperView;          // Container view that wraps the child
+    NSView* _childView;            // The child view being wrapped
+    NSString* _href;               // Route path for navigation
     ObsidianLinkClickCallback _callback;
     void* _userData;
     NSClickGestureRecognizer* _clickRecognizer;
 }
 
-@property (nonatomic, strong) ObsidianLinkWrapperView* wrapperView;
+@property (nonatomic, strong) NSView* wrapperView;
 @property (nonatomic, strong) NSView* childView;
 @property (nonatomic, assign) ObsidianLinkClickCallback callback;
 @property (nonatomic, assign) void* userData;
@@ -83,27 +52,23 @@
         _childView = (__bridge NSView*)params.childView;
         
         // Create a wrapper view that will contain the child
-        // The wrapper will handle clicks and forward them
-        _wrapperView = [[NSView alloc] init];
+        // FRAME-BASED: Use the child's frame as the wrapper's frame
+        NSRect childFrame = _childView.frame;
+        if (childFrame.size.width == 0) childFrame.size.width = 80;
+        if (childFrame.size.height == 0) childFrame.size.height = 24;
+        
+        _wrapperView = [[NSView alloc] initWithFrame:childFrame];
         _wrapperView.wantsLayer = YES;
         
-        // CRITICAL: Disable autoresizing mask for Auto Layout
-        _wrapperView.translatesAutoresizingMaskIntoConstraints = NO;
-        
-        // Set the wrapper's frame to match the child's frame
-        _wrapperView.frame = _childView.frame;
+        // FRAME-BASED: Leave translatesAutoresizingMaskIntoConstraints = YES (default)
+        // The wrapper will be positioned by its parent container via setFrame
         
         // Add child view to wrapper
         [_wrapperView addSubview:_childView];
         
-        // Set up auto-layout constraints to make child fill wrapper
-        _childView.translatesAutoresizingMaskIntoConstraints = NO;
-        [NSLayoutConstraint activateConstraints:@[
-            [_childView.topAnchor constraintEqualToAnchor:_wrapperView.topAnchor],
-            [_childView.leadingAnchor constraintEqualToAnchor:_wrapperView.leadingAnchor],
-            [_childView.trailingAnchor constraintEqualToAnchor:_wrapperView.trailingAnchor],
-            [_childView.bottomAnchor constraintEqualToAnchor:_wrapperView.bottomAnchor]
-        ]];
+        // FRAME-BASED: Set child frame to fill wrapper
+        _childView.frame = _wrapperView.bounds;
+        _childView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
         
         // Create click gesture recognizer
         _clickRecognizer = [[NSClickGestureRecognizer alloc] initWithTarget:self action:@selector(handleClick:)];
@@ -159,7 +124,6 @@
     if (_clickRecognizer) {
         _clickRecognizer.enabled = enabled;
     }
-    // Also disable/enable child view if it supports it
     if (_childView && [_childView respondsToSelector:@selector(setEnabled:)]) {
         [(id)_childView setEnabled:enabled];
     }
@@ -177,7 +141,6 @@
         return;
     }
     
-    // Get the content view from the window handle
     void* contentViewPtr = obsidian_macos_window_get_content_view(windowHandle);
     if (contentViewPtr) {
         NSView* contentView = (__bridge NSView*)contentViewPtr;
@@ -188,13 +151,11 @@
 - (void)removeFromParent {
     if (!_wrapperView) return;
     
-    // Remove gesture recognizer
     if (_clickRecognizer) {
         [_wrapperView removeGestureRecognizer:_clickRecognizer];
         _clickRecognizer = nil;
     }
     
-    // Remove from superview
     if ([_wrapperView superview]) {
         [_wrapperView removeFromSuperview];
     }
@@ -235,7 +196,6 @@ ObsidianLinkHandle obsidian_macos_create_link(ObsidianLinkParams params) {
     @autoreleasepool {
         ObsidianLinkWrapper* wrapper = [[ObsidianLinkWrapper alloc] initWithParams:params];
         if (wrapper && wrapper.wrapperView) {
-            // Retain the wrapper and return as opaque handle
             return (__bridge_retained void*)wrapper;
         }
         return nullptr;
@@ -332,7 +292,6 @@ void obsidian_macos_destroy_link(ObsidianLinkHandle handle) {
     @autoreleasepool {
         ObsidianLinkWrapper* wrapper = (__bridge_transfer ObsidianLinkWrapper*)handle;
         [wrapper removeFromParent];
-        // wrapper will be deallocated when autoreleasepool drains
     }
 }
 
@@ -340,7 +299,6 @@ void obsidian_macos_release_link_handle(ObsidianLinkHandle handle) {
     if (!handle) return;
     
     @autoreleasepool {
-        // Release our reference without removing from parent
         (void)(__bridge_transfer ObsidianLinkWrapper*)handle;
     }
 }

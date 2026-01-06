@@ -1,7 +1,9 @@
 /**
  * macOS VStack FFI - Objective-C++ Implementation
  * 
- * Bridges C++ calls to Objective-C NSView APIs for container view management
+ * Frame-based layout container for vertical stacking
+ * Following React Native's pattern: compute layout and set frames directly
+ * NO AUTO LAYOUT - Pure frame-based positioning
  */
 
 #import "macos_vstack.h"
@@ -10,8 +12,8 @@
 #import <objc/runtime.h>
 #import <memory>
 
-// Custom NSView subclass that calculates intrinsic content size based on children + padding
-// This is the proper Auto Layout approach for sizing a container to its content
+// Custom NSView subclass that performs frame-based vertical layout
+// This is the React Native approach: calculate positions and set frames directly
 @interface ObsidianVStackContainerView : NSView {
     CGFloat _paddingTop;
     CGFloat _paddingBottom;
@@ -36,6 +38,10 @@
         _paddingLeading = 0.0;
         _paddingTrailing = 0.0;
         _spacing = 0.0;
+        
+        // Use autoresizing mask for flexible sizing within parent
+        // This is the frame-based way to fill parent or resize with window
+        self.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
     }
     return self;
 }
@@ -45,87 +51,99 @@
     _paddingBottom = bottom;
     _paddingLeading = leading;
     _paddingTrailing = trailing;
-    [self invalidateIntrinsicContentSize];
+    [self setNeedsLayout:YES];
 }
 
 - (void)setSpacing:(CGFloat)spacing {
     _spacing = spacing;
-    [self invalidateIntrinsicContentSize];
+    [self setNeedsLayout:YES];
 }
 
-- (NSSize)intrinsicContentSize {
-    // Calculate size based on children + padding + spacing
-    // This is the proper Auto Layout way to size a container to its content
-    // For VStack: width = max(child width) + padding, height = sum(child heights) + spacing + padding
-    // 
-    // CRITICAL: This method should rely on children's intrinsic content sizes,
-    // not their frames, to avoid layout loops. Children (like buttons) should
-    // have intrinsic content size based on their content (e.g., button title).
+// CORE LAYOUT METHOD - Frame-based vertical stacking
+// This is how React Native does it: calculate positions, set frames
+- (void)layout {
+    [super layout];
     
     if (self.subviews.count == 0) {
-        // No children - return size with just padding
-        return NSMakeSize(_paddingLeading + _paddingTrailing, _paddingTop + _paddingBottom);
+        return;
     }
     
-    // Calculate width: maximum child width + horizontal padding
-    CGFloat maxChildWidth = 0.0;
+    NSRect bounds = self.bounds;
+    CGFloat availableWidth = bounds.size.width - _paddingLeading - _paddingTrailing;
     
-    // Calculate height: sum of all child heights + spacing between them + vertical padding
-    CGFloat totalHeight = _paddingTop + _paddingBottom;
-    BOOL isFirstChild = YES;
-    BOOL hasValidChildren = NO;
+    // macOS coordinate system: origin is bottom-left, Y increases upward
+    // For VStack, we want to lay out from top to bottom
+    // So we start at (height - paddingTop) and go down
     
+    // Start Y position from the top (in macOS coordinates, top = bounds.height - paddingTop)
+    CGFloat currentY = bounds.size.height - _paddingTop;
+    
+    // Second pass: position each child
     for (NSView* subview in self.subviews) {
-        NSSize subviewSize = [subview intrinsicContentSize];
+        if (subview.isHidden) continue;
         
-        // For width: take the maximum child width
-        // Use intrinsic content size - children (like buttons) should have this
-        CGFloat childWidth = 0.0;
-        if (subviewSize.width != NSViewNoIntrinsicMetric) {
-            childWidth = subviewSize.width;
-        }
+        // Get the child's preferred size
+        NSSize childSize = [self preferredSizeForChild:subview availableWidth:availableWidth];
         
-        // For height: sum all child heights + spacing between them
-        CGFloat childHeight = 0.0;
-        if (subviewSize.height != NSViewNoIntrinsicMetric) {
-            childHeight = subviewSize.height;
-        }
+        // Position the child
+        // X: leading padding
+        // Y: currentY - childHeight (because macOS Y is bottom-up)
+        // Width: fill available width (or use child's preferred width)
+        // Height: child's preferred height
         
-        // Only count children with valid intrinsic sizes
-        if (childWidth > 0 && childHeight > 0) {
-            maxChildWidth = MAX(maxChildWidth, childWidth);
-            
-            if (!isFirstChild) {
-                // Add spacing between children
-                totalHeight += _spacing;
-            }
-            totalHeight += childHeight;
-            isFirstChild = NO;
-            hasValidChildren = YES;
-        }
+        CGFloat childX = _paddingLeading;
+        CGFloat childY = currentY - childSize.height;
+        CGFloat childWidth = availableWidth;
+        CGFloat childHeight = childSize.height;
+        
+        // Set the frame directly - NO CONSTRAINTS
+        subview.frame = NSMakeRect(childX, childY, childWidth, childHeight);
+        
+        // Move Y down for next child (in macOS coords, this means subtracting)
+        currentY = childY - _spacing;
+    }
+}
+
+// Helper to get preferred size for a child view
+- (NSSize)preferredSizeForChild:(NSView*)child availableWidth:(CGFloat)availableWidth {
+    // First try fittingSize - works for most AppKit views
+    NSSize fittingSize = child.fittingSize;
+    
+    // If fittingSize returns valid dimensions, use them
+    if (fittingSize.width > 0 && fittingSize.height > 0) {
+        return NSMakeSize(availableWidth, fittingSize.height);
     }
     
-    // If no valid child sizes found, return minimum size with padding
-    // This can happen if children don't have intrinsic content size yet
-    // Auto Layout will call this again after children are laid out
-    if (!hasValidChildren) {
-        return NSMakeSize(_paddingLeading + _paddingTrailing, _paddingTop + _paddingBottom);
+    // Fallback: check intrinsicContentSize (for views that support it)
+    NSSize intrinsicSize = child.intrinsicContentSize;
+    if (intrinsicSize.height > 0 && intrinsicSize.height != NSViewNoIntrinsicMetric) {
+        return NSMakeSize(availableWidth, intrinsicSize.height);
     }
     
-    // Add horizontal padding
-    CGFloat totalWidth = maxChildWidth + _paddingLeading + _paddingTrailing;
+    // Last resort: use current frame size or a default
+    NSSize currentSize = child.frame.size;
+    if (currentSize.height > 0) {
+        return NSMakeSize(availableWidth, currentSize.height);
+    }
     
-    return NSMakeSize(totalWidth, totalHeight);
+    // Absolute fallback: default height
+    return NSMakeSize(availableWidth, 24.0);
 }
 
 - (void)addSubview:(NSView*)view {
     [super addSubview:view];
-    [self invalidateIntrinsicContentSize];
+    [self setNeedsLayout:YES];
 }
 
 - (void)willRemoveSubview:(NSView*)subview {
     [super willRemoveSubview:subview];
-    [self invalidateIntrinsicContentSize];
+    [self setNeedsLayout:YES];
+}
+
+- (void)resizeSubviewsWithOldSize:(NSSize)oldSize {
+    [super resizeSubviewsWithOldSize:oldSize];
+    // Re-layout when container is resized
+    [self setNeedsLayout:YES];
 }
 
 @end
@@ -153,13 +171,13 @@
 - (instancetype)initWithParams:(ObsidianVStackParams)params {
     self = [super init];
     if (self) {
-        // Create custom container view with zero frame (will be constrained by layout)
-        // The custom view overrides intrinsicContentSize to size itself based on children + padding
-        NSRect frame = NSMakeRect(0, 0, 0, 0);
+        // Create container view with a reasonable default size
+        // The frame will be set by the parent when added to the view hierarchy
+        NSRect frame = NSMakeRect(0, 0, 300, 200);
         _containerView = [[ObsidianVStackContainerView alloc] initWithFrame:frame];
         
-        // Disable autoresizing mask - we'll use Auto Layout
-        [_containerView setTranslatesAutoresizingMaskIntoConstraints:NO];
+        // NO translatesAutoresizingMaskIntoConstraints = NO
+        // We use frame-based layout with autoresizing mask for flexibility
     }
     return self;
 }
@@ -186,17 +204,13 @@
         return;
     }
     
-    // CRITICAL: Disable autoresizing mask BEFORE adding to superview
-    // This prevents frame-based positioning from interfering with Auto Layout
-    [childView setTranslatesAutoresizingMaskIntoConstraints:NO];
+    // FRAME-BASED: Do NOT disable translatesAutoresizingMaskIntoConstraints
+    // The child keeps its autoresizing behavior, and we set its frame in layout
     
     // Add child view as subview
-    // The custom container view will automatically invalidate its intrinsic content size
     [_containerView addSubview:childView];
     
-    // Mark container as needing layout update
-    // Constraints will be set up by updateLayout() from the C++ side
-    // Do NOT call layoutSubtreeIfNeeded here - it causes crashes when constraints haven't been set up yet
+    // Trigger layout to position the new child
     [_containerView setNeedsLayout:YES];
 }
 
@@ -236,7 +250,15 @@
     void* contentViewPtr = obsidian_macos_window_get_content_view(windowHandle);
     if (contentViewPtr) {
         NSView* contentView = (__bridge NSView*)contentViewPtr;
+        
+        // Set frame to fill content view
+        _containerView.frame = contentView.bounds;
+        
+        // Add to content view
         [contentView addSubview:_containerView];
+        
+        // Trigger layout
+        [_containerView setNeedsLayout:YES];
     }
 }
 
@@ -378,8 +400,7 @@ void obsidian_macos_vstack_request_layout_update(ObsidianVStackHandle handle) {
         if (wrapper && wrapper.containerView) {
             NSView* containerView = wrapper.containerView;
             
-            // CRITICAL: Force immediate layout update to apply Auto Layout constraints
-            // This ensures views are positioned correctly, not at default frame positions
+            // Mark for layout and perform it immediately
             [containerView setNeedsLayout:YES];
             [containerView layoutSubtreeIfNeeded];
         }

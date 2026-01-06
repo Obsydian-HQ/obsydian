@@ -1,7 +1,8 @@
 /**
  * macOS Button FFI - Objective-C++ Implementation
  * 
- * Bridges C++ calls to Objective-C NSButton APIs
+ * Frame-based button component
+ * NO AUTO LAYOUT - Pure frame-based positioning
  */
 
 #import "macos_button.h"
@@ -43,29 +44,35 @@
         // Create NSButton
         _button = [[NSButton alloc] init];
         
-        // CRITICAL: Disable autoresizing mask for Auto Layout
-        _button.translatesAutoresizingMaskIntoConstraints = NO;
+        // FRAME-BASED: Leave translatesAutoresizingMaskIntoConstraints = YES (default)
+        // The button will be positioned by its parent container via setFrame
         
-        // Set button style to standard push button
+        // Set button style
         [_button setButtonType:NSButtonTypeMomentaryPushIn];
         [_button setBezelStyle:NSBezelStyleRounded];
         
-        // Set frame (position and size) - used as initial/fallback size
+        // Set initial frame
         NSRect frame = NSMakeRect(params.x, params.y, params.width, params.height);
         [_button setFrame:frame];
+        
+        // Size to fit content if no explicit size given
+        if (params.width == 0 || params.height == 0) {
+            [_button sizeToFit];
+        }
         
         // Set title if provided
         if (params.title) {
             NSString* titleStr = [NSString stringWithUTF8String:params.title];
             [_button setTitle:titleStr];
+            // Re-size to fit the new title
+            [_button sizeToFit];
         }
         
         // Set target-action for click events
         [_button setTarget:self];
         [_button setAction:@selector(handleClick:)];
         
-        // Retain the wrapper using associated object to ensure it stays alive
-        // This prevents the target from being deallocated while the button exists
+        // Retain the wrapper using associated object
         objc_setAssociatedObject(_button, @selector(handleClick:), self, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         
         _callback = nullptr;
@@ -78,6 +85,7 @@
     if (_button && title) {
         NSString* titleStr = [NSString stringWithUTF8String:title];
         [_button setTitle:titleStr];
+        [_button sizeToFit];
     }
 }
 
@@ -125,7 +133,6 @@
         return;
     }
     
-    // Get the content view from the window handle
     void* contentViewPtr = obsidian_macos_window_get_content_view(windowHandle);
     if (contentViewPtr) {
         NSView* contentView = (__bridge NSView*)contentViewPtr;
@@ -136,16 +143,10 @@
 - (void)removeFromParent {
     if (!_button) return;
     
-    // Clear target and action before removing to prevent crashes
     [_button setTarget:nil];
     [_button setAction:nil];
-    
-    // Remove associated object BEFORE removing from superview
-    // This breaks the retain cycle before the view hierarchy is modified
     objc_setAssociatedObject(_button, @selector(handleClick:), nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     
-    // Remove from superview (this releases the button from the parent's ownership)
-    // The button wrapper still retains the button via the strong property
     if ([_button superview]) {
         [_button removeFromSuperview];
     }
@@ -178,7 +179,6 @@ ObsidianButtonHandle obsidian_macos_create_button(ObsidianButtonParams params) {
     @autoreleasepool {
         ObsidianButtonWrapper* wrapper = [[ObsidianButtonWrapper alloc] initWithParams:params];
         if (wrapper && wrapper.button) {
-            // Retain the wrapper and return as opaque handle
             return (__bridge_retained void*)wrapper;
         }
         return nullptr;
@@ -274,21 +274,10 @@ void obsidian_macos_destroy_button(ObsidianButtonHandle handle) {
     
     @autoreleasepool {
         ObsidianButtonWrapper* wrapper = (__bridge_transfer ObsidianButtonWrapper*)handle;
-        
-        // Remove from parent first (clears target/action, removes associated object, removes from view hierarchy)
-        // This must be done before clearing callbacks to ensure proper cleanup order
         [wrapper removeFromParent];
-        
-        // Clear callback to prevent use after free
         wrapper.callback = nullptr;
         wrapper.userData = nullptr;
-        
-        // Clear the button reference to break the strong reference
-        // This ensures the button can be deallocated if it's no longer needed
-        // We do this AFTER removeFromParent to ensure the button is properly removed from hierarchy first
         wrapper.button = nil;
-        
-        // ARC will handle cleanup of the wrapper when it goes out of scope
     }
 }
 
@@ -314,4 +303,3 @@ void* obsidian_macos_button_get_view(ObsidianButtonHandle handle) {
 }
 
 } // extern "C"
-

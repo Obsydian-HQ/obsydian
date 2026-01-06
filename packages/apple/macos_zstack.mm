@@ -1,8 +1,9 @@
 /**
  * macOS ZStack FFI - Objective-C++ Implementation
  * 
- * Bridges C++ calls to Objective-C NSView APIs for container view management
- * ZStack overlays children and fills the parent view (unlike VStack/HStack which size to content)
+ * Frame-based overlay layout container
+ * ZStack overlays children and fills the parent view
+ * NO AUTO LAYOUT - Pure frame-based positioning
  */
 
 #import "macos_zstack.h"
@@ -11,13 +12,59 @@
 #import <objc/runtime.h>
 #import <memory>
 
-// Internal ZStack wrapper class
-// ZStack container view fills the parent (unlike VStack/HStack which size to content)
-@interface ObsidianZStackWrapper : NSObject {
-    NSView* _containerView;
+// Custom NSView subclass for ZStack that fills children to bounds
+@interface ObsidianZStackContainerView : NSView
+@end
+
+@implementation ObsidianZStackContainerView
+
+- (instancetype)initWithFrame:(NSRect)frameRect {
+    self = [super initWithFrame:frameRect];
+    if (self) {
+        // Use autoresizing mask to fill parent
+        self.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+    }
+    return self;
 }
 
-@property (nonatomic, strong) NSView* containerView;
+// CORE LAYOUT METHOD - All children fill the container bounds
+- (void)layout {
+    [super layout];
+    
+    NSRect bounds = self.bounds;
+    
+    // ZStack: all children fill the entire container
+    for (NSView* subview in self.subviews) {
+        if (subview.isHidden) continue;
+        
+        // Set frame to fill bounds - NO CONSTRAINTS
+        subview.frame = bounds;
+    }
+}
+
+- (void)addSubview:(NSView*)view {
+    [super addSubview:view];
+    [self setNeedsLayout:YES];
+}
+
+- (void)willRemoveSubview:(NSView*)subview {
+    [super willRemoveSubview:subview];
+    [self setNeedsLayout:YES];
+}
+
+- (void)resizeSubviewsWithOldSize:(NSSize)oldSize {
+    [super resizeSubviewsWithOldSize:oldSize];
+    [self setNeedsLayout:YES];
+}
+
+@end
+
+// Internal ZStack wrapper class
+@interface ObsidianZStackWrapper : NSObject {
+    ObsidianZStackContainerView* _containerView;
+}
+
+@property (nonatomic, strong) ObsidianZStackContainerView* containerView;
 
 - (instancetype)initWithParams:(ObsidianZStackParams)params;
 - (void*)getView;
@@ -35,16 +82,8 @@
 - (instancetype)initWithParams:(ObsidianZStackParams)params {
     self = [super init];
     if (self) {
-        // Create container view with zero frame (will be constrained to fill parent)
-        // ZStack fills the parent, unlike VStack/HStack which size to content
-        NSRect frame = NSMakeRect(0, 0, 0, 0);
-        _containerView = [[NSView alloc] initWithFrame:frame];
-        
-        // Disable autoresizing mask - we'll use Auto Layout
-        [_containerView setTranslatesAutoresizingMaskIntoConstraints:NO];
-        
-        // Note: No background color set - container should be transparent
-        // Users can add their own background if needed
+        NSRect frame = NSMakeRect(0, 0, 300, 200);
+        _containerView = [[ObsidianZStackContainerView alloc] initWithFrame:frame];
     }
     return self;
 }
@@ -63,17 +102,9 @@
         return;
     }
     
-    // CRITICAL: Disable autoresizing mask BEFORE adding to superview
-    // This prevents frame-based positioning from interfering with Auto Layout
-    [childView setTranslatesAutoresizingMaskIntoConstraints:NO];
-    
-    // Add child view as subview
-    // Z-order: last added subview is on top (this is NSView's default behavior)
+    // FRAME-BASED: Do NOT disable translatesAutoresizingMaskIntoConstraints
     [_containerView addSubview:childView];
-    
-    // Force layout update to ensure constraints are applied immediately
     [_containerView setNeedsLayout:YES];
-    [_containerView layoutSubtreeIfNeeded];
 }
 
 - (void)removeChildView:(void*)childViewHandle {
@@ -86,7 +117,6 @@
         return;
     }
     
-    // Remove from superview
     [childView removeFromSuperview];
 }
 
@@ -108,39 +138,25 @@
         return;
     }
     
-    // Get the content view from the window handle
     void* contentViewPtr = obsidian_macos_window_get_content_view(windowHandle);
     if (contentViewPtr) {
         NSView* contentView = (__bridge NSView*)contentViewPtr;
-        [contentView addSubview:_containerView];
         
-        // ZStack container should fill the parent view
-        // Pin to all edges of content view
-        NSDictionary* views = @{@"zstack": _containerView};
-        NSArray* constraints = @[
-            [NSLayoutConstraint constraintsWithVisualFormat:@"H:|[zstack]|"
-                                                     options:0
-                                                     metrics:nil
-                                                       views:views],
-            [NSLayoutConstraint constraintsWithVisualFormat:@"V:|[zstack]|"
-                                                     options:0
-                                                     metrics:nil
-                                                       views:views]
-        ];
-        [NSLayoutConstraint activateConstraints:[constraints valueForKeyPath:@"@unionOfArrays.self"]];
+        // Fill the content view
+        _containerView.frame = contentView.bounds;
+        [contentView addSubview:_containerView];
+        [_containerView setNeedsLayout:YES];
     }
 }
 
 - (void)removeFromParent {
     if (!_containerView) return;
     
-    // Remove all child views first
     NSArray<NSView*>* subviews = [_containerView.subviews copy];
     for (NSView* subview in subviews) {
         [subview removeFromSuperview];
     }
     
-    // Remove from superview
     if ([_containerView superview]) {
         [_containerView removeFromSuperview];
     }
@@ -155,7 +171,6 @@ ObsidianZStackHandle obsidian_macos_create_zstack(ObsidianZStackParams params) {
     @autoreleasepool {
         ObsidianZStackWrapper* wrapper = [[ObsidianZStackWrapper alloc] initWithParams:params];
         if (wrapper && wrapper.containerView) {
-            // Retain the wrapper and return as opaque handle
             return (__bridge_retained void*)wrapper;
         }
         return nullptr;
@@ -233,9 +248,7 @@ void obsidian_macos_destroy_zstack(ObsidianZStackHandle handle) {
     
     @autoreleasepool {
         ObsidianZStackWrapper* wrapper = (__bridge_transfer ObsidianZStackWrapper*)handle;
-        // Remove from parent before destroying
         [wrapper removeFromParent];
-        // wrapper will be released when exiting @autoreleasepool
     }
 }
 

@@ -1,8 +1,8 @@
 /**
  * Obsidian Public API - ZStack Implementation
  * 
- * This file implements the public ZStack API by wrapping the internal
- * platform-specific implementations and layout engine.
+ * Frame-based overlay container. The native Objective-C++ implementation
+ * handles all layout in layoutSubviews - NO AUTO LAYOUT CONSTRAINTS.
  */
 
 #include "obsidian/zstack.h"
@@ -13,18 +13,11 @@
 
 // Include internal headers (not exposed to users)
 #ifdef __APPLE__
-// Access through dependency: //packages/apple:apple_ffi exposes macos_ffi.h
 #include "macos_ffi.h"
-#include "macos_button.h"  // For getting view handles
-#include "macos_window.h"  // For window content view
-#include "macos_zstack.h"  // For ZStack FFI
-#include "macos_layout_ffi.h"  // For layout constraints
-#include "macos_layout.h"  // For ObsidianLayoutAttribute
+#include "macos_button.h"
+#include "macos_window.h"
+#include "macos_zstack.h"
 #endif
-
-// Include layout engine
-#include "core/layout/layout_engine.h"
-#include "core/layout/constraint.h"
 
 #include <vector>
 #include <algorithm>
@@ -32,59 +25,15 @@
 
 namespace obsidian {
 
-#ifdef __APPLE__
-
-// Helper function to convert ConstraintAttribute to ObsidianLayoutAttribute
-static ObsidianLayoutAttribute convertAttribute(layout::ConstraintAttribute attr) {
-    switch (attr) {
-        case layout::ConstraintAttribute::Leading:
-            return ObsidianLayoutAttributeLeading;
-        case layout::ConstraintAttribute::Trailing:
-            return ObsidianLayoutAttributeTrailing;
-        case layout::ConstraintAttribute::Top:
-            return ObsidianLayoutAttributeTop;
-        case layout::ConstraintAttribute::Bottom:
-            return ObsidianLayoutAttributeBottom;
-        case layout::ConstraintAttribute::Width:
-            return ObsidianLayoutAttributeWidth;
-        case layout::ConstraintAttribute::Height:
-            return ObsidianLayoutAttributeHeight;
-        case layout::ConstraintAttribute::CenterX:
-            return ObsidianLayoutAttributeCenterX;
-        case layout::ConstraintAttribute::CenterY:
-            return ObsidianLayoutAttributeCenterY;
-        default:
-            return ObsidianLayoutAttributeLeading;
-    }
-}
-
-// Helper function to convert ConstraintRelation to ObsidianLayoutRelation
-static ObsidianLayoutRelation convertRelation(layout::ConstraintRelation rel) {
-    switch (rel) {
-        case layout::ConstraintRelation::Equal:
-            return ObsidianLayoutRelationEqual;
-        case layout::ConstraintRelation::GreaterThanOrEqual:
-            return ObsidianLayoutRelationGreaterThanOrEqual;
-        case layout::ConstraintRelation::LessThanOrEqual:
-            return ObsidianLayoutRelationLessThanOrEqual;
-        default:
-            return ObsidianLayoutRelationEqual;
-    }
-}
-
-#endif
-
 class ZStack::Impl {
 public:
 #ifdef __APPLE__
     ObsidianZStackHandle zstackHandle;
-    std::vector<obsidian::ffi::macos::LayoutConstraint> constraints;
     std::vector<void*> childViewHandles;
     void* parentView;
 #endif
     bool valid;
     layout::Alignment alignment;
-    layout::LayoutEngine layoutEngine;
     
     Impl()
 #ifdef __APPLE__
@@ -95,25 +44,19 @@ public:
         , alignment(layout::Alignment::Center)
     {}
     
-    ~Impl() {
-        if (valid) {
-            clearConstraints();
-        }
-    }
-    
-    void clearConstraints() {
-#ifdef __APPLE__
-        for (auto& constraint : constraints) {
-            if (constraint.isValid()) {
-                constraint.deactivate();
-            }
-        }
-        constraints.clear();
-#endif
-    }
+    ~Impl() = default;
 };
 
-ZStack::ZStack() : pImpl(std::make_unique<Impl>()) {}
+ZStack::ZStack() : pImpl(std::make_unique<Impl>()) {
+#ifdef __APPLE__
+    // Eagerly initialize native view
+    ObsidianZStackParams params;
+    pImpl->zstackHandle = obsidian_macos_create_zstack(params);
+    if (pImpl->zstackHandle) {
+        pImpl->valid = true;
+    }
+#endif
+}
 
 ZStack::~ZStack() {
     if (pImpl && pImpl->valid) {
@@ -131,9 +74,8 @@ ZStack::~ZStack() {
 void ZStack::setAlignment(layout::Alignment alignment) {
     if (pImpl) {
         pImpl->alignment = alignment;
-        if (pImpl->valid) {
-            updateLayout();
-        }
+        // Note: ZStack alignment only affects positioning within parent
+        // Children always fill the ZStack bounds in frame-based layout
     }
 }
 
@@ -147,7 +89,6 @@ void ZStack::addChild(Button& button) {
     }
     
 #ifdef __APPLE__
-    // Initialize ZStack if not already created
     if (!pImpl->valid) {
         ObsidianZStackParams params;
         pImpl->zstackHandle = obsidian_macos_create_zstack(params);
@@ -157,24 +98,16 @@ void ZStack::addChild(Button& button) {
         pImpl->valid = true;
     }
     
-    // Get button's native view handle
     void* buttonView = button.getNativeViewHandle();
     if (!buttonView) {
         return;
     }
     
-    // Remove button from current parent if it has one (button can only have one parent)
     button.removeFromParent();
     
-    // Add child view to container
+    // Add child - native side handles layout in layoutSubviews
     obsidian_macos_zstack_add_child_view(pImpl->zstackHandle, buttonView);
     pImpl->childViewHandles.push_back(buttonView);
-    
-    // Update layout ONLY if container is already in window hierarchy
-    // Otherwise, layout will be updated when addToWindow is called
-    if (pImpl->parentView) {
-        updateLayout();
-    }
 #endif
 }
 
@@ -184,7 +117,6 @@ void ZStack::addChild(Link& link) {
     }
     
 #ifdef __APPLE__
-    // Initialize ZStack if not already created
     if (!pImpl->valid) {
         ObsidianZStackParams params;
         pImpl->zstackHandle = obsidian_macos_create_zstack(params);
@@ -194,23 +126,15 @@ void ZStack::addChild(Link& link) {
         pImpl->valid = true;
     }
     
-    // Get link's native view handle (which is the button's view)
     void* linkView = link.getNativeViewHandle();
     if (!linkView) {
         return;
     }
     
-    // Remove link from current parent if it has one
     link.removeFromParent();
     
-    // Add child view to container
     obsidian_macos_zstack_add_child_view(pImpl->zstackHandle, linkView);
     pImpl->childViewHandles.push_back(linkView);
-    
-    // Update layout ONLY if container is already in window hierarchy
-    if (pImpl->parentView) {
-        updateLayout();
-    }
 #endif
 }
 
@@ -225,14 +149,10 @@ void ZStack::removeChild(Button& button) {
         return;
     }
     
-    // Find and remove from child handles
     auto it = std::find(pImpl->childViewHandles.begin(), pImpl->childViewHandles.end(), buttonView);
     if (it != pImpl->childViewHandles.end()) {
         obsidian_macos_zstack_remove_child_view(pImpl->zstackHandle, buttonView);
         pImpl->childViewHandles.erase(it);
-        
-        // Update layout
-        updateLayout();
     }
 #endif
 }
@@ -248,14 +168,10 @@ void ZStack::removeChild(Link& link) {
         return;
     }
     
-    // Find and remove from child handles
     auto it = std::find(pImpl->childViewHandles.begin(), pImpl->childViewHandles.end(), linkView);
     if (it != pImpl->childViewHandles.end()) {
         obsidian_macos_zstack_remove_child_view(pImpl->zstackHandle, linkView);
         pImpl->childViewHandles.erase(it);
-        
-        // Update layout
-        updateLayout();
     }
 #endif
 }
@@ -266,14 +182,10 @@ void ZStack::clearChildren() {
     }
     
 #ifdef __APPLE__
-    // Remove all children
     for (void* childView : pImpl->childViewHandles) {
         obsidian_macos_zstack_remove_child_view(pImpl->zstackHandle, childView);
     }
     pImpl->childViewHandles.clear();
-    
-    // Clear constraints
-    pImpl->clearConstraints();
 #endif
 }
 
@@ -283,7 +195,6 @@ void ZStack::addToWindow(Window& window) {
     }
     
 #ifdef __APPLE__
-    // Initialize ZStack if not already created
     if (!pImpl->valid) {
         ObsidianZStackParams params;
         pImpl->zstackHandle = obsidian_macos_create_zstack(params);
@@ -293,25 +204,18 @@ void ZStack::addToWindow(Window& window) {
         pImpl->valid = true;
     }
     
-    // Get window's content view
     void* windowHandle = window.getNativeHandle();
     void* contentView = obsidian_macos_window_get_content_view(windowHandle);
     if (!contentView) {
         return;
     }
     
-    // Add ZStack to window (container will fill the content view)
+    // Add ZStack to window - native side fills content view
     obsidian_macos_zstack_add_to_window(pImpl->zstackHandle, windowHandle);
     pImpl->parentView = contentView;
     
-    // Update layout for children
-    updateLayout();
-    
-    // Force immediate layout update
+    // Force layout update
     obsidian_macos_zstack_request_layout_update(pImpl->zstackHandle);
-    
-    // CRITICAL: Update window constraints to prevent shrinking in macOS 15+ (Sequoia)
-    obsidian_macos_window_update_constraints(windowHandle);
 #endif
 }
 
@@ -321,10 +225,6 @@ void ZStack::removeFromParent() {
     }
     
 #ifdef __APPLE__
-    // Clear child constraints first
-    pImpl->clearConstraints();
-    
-    // Remove from parent
     obsidian_macos_zstack_remove_from_parent(pImpl->zstackHandle);
     pImpl->parentView = nullptr;
 #endif
@@ -336,52 +236,7 @@ void ZStack::updateLayout() {
     }
     
 #ifdef __APPLE__
-    if (pImpl->childViewHandles.empty()) {
-        return;
-    }
-    
-    void* containerView = obsidian_macos_zstack_get_view(pImpl->zstackHandle);
-    if (!containerView) {
-        return;
-    }
-    
-    // Clear existing constraints
-    pImpl->clearConstraints();
-    pImpl->constraints.clear();
-    
-    // Generate constraints using layout engine
-    std::vector<layout::LayoutEngine::ConstraintSpec> constraintSpecs = 
-        pImpl->layoutEngine.generateZStackConstraints(
-            containerView,
-            pImpl->childViewHandles,
-            pImpl->alignment
-        );
-    
-    // Create and activate constraints
-    for (const auto& spec : constraintSpecs) {
-        if (!spec.shouldActivate) {
-            continue;
-        }
-        
-        ObsidianLayoutConstraintParams params;
-        params.firstView = spec.params.firstView;
-        params.firstAttribute = convertAttribute(spec.params.firstAttribute);
-        params.relation = convertRelation(spec.params.relation);
-        params.secondView = spec.params.secondView;
-        params.secondAttribute = spec.params.secondView ? 
-            convertAttribute(spec.params.secondAttribute) : ObsidianLayoutAttributeLeading;
-        params.multiplier = spec.params.multiplier;
-        params.constant = spec.params.constant;
-        params.priority = spec.params.priority;
-        
-        obsidian::ffi::macos::LayoutConstraint constraint;
-        if (constraint.create(params)) {
-            constraint.activate();
-            pImpl->constraints.push_back(std::move(constraint));
-        }
-    }
-    
-    // Force immediate layout update after activating child constraints
+    // Just trigger native layout update - all positioning done in native layoutSubviews
     obsidian_macos_zstack_request_layout_update(pImpl->zstackHandle);
 #endif
 }
