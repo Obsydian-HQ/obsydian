@@ -126,7 +126,7 @@ done
 
 # Link into framework binary (in Versions/A/)
 if [ ${#OBJECT_FILES[@]} -gt 0 ]; then
-    clang++ "${OBJECT_FILES[@]}" \
+    if ! clang++ "${OBJECT_FILES[@]}" \
         -o "$FRAMEWORK_DIR/Versions/A/${FRAMEWORK_NAME}" \
         -arch arm64 \
         -isysroot $(xcrun --show-sdk-path --sdk macosx) \
@@ -136,9 +136,11 @@ if [ ${#OBJECT_FILES[@]} -gt 0 ]; then
         -install_name "@rpath/${FRAMEWORK_NAME}.framework/${FRAMEWORK_NAME}" \
         -compatibility_version 1.0.0 \
         -current_version 1.0.0 \
-        -Wl,-rpath,@loader_path/Frameworks || {
-        echo "⚠️  Failed to link macOS arm64 framework"
-    }
+        -Wl,-rpath,@loader_path/Frameworks 2>&1; then
+        echo "❌ Failed to link macOS arm64 framework"
+        echo "   Check the linker errors above"
+        exit 1
+    fi
     
     # Copy headers to Versions/A/Headers
     for header in "${HEADERS[@]}"; do
