@@ -129,7 +129,6 @@ obsydian/
 │   └── linux/            # Linux bindings (planned)
 ├── examples/             # Example applications
 ├── tests/               # Test suites
-├── benchmarks/          # Performance benchmarks
 └── docs/               # Documentation
 ```
 

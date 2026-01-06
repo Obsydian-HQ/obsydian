@@ -1,7 +1,7 @@
 # Obsidian CI/CD Pipeline Makefile
 # Run `make ci` to execute the full pipeline
 
-.PHONY: help ci ci-fast ci-full build test test-gui quality api-validate benchmarks clean
+.PHONY: help ci ci-fast ci-full build test test-gui quality api-validate clean
 
 # Default target
 .DEFAULT_GOAL := help
@@ -27,11 +27,11 @@ help: ## Show this help message
 ci: ## Run full CI pipeline (default: fast, no GUI tests)
 	@./scripts/ci.sh
 
-ci-fast: ## Run fast CI pipeline (no GUI tests, no benchmarks)
+ci-fast: ## Run fast CI pipeline (no GUI tests)
 	@./scripts/ci.sh
 
-ci-full: ## Run complete CI pipeline (includes GUI tests and benchmarks)
-	@./scripts/ci.sh --gui-tests --benchmarks --memory-check
+ci-full: ## Run complete CI pipeline (includes GUI tests)
+	@./scripts/ci.sh --gui-tests --memory-check
 
 build: ## Build all targets
 	@./scripts/ci.sh --skip-tests --skip-quality
@@ -47,9 +47,6 @@ quality: ## Run code quality checks only
 
 api-validate: ## Validate API compatibility
 	@bazel build //include/...
-
-benchmarks: ## Run performance benchmarks
-	@./scripts/ci.sh --skip-build --skip-tests --skip-quality --benchmarks
 
 memory-check: ## Run memory leak detection
 	@./scripts/ci.sh --skip-build --memory-check

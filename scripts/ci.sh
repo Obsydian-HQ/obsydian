@@ -19,7 +19,6 @@ cd "$PROJECT_ROOT"
 
 # Parse arguments
 RUN_GUI_TESTS=false
-RUN_BENCHMARKS=false
 RUN_MEMORY_CHECK=false
 PLATFORM=""
 VERBOSE=false
@@ -36,7 +35,6 @@ Runs the complete CI/CD pipeline for Obsidian.
 OPTIONS:
     -h, --help              Show this help message
     -g, --gui-tests         Include GUI tests (requires display)
-    -b, --benchmarks        Run performance benchmarks
     -m, --memory-check       Run memory leak detection (AddressSanitizer/Valgrind)
     -p, --platform PLATFORM Build/test for specific platform (macos, ios, android, windows, linux)
     -v, --verbose           Verbose output
@@ -48,7 +46,6 @@ EXAMPLES:
     $0                      # Run all checks (default)
     $0 --gui-tests          # Include GUI tests
     $0 --platform macos     # Build and test macOS only
-    $0 --benchmarks         # Run performance benchmarks
 EOF
 }
 
@@ -60,10 +57,6 @@ while [[ $# -gt 0 ]]; do
             ;;
         -g|--gui-tests)
             RUN_GUI_TESTS=true
-            shift
-            ;;
-        -b|--benchmarks)
-            RUN_BENCHMARKS=true
             shift
             ;;
         -m|--memory-check)
@@ -362,58 +355,7 @@ run_api_validation() {
     log_success "API validation completed - all checks passed"
 }
 
-# Step 5: Performance Benchmarks (when available)
-run_benchmarks() {
-    if [[ "$RUN_BENCHMARKS" != "true" ]]; then
-        return 0
-    fi
-    
-    log_section "Performance Benchmarks"
-    
-    log_info "Running performance benchmarks..."
-    
-    # Check if benchmarks exist
-    if bazel query //benchmarks/... 2>/dev/null | grep -q .; then
-        local config=$(get_bazel_config)
-        
-        # Run benchmarks
-        log_info "Executing benchmark binaries..."
-        local benchmark_output_dir="$PROJECT_ROOT/benchmark_results"
-        mkdir -p "$benchmark_output_dir"
-        
-        # Run each benchmark and capture output (use optimized builds for accurate performance)
-        for bench_target in window_creation_bench ui_render_bench memory_usage_bench startup_time_bench; do
-            if bazel query "//benchmarks:$bench_target" 2>/dev/null | grep -q .; then
-                log_info "Running $bench_target (optimized build)..."
-                bazel run //benchmarks:$bench_target --compilation_mode=opt -- $config \
-                    --benchmark_format=json \
-                    --benchmark_out="$benchmark_output_dir/${bench_target}.json" 2>&1 || {
-                    log_warning "$bench_target failed (non-blocking)"
-                }
-            fi
-        done
-        
-        # Check for performance regressions
-        log_info "Checking for performance regressions..."
-        if [[ -f "$PROJECT_ROOT/scripts/benchmark_regression.sh" ]]; then
-            if bash "$PROJECT_ROOT/scripts/benchmark_regression.sh"; then
-                log_success "No performance regressions detected"
-            else
-                log_error "Performance regression detected!"
-                # Don't fail the pipeline for regressions in CI (can be configured)
-                log_warning "Continuing despite regression (non-blocking in CI)"
-            fi
-        else
-            log_warning "Regression detection script not found"
-        fi
-        
-        log_success "Benchmarks completed"
-    else
-        log_warning "No benchmarks found (create benchmarks/ directory)"
-    fi
-}
-
-# Step 6: Memory Leak Detection
+# Step 5: Memory Leak Detection
 run_memory_check() {
     if [[ "$RUN_MEMORY_CHECK" != "true" ]]; then
         return 0
@@ -522,7 +464,6 @@ main() {
     run_build
     run_tests
     run_api_validation
-    run_benchmarks
     run_memory_check
     run_platform_validation
     

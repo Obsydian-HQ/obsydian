@@ -27,13 +27,6 @@ bazel_dep(name = "rules_cc", version = "0.2.16")
 # Testing framework
 bazel_dep(name = "googletest", version = "1.17.0")
 
-# Performance benchmarking (via module extension - not in BCR)
-# Google Benchmark is fetched via http_archive in extensions.bzl
-
-# Google Benchmark extension (not available in BCR, using http_archive)
-google_benchmark = use_extension("//:extensions.bzl", "google_benchmark_extension")
-use_repo(google_benchmark, "com_github_google_benchmark")
-
 # Apple CC toolchain setup (required for objc_library targets)
 # This exposes the local_config_apple_cc repository needed for Apple platform builds
 apple_cc_configure = use_extension("@apple_support//crosstool:setup.bzl", "apple_cc_configure_extension")

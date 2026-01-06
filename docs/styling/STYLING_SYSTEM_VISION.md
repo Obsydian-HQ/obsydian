@@ -497,7 +497,6 @@ container.style()
 **Platform Tests:**
 - Native style rendering verification
 - Platform-specific style adaptations
-- Performance benchmarks
 - Memory leak detection
 
 ### Visual Regression Tests
