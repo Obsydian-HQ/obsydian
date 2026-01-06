@@ -113,6 +113,7 @@ for src in "${SOURCES[@]}"; do
         -I"$REPO_ROOT/core/ffi" \
         -I"$REPO_ROOT/core/layout" \
         -I"$REPO_ROOT/packages/apple" \
+        -I"$REPO_ROOT/platform/apple/Fabric" \
         -I"$REPO_ROOT" \
         $OBJC_FLAGS \
         -fPIC \
@@ -236,6 +237,7 @@ for src in "${SOURCES[@]}"; do
         -I"$REPO_ROOT/core/ffi" \
         -I"$REPO_ROOT/core/layout" \
         -I"$REPO_ROOT/packages/apple" \
+        -I"$REPO_ROOT/platform/apple/Fabric" \
         -I"$REPO_ROOT" \
         $OBJC_FLAGS \
         -fPIC \
@@ -312,6 +314,7 @@ for src in "${SOURCES[@]}"; do
         -I"$REPO_ROOT/core/ffi" \
         -I"$REPO_ROOT/core/layout" \
         -I"$REPO_ROOT/packages/apple" \
+        -I"$REPO_ROOT/platform/apple/Fabric" \
         -I"$REPO_ROOT" \
         $OBJC_FLAGS \
         -fPIC \
