@@ -1,576 +1,241 @@
-# SplitView API Documentation
+# SplitView API
 
 ## Overview
 
-The `SplitView` component provides a split view layout using `NSSplitView` with collapse/expand, resizing, and content customization capabilities. It enables you to create applications with a collapsible primary pane and a secondary pane.
+The SplitView component provides a split view layout using `NSSplitView` with collapse/expand, resizing, and content customization capabilities. Unlike Sidebar, SplitView is a general-purpose split view that doesn't use the native sidebar styling.
 
-## Key Features
+## Features
 
-- **Split View Layout**: Uses `NSSplitView` for split pane layout
-- **Collapsible Primary Pane**: Collapse/expand primary pane programmatically or via user interaction
-- **Resizable Divider**: Users can drag the divider to resize the primary pane
-- **Width Constraints**: Set minimum and maximum primary pane widths
-- **Content Flexibility**: Supports any Obsidian component (VStack, HStack, List, Button, ScrollView, etc.)
-- **Position Support**: Primary pane can be positioned on the leading (left) or trailing (right) side
+- **Split view layout**: Two-pane layout with resizable divider
+- **Collapse/expand**: Programmatic and user-controlled collapse of primary pane
+- **Width constraints**: Minimum and maximum width for primary pane
+- **Position control**: Primary pane can be on leading or trailing side
+- **Content customization**: Any Obsidian component can be used as pane content
 
-## Architecture
+## Class: SplitView
 
-The SplitView follows Obsidian's standard architecture pattern:
-
-```
-Public API (C++)          → include/obsidian/splitview.h
-                         → src/obsidian/splitview.cpp
-                            ↓
-C++ FFI Wrapper          → packages/apple/macos_ffi.cpp
-                            ↓
-C FFI Interface          → packages/apple/macos_splitview.h
-                            ↓
-Objective-C++ Bridge     → packages/apple/macos_splitview.mm
-                            ↓
-Native macOS APIs        → NSSplitView / NSSplitViewController
-```
-
-## Basic Usage
-
-### Creating a SplitView
+### Construction
 
 ```cpp
-#include <obsidian/obsidian.h>
-
-using namespace obsidian;
-
-// Initialize the application
-App app;
-app.initialize();
-
-// Create a window
-Window window;
-window.create(1000, 700, "My App");
-
-// Create SplitView with primary pane on the leading (left) side
-SplitView splitView;
-splitView.create(SplitPosition::Leading);
-
-// Add to window
-splitView.addToWindow(window);
-
-// Show window
-window.show();
-
-// Run application
-app.run(callbacks);
+SplitView();
 ```
 
-### Setting Primary and Secondary Pane Content
+Creates a new SplitView instance. Call `create()` to initialize it.
+
+### Creation
 
 ```cpp
-// Create primary pane content (VStack with buttons)
-VStack primaryPaneVStack;
-primaryPaneVStack.setSpacing(10.0);
-primaryPaneVStack.setPadding(Padding::all(15.0));
-
-Button navButton1;
-navButton1.create("Home", 0, 0, 200, 30);
-primaryPaneVStack.addChild(navButton1);
-
-primaryPaneVStack.updateLayout();
-splitView.setPrimaryPaneContent(primaryPaneVStack);
-
-// Create secondary pane content (VStack)
-VStack secondaryPaneVStack;
-secondaryPaneVStack.setSpacing(15.0);
-secondaryPaneVStack.setPadding(Padding::all(20.0));
-
-Button secondaryButton;
-secondaryButton.create("Action", 0, 0, 200, 35);
-secondaryPaneVStack.addChild(secondaryButton);
-
-secondaryPaneVStack.updateLayout();
-splitView.setSecondaryPaneContent(secondaryPaneVStack);
+bool create(SplitPosition position = SplitPosition::Leading);
 ```
 
-## API Reference
-
-### Class: `obsidian::SplitView`
-
-#### Construction and Lifecycle
-
-##### `SplitView()`
-Creates a new SplitView instance. The SplitView is not valid until `create()` is called.
-
-##### `~SplitView()`
-Destructor. Automatically removes the SplitView from its parent view and cleans up resources.
-
-##### `bool create(SplitPosition position = SplitPosition::Leading)`
-Creates the SplitView with the specified split position.
+Creates the SplitView with the given split position.
 
 **Parameters:**
-- `position`: Split position (`SplitPosition::Leading` for left side, `SplitPosition::Trailing` for right side)
+- `position`: Split position (Leading or Trailing). Default is Leading.
 
-**Returns:** `true` if the SplitView was created successfully, `false` otherwise.
+**Returns:** `true` if SplitView was created successfully, `false` otherwise.
 
-**Example:**
+### Split Position
+
 ```cpp
-SplitView splitView;
-if (splitView.create(SplitPosition::Leading)) {
-    // SplitView created successfully
-}
+enum class SplitPosition {
+    Leading,   // Primary pane on left side (LTR)
+    Trailing   // Primary pane on right side (LTR)
+};
 ```
 
-#### Primary Pane Width Management
+### Primary Pane Width Management
 
-##### `void setPrimaryPaneWidth(double width)`
-Sets the primary pane width in points. The width will be clamped to the minimum/maximum values if set.
-
-**Parameters:**
-- `width`: Desired primary pane width in points
-
-**Note:** The width is applied when the SplitView is laid out. If called before adding to a window, the width will be applied when the SplitView is added to the window.
-
-##### `double getPrimaryPaneWidth() const`
-Gets the current primary pane width in points.
-
-**Returns:** Current primary pane width in points, or `0.0` if the SplitView is invalid or not laid out yet.
-
-##### `void setMinimumPrimaryPaneWidth(double width)`
-Sets the minimum primary pane width in points.
-
-**Parameters:**
-- `width`: Minimum primary pane width in points (default: 150.0)
-
-**Note:** When users resize the primary pane, they cannot make it smaller than this value.
-
-##### `void setMaximumPrimaryPaneWidth(double width)`
-Sets the maximum primary pane width in points.
-
-**Parameters:**
-- `width`: Maximum primary pane width in points (default: 400.0)
-
-**Note:** When users resize the primary pane, they cannot make it larger than this value.
-
-**Example:**
 ```cpp
-splitView.setMinimumPrimaryPaneWidth(150.0);  // Minimum: 150pt
-splitView.setMaximumPrimaryPaneWidth(400.0);  // Maximum: 400pt
-splitView.setPrimaryPaneWidth(250.0);         // Initial: 250pt
+void setPrimaryPaneWidth(double width);
+double getPrimaryPaneWidth() const;
 ```
 
-#### Collapse/Expand Management
+Set/get the current primary pane width in points. The width will be clamped to min/max values.
 
-##### `void collapsePrimaryPane()`
-Collapses the primary pane. The primary pane width will be reduced to zero (or minimal width).
-
-**Note:** The primary pane can be expanded again using `expandPrimaryPane()` or `togglePrimaryPane()`.
-
-##### `void expandPrimaryPane()`
-Expands the primary pane, restoring it from the collapsed state.
-
-**Note:** The primary pane will be expanded to its preferred width (typically the last width before collapsing, or the initial width).
-
-##### `void togglePrimaryPane()`
-Toggles the primary pane between collapsed and expanded states.
-
-**Example:**
 ```cpp
-// Collapse primary pane
-splitView.collapsePrimaryPane();
-
-// Expand primary pane
-splitView.expandPrimaryPane();
-
-// Toggle primary pane
-splitView.togglePrimaryPane();
+void setMinimumPrimaryPaneWidth(double width);
+void setMaximumPrimaryPaneWidth(double width);
 ```
 
-##### `bool isPrimaryPaneCollapsed() const`
-Checks if the primary pane is currently collapsed.
+Set minimum and maximum primary pane width in points.
 
-**Returns:** `true` if the primary pane is collapsed, `false` if it is expanded.
+**Defaults:**
+- Minimum: 150.0 points
+- Maximum: 400.0 points
+- Initial width: 200.0 points
 
-#### Content Management
+### Collapse/Expand Management
 
-##### Primary Pane Content
-
-The following methods set the primary pane content view:
-
-- `void setPrimaryPaneContent(VStack& vstack)`
-- `void setPrimaryPaneContent(HStack& hstack)`
-- `void setPrimaryPaneContent(List& list)`
-- `void setPrimaryPaneContent(Button& button)`
-- `void setPrimaryPaneContent(ScrollView& scrollView)`
-
-**Parameters:**
-- Component reference: The component to use as primary pane content
-
-**Note:** The component must be valid (created and added to a window) before setting it as primary pane content.
-
-##### Secondary Pane Content
-
-The following methods set the secondary pane content view:
-
-- `void setSecondaryPaneContent(VStack& vstack)`
-- `void setSecondaryPaneContent(HStack& hstack)`
-- `void setSecondaryPaneContent(List& list)`
-- `void setSecondaryPaneContent(Button& button)`
-- `void setSecondaryPaneContent(ScrollView& scrollView)`
-
-**Parameters:**
-- Component reference: The component to use as secondary pane content
-
-**Note:** The component must be valid (created and added to a window) before setting it as secondary pane content.
-
-**Example:**
 ```cpp
-// Set primary pane content
-VStack primaryPane;
-primaryPane.addToWindow(window);
-// ... configure primary pane ...
-splitView.setPrimaryPaneContent(primaryPane);
-
-// Set secondary pane content
-VStack secondaryPane;
-secondaryPane.addToWindow(window);
-// ... configure secondary pane ...
-splitView.setSecondaryPaneContent(secondaryPane);
+void collapsePrimaryPane();
+void expandPrimaryPane();
+void togglePrimaryPane();
+bool isPrimaryPaneCollapsed() const;
 ```
 
-#### Window Integration
+Control the primary pane collapse state.
 
-##### `void addToWindow(Window& window)`
-Adds the SplitView to a window's content view. The SplitView will fill the entire content area.
+- `collapsePrimaryPane()`: Collapses the primary pane
+- `expandPrimaryPane()`: Expands the primary pane (restore from collapsed state)
+- `togglePrimaryPane()`: Toggles primary pane collapse/expand state
+- `isPrimaryPaneCollapsed()`: Returns `true` if primary pane is currently collapsed
 
-**Parameters:**
-- `window`: Window to add the SplitView to
+### Content Management
 
-**Note:** If the SplitView has not been created yet, it will be automatically created with the default position (`SplitPosition::Leading`).
+#### Primary Pane Content
 
-**Example:**
 ```cpp
-Window window;
-window.create(1000, 700, "My App");
-
-SplitView splitView;
-splitView.create(SplitPosition::Leading);
-splitView.addToWindow(window);
+void setPrimaryPaneContent(VStack& vstack);
+void setPrimaryPaneContent(HStack& hstack);
+void setPrimaryPaneContent(List& list);
+void setPrimaryPaneContent(Button& button);
+void setPrimaryPaneContent(ScrollView& scrollView);
 ```
 
-##### `void removeFromParent()`
-Removes the SplitView from its parent view.
+Sets the primary pane content view. The provided component will be added as the primary pane's view.
 
-**Note:** The SplitView remains valid after removal and can be added to another window.
+#### Secondary Pane Content
 
-#### State
+```cpp
+void setSecondaryPaneContent(VStack& vstack);
+void setSecondaryPaneContent(HStack& hstack);
+void setSecondaryPaneContent(List& list);
+void setSecondaryPaneContent(Button& button);
+void setSecondaryPaneContent(ScrollView& scrollView);
+```
 
-##### `bool isValid() const`
-Checks if the SplitView is valid.
+Sets the secondary pane content view. The provided component will be added as the secondary pane's view.
 
-**Returns:** `true` if the SplitView is valid (created and ready to use), `false` otherwise.
+### Window Integration
 
-#### Callbacks
+```cpp
+void addToWindow(Window& window);
+```
 
-##### `void setOnPrimaryPaneToggle(std::function<void(bool collapsed)> callback)`
+Adds SplitView to a window's content view. If the SplitView hasn't been created yet, it will be auto-created with the default Leading position.
+
+```cpp
+void removeFromParent();
+```
+
+Removes SplitView from its parent view.
+
+### State
+
+```cpp
+bool isValid() const;
+```
+
+Checks if SplitView is valid and ready to use.
+
+**Returns:** `true` if valid, `false` otherwise.
+
+### Callbacks
+
+```cpp
+void setOnPrimaryPaneToggle(std::function<void(bool collapsed)> callback);
+```
+
 Sets a callback function that will be called when the primary pane is collapsed or expanded.
 
 **Parameters:**
-- `callback`: Function that takes a `bool` parameter (`true` if collapsed, `false` if expanded)
+- `callback`: Function that takes a bool parameter (`true` if collapsed, `false` if expanded)
 
-**Note:** The callback is invoked by the `collapsePrimaryPane()`, `expandPrimaryPane()`, and `togglePrimaryPane()` methods. User-initiated collapse/expand (e.g., double-clicking the divider) may not trigger the callback in all cases.
-
-**Example:**
-```cpp
-splitView.setOnPrimaryPaneToggle([](bool collapsed) {
-    if (collapsed) {
-        std::cout << "Primary pane collapsed\n";
-    } else {
-        std::cout << "Primary pane expanded\n";
-    }
-});
-```
-
-### Enumeration: `SplitPosition`
-
-Defines the position of the primary pane within the SplitView.
-
-**Values:**
-- `SplitPosition::Leading`: Primary pane on the left side (default in LTR layouts)
-- `SplitPosition::Trailing`: Primary pane on the right side (default in LTR layouts)
-
-**Example:**
-```cpp
-// Leading (left) sidebar
-splitView.create(SplitPosition::Leading);
-
-// Trailing (right) sidebar
-splitView.create(SplitPosition::Trailing);
-```
-
-## Usage Examples
-
-### Complete Example: Application with Sidebar
+## Usage Example
 
 ```cpp
 #include <obsidian/obsidian.h>
 
-using namespace obsidian;
-
-int main(int argc, char* argv[]) {
-    // Initialize application
-    App app;
+int main() {
+    obsidian::App app;
     app.initialize();
     
     // Create window
-    Window window;
-    window.create(1000, 700, "My Application");
+    obsidian::Window window;
+    window.create(1200, 800, "My App");
     
-    // Create SplitView with leading sidebar
-    SplitView splitView;
-    splitView.create(SplitPosition::Leading);
+    // Create SplitView with primary pane on leading side
+    obsidian::SplitView splitView;
+    splitView.create(obsidian::SplitPosition::Leading);
     
-    // Configure sidebar width constraints
+    // Set width constraints
     splitView.setMinimumPrimaryPaneWidth(150.0);
     splitView.setMaximumPrimaryPaneWidth(400.0);
     splitView.setPrimaryPaneWidth(250.0);
     
-    // Create sidebar content
-    VStack sidebar;
-    sidebar.setSpacing(10.0);
-    sidebar.setPadding(Padding::all(15.0));
-    sidebar.addToWindow(window);
+    // Create primary pane content
+    obsidian::VStack primaryContent;
+    primaryContent.setSpacing(10.0);
+    primaryContent.setPadding(obsidian::Padding::all(20.0));
     
-    Button homeButton;
-    homeButton.create("Home", 0, 0, 200, 30);
-    homeButton.setOnClick([]() { std::cout << "Home clicked\n"; });
-    sidebar.addChild(homeButton);
+    obsidian::Button primaryButton;
+    primaryButton.create("Primary Pane", 0, 0, 200, 40);
+    primaryContent.addChild(primaryButton);
+    primaryContent.updateLayout();
     
-    Button settingsButton;
-    settingsButton.create("Settings", 0, 0, 200, 30);
-    settingsButton.setOnClick([]() { std::cout << "Settings clicked\n"; });
-    sidebar.addChild(settingsButton);
+    splitView.setPrimaryPaneContent(primaryContent);
     
-    sidebar.updateLayout();
-    splitView.setPrimaryPaneContent(sidebar);
+    // Create secondary pane content
+    obsidian::VStack secondaryContent;
+    secondaryContent.setSpacing(10.0);
+    secondaryContent.setPadding(obsidian::Padding::all(20.0));
     
-    // Create main content
-    VStack main;
-    main.setSpacing(15.0);
-    main.setPadding(Padding::all(20.0));
-    main.addToWindow(window);
+    obsidian::Button secondaryButton;
+    secondaryButton.create("Secondary Pane", 0, 0, 200, 40);
+    secondaryContent.addChild(secondaryButton);
+    secondaryContent.updateLayout();
     
-    Button actionButton;
-    actionButton.create("Perform Action", 0, 0, 200, 35);
-    actionButton.setOnClick([]() { std::cout << "Action performed\n"; });
-    main.addChild(actionButton);
+    splitView.setSecondaryPaneContent(secondaryContent);
     
-    main.updateLayout();
-    splitView.setSecondaryPaneContent(main);
-    
-    // Add SplitView to window
-    splitView.addToWindow(window);
-    
-    // Set up sidebar toggle callback
+    // Optional: Set callback for pane toggle events
     splitView.setOnPrimaryPaneToggle([](bool collapsed) {
-        std::cout << "Sidebar " << (collapsed ? "collapsed" : "expanded") << "\n";
+        if (collapsed) {
+            std::cout << "Primary pane collapsed\n";
+        } else {
+            std::cout << "Primary pane expanded\n";
+        }
     });
     
-    // Show window
+    // Add to window
+    splitView.addToWindow(window);
+    
+    // Show and run
     window.show();
-    
-    // Run application
-    AppCallbacks callbacks;
-    app.run(callbacks);
-    
-    // Cleanup
-    window.close();
-    app.shutdown();
+    app.run({});
     
     return 0;
 }
 ```
 
-### Example: Sidebar with List Component
+## SplitView vs Sidebar
 
-```cpp
-// Create sidebar with List
-List sidebarList;
-sidebarList.addToWindow(window);
-sidebarList.addItem("Item 1");
-sidebarList.addItem("Item 2");
-sidebarList.addItem("Item 3");
+| Feature | SplitView | Sidebar |
+|---------|-----------|---------|
+| Native sidebar styling | No | Yes (material background) |
+| Native collapse button | No | Yes (via toolbar) |
+| Position control | Yes (Leading/Trailing) | No (always leading) |
+| Use case | General split view | Native macOS sidebar |
+| Window setup required | No | Yes (toolbar setup) |
 
-splitView.setPrimaryPaneContent(sidebarList);
-```
+## Implementation Details
 
-### Example: Collapsible Sidebar with Keyboard Shortcut
+The SplitView uses:
+- `NSSplitView` for the split view management
+- Two `NSSplitViewItem` instances for the primary and secondary panes
+- Native views wrapping the Obsidian components
 
-```cpp
-// Set up sidebar toggle callback
-splitView.setOnPrimaryPaneToggle([](bool collapsed) {
-    // Update UI state based on sidebar visibility
-    // ...
-});
+The SplitView is created with default values:
+- Primary pane width: 200.0 points
+- Minimum width: 150.0 points
+- Maximum width: 400.0 points
+- Position: Leading (left side in LTR)
 
-// Toggle sidebar programmatically (e.g., from menu or keyboard shortcut)
-splitView.togglePrimaryPane();
-```
+## Notes
 
-## Best Practices
-
-### 1. Initialize Components Before Setting as Content
-
-Always ensure components are created and added to a window before setting them as SplitView content:
-
-```cpp
-// Good: Component is valid before setting as content
-VStack sidebar;
-sidebar.addToWindow(window);
-// ... configure sidebar ...
-splitView.setPrimaryPaneContent(sidebar);
-
-// Bad: Component is not valid
-VStack sidebar;
-splitView.setPrimaryPaneContent(sidebar);  // Component not yet valid
-```
-
-### 2. Set Width Constraints Before Setting Width
-
-Set minimum/maximum widths before setting the initial width to ensure proper constraints:
-
-```cpp
-// Good: Set constraints first
-splitView.setMinimumPrimaryPaneWidth(150.0);
-splitView.setMaximumPrimaryPaneWidth(400.0);
-splitView.setPrimaryPaneWidth(250.0);  // Will be clamped to 150-400
-
-// Bad: Width set before constraints
-splitView.setPrimaryPaneWidth(250.0);
-splitView.setMinimumPrimaryPaneWidth(150.0);  // Width already set
-```
-
-### 3. Update Layout After Modifying Content
-
-When adding children to VStack/HStack components used as SplitView content, call `updateLayout()`:
-
-```cpp
-VStack sidebar;
-sidebar.addToWindow(window);
-sidebar.addChild(button1);
-sidebar.addChild(button2);
-sidebar.updateLayout();  // Update layout before setting as content
-splitView.setPrimaryPaneContent(sidebar);
-```
-
-### 4. Handle Sidebar State
-
-Use the `isPrimaryPaneCollapsed()` method to check sidebar state before performing operations:
-
-```cpp
-if (!splitView.isPrimaryPaneCollapsed()) {
-    // Sidebar is visible, perform operations
-    splitView.setPrimaryPaneWidth(300.0);
-}
-```
-
-### 5. Clean Up Properly
-
-The SplitView will automatically clean up when destroyed (RAII), but you can explicitly remove it:
-
-```cpp
-splitView.removeFromParent();  // Remove from parent view
-// SplitView can still be reused or will be cleaned up on destruction
-```
-
-## Integration with Other Components
-
-### VStack/HStack
-
-VStack and HStack components work seamlessly with SplitView:
-
-```cpp
-VStack sidebar;
-sidebar.setSpacing(10.0);
-sidebar.setPadding(Padding::all(15.0));
-// ... add children ...
-sidebar.updateLayout();
-splitView.setPrimaryPaneContent(sidebar);
-```
-
-### List
-
-List components can be used for navigation-style sidebars:
-
-```cpp
-List sidebarList;
-sidebarList.addItem("Home");
-sidebarList.addItem("Projects");
-sidebarList.addItem("Settings");
-splitView.setPrimaryPaneContent(sidebarList);
-```
-
-### ScrollView
-
-ScrollView components can be used when sidebar content might overflow:
-
-```cpp
-ScrollView scrollView;
-scrollView.create(0, 0, 250, 600);
-// ... set document view ...
-splitView.setPrimaryPaneContent(scrollView);
-```
-
-### Button
-
-Button components can be used for simple sidebars with navigation buttons:
-
-```cpp
-Button navButton;
-navButton.create("Navigate", 0, 0, 200, 30);
-splitView.setPrimaryPaneContent(navButton);
-```
-
-## Technical Notes
-
-### NSSplitView Implementation
-
-The SplitView uses `NSSplitView` with the following configuration:
-- **Orientation**: Vertical (horizontal divider, left/right panes)
-- **Divider Style**: Thin divider (`NSSplitViewDividerStyleThin`)
-- **Delegate**: Implements `NSSplitViewDelegate` for collapse behavior and width constraints
-- **Auto Layout**: Uses Auto Layout constraints for proper sizing
-
-### Memory Management
-
-- Uses ARC (Automatic Reference Counting) in Objective-C++ code
-- Uses RAII pattern in C++ code
-- Proper cleanup in destructors
-
-### Performance Considerations
-
-- SplitView layout is handled by macOS's native layout system (Auto Layout)
-- No performance overhead beyond native NSSplitView behavior
-- Resizing and collapse/expand operations are native macOS operations
-
-## Limitations
-
-1. **macOS Only**: Currently only available on macOS. Other platforms are not yet implemented.
-2. **Two Panes Only**: Supports sidebar + main content (two panes). Three-pane layouts are not currently supported.
-3. **Single Sidebar**: Only one sidebar per SplitView (leading or trailing, not both).
-
-## Future Enhancements
-
-- Support for multiple sidebars (leading + trailing)
-- Animated collapse/expand
-- Sidebar state persistence (User Defaults)
-- Custom divider styling
-- Three-pane layouts (sidebar + main + inspector)
-
-## See Also
-
-- [Sidebar Implementation Plan](../sidebar/SIDEBAR_IMPLEMENTATION_PLAN.md) - Detailed implementation documentation
-- [Layout API Documentation](../layout/LAYOUT_API.md) - Layout system documentation
-- [Example: sidebar_showcase](../../examples/sidebar_showcase/main.cpp) - Complete example application
-
-## References
-
-- [Apple NSSplitView Documentation](https://developer.apple.com/documentation/appkit/nssplitview)
-- [Apple NSSplitViewController Documentation](https://developer.apple.com/documentation/appkit/nssplitviewcontroller)
-- [macOS Human Interface Guidelines - Sidebars](https://developer.apple.com/design/human-interface-guidelines/components/layout-and-structure/sidebars/)
+- SplitView is macOS-only (uses `#ifdef __APPLE__`)
+- SplitView is non-copyable but movable
+- The SplitView must be created before setting content (or use `addToWindow` which auto-creates)
+- Content components must be valid (created) before being set
+- The divider between panes is resizable by the user (within min/max constraints)
+- Primary pane collapse removes it from the layout, giving full space to secondary pane
