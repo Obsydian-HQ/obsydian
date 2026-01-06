@@ -35,4 +35,3 @@ cc_binary(
         "//src:obsidian",  # Public API only
     ],
 )
-

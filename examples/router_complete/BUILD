@@ -10,10 +10,10 @@ cc_library(
     name = "routes",
     srcs = glob(["app/**/*.cpp"]),
     copts = ["-std=c++20"],
-    alwayslink = 1,
     deps = [
         "//src:obsidian",
     ],
+    alwayslink = 1,
 )
 
 # C++ library containing main function
@@ -23,8 +23,8 @@ cc_library(
     hdrs = [],
     copts = ["-std=c++20"],
     deps = [
-        "//src:obsidian",
         ":routes",
+        "//src:obsidian",
     ],
 )
 
@@ -43,7 +43,7 @@ cc_binary(
     srcs = ["main.cpp"],
     copts = ["-std=c++20"],
     deps = [
-        "//src:obsidian",
         ":routes",
+        "//src:obsidian",
     ],
 )

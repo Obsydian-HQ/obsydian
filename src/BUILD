@@ -15,8 +15,8 @@ cc_library(
     deps = [
         "//core:ffi_base",
         "//core:runtime",
-        "//core/layout:layout",  # Layout engine
-        "//core/routing:routing",  # Routing system
+        "//core/layout",  # Layout engine
+        "//core/routing",  # Routing system
         "//include:obsidian_headers",  # Need headers for implementation
         "//packages/apple:apple_ffi",
         "//platform/apple/Fabric:fabric",  # New Fabric mounting system

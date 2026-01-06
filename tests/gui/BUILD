@@ -148,8 +148,8 @@ cc_test(
         "requires-gui",  # Mark as requiring GUI - will be skipped in headless CI
     ],
     deps = [
-        "//src:obsidian",
         "//packages/apple:apple_ffi",
+        "//src:obsidian",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
     ],

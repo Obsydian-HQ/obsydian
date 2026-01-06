@@ -8,6 +8,9 @@
 #import <AppKit/AppKit.h>
 #import <Foundation/Foundation.h>
 
+// Import Fabric bridge for component factory initialization
+#import "OBSFabricBridge.h"
+
 static bool g_platform_initialized = false;
 static bool g_should_run = false;
 
@@ -27,6 +30,9 @@ bool obsidian_macos_platform_init() {
         
         // Set activation policy to allow the app to appear in the dock
         [app setActivationPolicy:NSApplicationActivationPolicyRegular];
+        
+        // Initialize Fabric (component factories)
+        obs_fabric_initialize();
         
         g_platform_initialized = true;
         return true;
@@ -91,6 +97,10 @@ void obsidian_macos_platform_cleanup() {
     }
     
     obsidian_macos_platform_stop();
+    
+    // Shutdown Fabric
+    obs_fabric_shutdown();
+    
     g_platform_initialized = false;
 }
 

@@ -37,8 +37,10 @@ void renderUserRoute(RouteContext& ctx) {
     content.addChild(description);
     
     // Back link
+    Button backButton;
+    backButton.create("Back to Users", 0, 0, 150, 30);
     Link backLink;
-    backLink.create("/users", "Back to Users", 0, 0, 150, 30);
+    backLink.create("/users", backButton);
     content.addChild(backLink);
     
     ctx.setContent(content);

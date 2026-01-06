@@ -28,16 +28,22 @@ void renderProductsRoute(RouteContext& ctx) {
     VStack productList;
     productList.setSpacing(10.0);
     
+    Button product1Button;
+    product1Button.create("Product 1", 0, 0, 150, 30);
     Link product1;
-    product1.create("/products/1", "Product 1", 0, 0, 150, 30);
+    product1.create("/products/1", product1Button);
     productList.addChild(product1);
     
+    Button product2Button;
+    product2Button.create("Product 2", 0, 0, 150, 30);
     Link product2;
-    product2.create("/products/2", "Product 2", 0, 0, 150, 30);
+    product2.create("/products/2", product2Button);
     productList.addChild(product2);
     
+    Button product3Button;
+    product3Button.create("Product 3", 0, 0, 150, 30);
     Link product3;
-    product3.create("/products/3", "Product 3", 0, 0, 150, 30);
+    product3.create("/products/3", product3Button);
     productList.addChild(product3);
     
     content.addChild(productList);

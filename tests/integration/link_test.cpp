@@ -12,11 +12,19 @@
 #include <gtest/gtest.h>
 #include <filesystem>
 
+#ifdef __APPLE__
+#include "macos_ffi.h"
+#endif
+
 using namespace obsidian;
 
 class LinkTest : public ::testing::Test {
 protected:
     void SetUp() override {
+#ifdef __APPLE__
+        // Initialize platform (required for NSApplication and component factories)
+        ASSERT_TRUE(obsidian::ffi::macos::initializePlatform());
+#endif
         std::filesystem::path workspaceRoot;
         
         // Find workspace root
@@ -73,6 +81,9 @@ protected:
         window.reset();
         router.reset();
         lastNavigatedPath.clear();
+#ifdef __APPLE__
+        obsidian::ffi::macos::cleanupPlatform();
+#endif
     }
     
     std::string testAppDirectory;
@@ -82,18 +93,23 @@ protected:
 };
 
 TEST_F(LinkTest, CreateLink) {
+    Button button;
+    ASSERT_TRUE(button.create("About", 10, 10, 100, 30)) << "Button should be created";
+    
     Link link;
-    bool result = link.create("/about", "About", 10, 10, 100, 30);
+    bool result = link.create("/about", button);
     
     ASSERT_TRUE(result) << "Link should be created successfully";
     ASSERT_TRUE(link.isValid()) << "Link should be valid after creation";
     ASSERT_EQ(link.getHref(), "/about") << "Href should be set correctly";
-    ASSERT_EQ(link.getText(), "About") << "Text should be set correctly";
 }
 
 TEST_F(LinkTest, LinkHrefAccessors) {
+    Button button;
+    ASSERT_TRUE(button.create("Products", 10, 10, 100, 30));
+    
     Link link;
-    link.create("/products", "Products", 10, 10, 100, 30);
+    link.create("/products", button);
     
     ASSERT_EQ(link.getHref(), "/products") << "Initial href should be correct";
     
@@ -101,19 +117,12 @@ TEST_F(LinkTest, LinkHrefAccessors) {
     ASSERT_EQ(link.getHref(), "/contact") << "Href should be updated";
 }
 
-TEST_F(LinkTest, LinkTextAccessors) {
-    Link link;
-    link.create("/about", "About", 10, 10, 100, 30);
-    
-    ASSERT_EQ(link.getText(), "About") << "Initial text should be correct";
-    
-    link.setText("About Us");
-    ASSERT_EQ(link.getText(), "About Us") << "Text should be updated";
-}
-
 TEST_F(LinkTest, LinkSetRouter) {
+    Button button;
+    ASSERT_TRUE(button.create("About", 10, 10, 100, 30));
+    
     Link link;
-    link.create("/about", "About", 10, 10, 100, 30);
+    link.create("/about", button);
     
     // Set router explicitly
     link.setRouter(router.get());
@@ -127,8 +136,11 @@ TEST_F(LinkTest, LinkSetRouter) {
 }
 
 TEST_F(LinkTest, LinkVisibility) {
+    Button button;
+    ASSERT_TRUE(button.create("About", 10, 10, 100, 30));
+    
     Link link;
-    link.create("/about", "About", 10, 10, 100, 30);
+    link.create("/about", button);
     
     ASSERT_TRUE(link.isVisible()) << "Link should be visible by default";
     
@@ -140,8 +152,11 @@ TEST_F(LinkTest, LinkVisibility) {
 }
 
 TEST_F(LinkTest, LinkEnabledState) {
+    Button button;
+    ASSERT_TRUE(button.create("About", 10, 10, 100, 30));
+    
     Link link;
-    link.create("/about", "About", 10, 10, 100, 30);
+    link.create("/about", button);
     
     ASSERT_TRUE(link.isEnabled()) << "Link should be enabled by default";
     
@@ -153,8 +168,11 @@ TEST_F(LinkTest, LinkEnabledState) {
 }
 
 TEST_F(LinkTest, LinkOnClickCallback) {
+    Button button;
+    ASSERT_TRUE(button.create("About", 10, 10, 100, 30));
+    
     Link link;
-    link.create("/about", "About", 10, 10, 100, 30);
+    link.create("/about", button);
     link.setRouter(router.get());
     
     bool callbackCalled = false;
@@ -168,8 +186,11 @@ TEST_F(LinkTest, LinkOnClickCallback) {
 }
 
 TEST_F(LinkTest, LinkAddToWindow) {
+    Button button;
+    ASSERT_TRUE(button.create("About", 10, 10, 100, 30));
+    
     Link link;
-    link.create("/about", "About", 10, 10, 100, 30);
+    link.create("/about", button);
     link.setRouter(router.get());
     
     // Should not crash
@@ -179,8 +200,11 @@ TEST_F(LinkTest, LinkAddToWindow) {
 }
 
 TEST_F(LinkTest, LinkRemoveFromParent) {
+    Button button;
+    ASSERT_TRUE(button.create("About", 10, 10, 100, 30));
+    
     Link link;
-    link.create("/about", "About", 10, 10, 100, 30);
+    link.create("/about", button);
     link.addToWindow(*window);
     
     // Should not crash
@@ -200,11 +224,17 @@ TEST_F(LinkTest, LinkInvalidState) {
 }
 
 TEST_F(LinkTest, LinkCannotCreateTwice) {
+    Button button1;
+    ASSERT_TRUE(button1.create("About", 10, 10, 100, 30));
+    
+    Button button2;
+    ASSERT_TRUE(button2.create("Contact", 20, 20, 100, 30));
+    
     Link link;
-    bool result1 = link.create("/about", "About", 10, 10, 100, 30);
+    bool result1 = link.create("/about", button1);
     ASSERT_TRUE(result1) << "First creation should succeed";
     
-    bool result2 = link.create("/contact", "Contact", 20, 20, 100, 30);
+    bool result2 = link.create("/contact", button2);
     ASSERT_FALSE(result2) << "Second creation should fail";
     
     // Original values should remain
@@ -213,8 +243,11 @@ TEST_F(LinkTest, LinkCannotCreateTwice) {
 
 // Navigation behavior tests
 TEST_F(LinkTest, LinkNavigatesOnClick) {
+    Button button;
+    ASSERT_TRUE(button.create("About", 10, 10, 100, 30));
+    
     Link link;
-    link.create("/about", "About", 10, 10, 100, 30);
+    link.create("/about", button);
     link.setRouter(router.get());
     
     // Simulate navigation by calling navigate directly
@@ -297,10 +330,15 @@ TEST_F(LinkTest, LinkWithHStackChild) {
 }
 
 TEST_F(LinkTest, LinkNavigationHistory) {
+    Button button1, button2, button3;
+    ASSERT_TRUE(button1.create("Home", 10, 10, 80, 30));
+    ASSERT_TRUE(button2.create("About", 100, 10, 80, 30));
+    ASSERT_TRUE(button3.create("Products", 190, 10, 80, 30));
+    
     Link link1, link2, link3;
-    link1.create("/", "Home", 10, 10, 80, 30);
-    link2.create("/about", "About", 100, 10, 80, 30);
-    link3.create("/products", "Products", 190, 10, 80, 30); // Use existing route
+    link1.create("/", button1);
+    link2.create("/about", button2);
+    link3.create("/products", button3); // Use existing route
     
     link1.setRouter(router.get());
     link2.setRouter(router.get());
@@ -333,8 +371,11 @@ TEST_F(LinkTest, LinkRequiresValidChild) {
 }
 
 TEST_F(LinkTest, LinkCallbackBeforeNavigation) {
+    Button button;
+    ASSERT_TRUE(button.create("About", 10, 10, 100, 30));
+    
     Link link;
-    link.create("/about", "About", 10, 10, 100, 30);
+    link.create("/about", button);
     link.setRouter(router.get());
     
     bool callbackCalled = false;

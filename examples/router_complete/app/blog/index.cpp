@@ -27,12 +27,16 @@ void renderBlogRoute(RouteContext& ctx) {
     VStack postList;
     postList.setSpacing(10.0);
     
+    Button post1Button;
+    post1Button.create("Post 1: Getting Started", 0, 0, 200, 30);
     Link post1;
-    post1.create("/blog/post-1", "Post 1: Getting Started", 0, 0, 200, 30);
+    post1.create("/blog/post-1", post1Button);
     postList.addChild(post1);
     
+    Button post2Button;
+    post2Button.create("Post 2: Advanced Topics", 0, 0, 200, 30);
     Link post2;
-    post2.create("/blog/post-2", "Post 2: Advanced Topics", 0, 0, 200, 30);
+    post2.create("/blog/post-2", post2Button);
     postList.addChild(post2);
     
     content.addChild(postList);

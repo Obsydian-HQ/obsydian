@@ -95,7 +95,8 @@ Size LayoutNode::measure(float width, MeasureMode widthMode,
     return {0.0f, 0.0f};
 }
 
-void LayoutNode::printTree(int indent) const {
+void LayoutNode::printTree(int /* indent */) const {
+    // TODO: Implement debug tree printing
 }
 
 } // namespace obsidian::layout

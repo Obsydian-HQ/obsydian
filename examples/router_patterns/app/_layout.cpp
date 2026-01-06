@@ -26,20 +26,28 @@ void renderRootLayout(RouteContext& ctx, std::function<void()> renderChild) {
     HStack navLinks;
     navLinks.setSpacing(10.0);
     
+    Button homeButton;
+    homeButton.create("Home", 0, 0, 80, 30);
     Link homeLink;
-    homeLink.create("/", "Home", 0, 0, 80, 30);
+    homeLink.create("/", homeButton);
     navLinks.addChild(homeLink);
     
+    Button page1Button;
+    page1Button.create("Page 1", 0, 0, 80, 30);
     Link page1Link;
-    page1Link.create("/page1", "Page 1", 0, 0, 80, 30);
+    page1Link.create("/page1", page1Button);
     navLinks.addChild(page1Link);
     
+    Button page2Button;
+    page2Button.create("Page 2", 0, 0, 80, 30);
     Link page2Link;
-    page2Link.create("/page2", "Page 2", 0, 0, 80, 30);
+    page2Link.create("/page2", page2Button);
     navLinks.addChild(page2Link);
     
+    Button page3Button;
+    page3Button.create("Page 3", 0, 0, 80, 30);
     Link page3Link;
-    page3Link.create("/page3", "Page 3", 0, 0, 80, 30);
+    page3Link.create("/page3", page3Button);
     navLinks.addChild(page3Link);
     
     layout.addChild(navLinks);

@@ -167,7 +167,7 @@ void Button::setOnClick(std::function<void()> callback) {
 #endif
 }
 
-void Button::setVisible(bool visible) {
+void Button::setVisible(bool /* visible */) {
     if (!pImpl->valid) return;
     // TODO: Add visibility to Fabric bridge
 }
@@ -177,7 +177,7 @@ bool Button::isVisible() const {
     return true; // TODO: Track visibility state
 }
 
-void Button::setEnabled(bool enabled) {
+void Button::setEnabled(bool /* enabled */) {
     if (!pImpl->valid) return;
     // TODO: Add enabled state to Fabric bridge
 }

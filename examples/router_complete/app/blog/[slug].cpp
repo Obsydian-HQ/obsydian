@@ -41,8 +41,10 @@ void renderBlogPostRoute(RouteContext& ctx) {
     content.addChild(contentText);
     
     // Back link
+    Button backButton;
+    backButton.create("Back to Blog", 0, 0, 150, 30);
     Link backLink;
-    backLink.create("/blog", "Back to Blog", 0, 0, 150, 30);
+    backLink.create("/blog", backButton);
     content.addChild(backLink);
     
     ctx.setContent(content);

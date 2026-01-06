@@ -79,7 +79,7 @@ cc_binary(
     tags = ["benchmark"],
     deps = [
         "//core:runtime",
-        "//core/routing:routing",
+        "//core/routing",
         "//include:obsidian_headers",
         "//src:obsidian_impl",  # Link against actual implementation
         "@com_github_google_benchmark//:benchmark",

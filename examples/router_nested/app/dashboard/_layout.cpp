@@ -20,12 +20,16 @@ void renderDashboardLayout(RouteContext& ctx, std::function<void()> renderChild)
     HStack navLinks;
     navLinks.setSpacing(10.0);
     
+    Button overviewButton;
+    overviewButton.create("Overview", 0, 0, 120, 30);
     Link overviewLink;
-    overviewLink.create("/dashboard", "Overview", 0, 0, 120, 30);
+    overviewLink.create("/dashboard", overviewButton);
     navLinks.addChild(overviewLink);
     
+    Button settingsButton;
+    settingsButton.create("Settings", 0, 0, 120, 30);
     Link settingsLink;
-    settingsLink.create("/dashboard/settings", "Settings", 0, 0, 120, 30);
+    settingsLink.create("/dashboard/settings", settingsButton);
     navLinks.addChild(settingsLink);
     
     layout.addChild(navLinks);

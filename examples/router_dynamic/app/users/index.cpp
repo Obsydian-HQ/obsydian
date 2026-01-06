@@ -28,16 +28,22 @@ void renderUsersRoute(RouteContext& ctx) {
     VStack userList;
     userList.setSpacing(10.0);
     
+    Button user1Button;
+    user1Button.create("Alice", 0, 0, 150, 30);
     Link user1;
-    user1.create("/users/alice", "Alice", 0, 0, 150, 30);
+    user1.create("/users/alice", user1Button);
     userList.addChild(user1);
     
+    Button user2Button;
+    user2Button.create("Bob", 0, 0, 150, 30);
     Link user2;
-    user2.create("/users/bob", "Bob", 0, 0, 150, 30);
+    user2.create("/users/bob", user2Button);
     userList.addChild(user2);
     
+    Button user3Button;
+    user3Button.create("Charlie", 0, 0, 150, 30);
     Link user3;
-    user3.create("/users/charlie", "Charlie", 0, 0, 150, 30);
+    user3.create("/users/charlie", user3Button);
     userList.addChild(user3);
     
     content.addChild(userList);

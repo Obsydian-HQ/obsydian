@@ -309,7 +309,7 @@ bool obsidian_macos_hstack_is_valid(ObsidianHStackHandle handle) {
     }
 }
 
-void obsidian_macos_hstack_request_layout_update(ObsidianHStackHandle handle) {
+void obsidian_macos_hstack_request_layout_update(ObsidianHStackHandle /* handle */) {
     // NO-OP: Layout is now handled by the layout engine
 }
 

@@ -67,8 +67,8 @@ cc_test(
     srcs = ["vstack_test.cpp"],
     copts = ["-std=c++20"],
     deps = [
-        "//src:obsidian",
         "//packages/apple:apple_ffi",
+        "//src:obsidian",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
     ],
@@ -81,8 +81,8 @@ cc_test(
     srcs = ["spacer_test.cpp"],
     copts = ["-std=c++20"],
     deps = [
-        "//src:obsidian",
         "//packages/apple:apple_ffi",
+        "//src:obsidian",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
     ],
@@ -98,7 +98,7 @@ cc_test(
         "//test_apps/route_scanner_test:app",
     ],
     deps = [
-        "//core/routing:routing",
+        "//core/routing",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
     ],
@@ -114,8 +114,8 @@ cc_test(
         "//test_apps/route_scanner_test:app",
     ],
     deps = [
+        "//core/routing",
         "//src:obsidian",
-        "//core/routing:routing",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
     ],
@@ -131,8 +131,8 @@ cc_test(
         "//test_apps/route_scanner_test:app",
     ],
     deps = [
+        "//core/routing",
         "//src:obsidian",
-        "//core/routing:routing",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
     ],
@@ -148,8 +148,8 @@ cc_test(
         "//test_apps/route_scanner_test:app",
     ],
     deps = [
+        "//core/routing",
         "//src:obsidian",
-        "//core/routing:routing",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
     ],
@@ -162,7 +162,7 @@ cc_test(
     srcs = ["route_matcher_test.cpp"],
     copts = ["-std=c++20"],
     deps = [
-        "//core/routing:routing",
+        "//core/routing",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
     ],
@@ -175,7 +175,7 @@ cc_test(
     srcs = ["navigation_history_test.cpp"],
     copts = ["-std=c++20"],
     deps = [
-        "//core/routing:routing",
+        "//core/routing",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
     ],

@@ -11,11 +11,6 @@
 
 namespace obsidian::layout {
 
-// Helper to check if a value is defined
-static bool isDefined(float value) {
-    return !std::isnan(value) && value != 0.0f;
-}
-
 // Helper to get padding for a node
 static void getPadding(const Style& style, float parentWidth, float parentHeight,
                        float& left, float& top, float& right, float& bottom) {
@@ -105,8 +100,8 @@ void LayoutEngine::layoutNode(LayoutNode* node,
 }
 
 void LayoutEngine::layoutFlexContainer(LayoutNode* node,
-                                        float availableWidth, MeasureMode widthMode,
-                                        float availableHeight, MeasureMode heightMode) {
+                                        float /* availableWidth */, MeasureMode /* widthMode */,
+                                        float /* availableHeight */, MeasureMode /* heightMode */) {
     const Style& style = node->getStyle();
     LayoutResult& layout = node->getMutableLayout();
     

@@ -51,9 +51,6 @@ public:
     VStack* vstackChild = nullptr;
     HStack* hstackChild = nullptr;
     
-    // For legacy text-based API
-    Button internalButton;
-    
     LinkCallbackData* callbackData = nullptr;
     
 #ifdef __APPLE__
@@ -76,9 +73,6 @@ public:
         }
         if (hstackChild && hstackChild->isValid()) {
             return hstackChild->getNativeViewHandle();
-        }
-        if (internalButton.isValid()) {
-            return internalButton.getNativeViewHandle();
         }
         return nullptr;
     }
@@ -274,23 +268,6 @@ bool Link::create(const std::string& href, HStack& child) {
 
 // ZStack support deferred - ZStack needs getNativeViewHandle() method first
 
-// Legacy API: Create with text (creates Button internally)
-bool Link::create(const std::string& href, const std::string& text, int x, int y, int width, int height) {
-    if (pImpl->valid) {
-        return false;
-    }
-    
-    pImpl->href = href;
-    
-    // Create internal button
-    if (!pImpl->internalButton.create(text, x, y, width, height)) {
-        return false;
-    }
-    
-    // Use the Button create method
-    return create(href, pImpl->internalButton);
-}
-
 void Link::setHref(const std::string& href) {
     pImpl->href = href;
 #ifdef __APPLE__
@@ -302,27 +279,6 @@ void Link::setHref(const std::string& href) {
 
 std::string Link::getHref() const {
     return pImpl->href;
-}
-
-void Link::setText(const std::string& text) {
-    if (!pImpl->valid) {
-        return;
-    }
-    // Only works with legacy text-based API (internal button)
-    if (pImpl->internalButton.isValid()) {
-        pImpl->internalButton.setTitle(text);
-    }
-}
-
-std::string Link::getText() const {
-    if (!pImpl->valid) {
-        return std::string();
-    }
-    // Only works with legacy text-based API (internal button)
-    if (pImpl->internalButton.isValid()) {
-        return pImpl->internalButton.getTitle();
-    }
-    return std::string();
 }
 
 void Link::setOnClick(std::function<void()> callback) {

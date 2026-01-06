@@ -19,16 +19,22 @@ void renderBlogLayout(RouteContext& ctx, std::function<void()> renderChild) {
     HStack navLinks;
     navLinks.setSpacing(10.0);
     
+    Button allPostsButton;
+    allPostsButton.create("All Posts", 0, 0, 120, 30);
     Link allPostsLink;
-    allPostsLink.create("/blog", "All Posts", 0, 0, 120, 30);
+    allPostsLink.create("/blog", allPostsButton);
     navLinks.addChild(allPostsLink);
     
+    Button post1Button;
+    post1Button.create("Post 1", 0, 0, 120, 30);
     Link post1Link;
-    post1Link.create("/blog/post-1", "Post 1", 0, 0, 120, 30);
+    post1Link.create("/blog/post-1", post1Button);
     navLinks.addChild(post1Link);
     
+    Button post2Button;
+    post2Button.create("Post 2", 0, 0, 120, 30);
     Link post2Link;
-    post2Link.create("/blog/post-2", "Post 2", 0, 0, 120, 30);
+    post2Link.create("/blog/post-2", post2Button);
     navLinks.addChild(post2Link);
     
     layout.addChild(navLinks);

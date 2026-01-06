@@ -312,7 +312,8 @@ bool obsidian_macos_vstack_is_valid(ObsidianVStackHandle handle) {
     }
 }
 
-void obsidian_macos_vstack_request_layout_update(ObsidianVStackHandle handle) {
+void obsidian_macos_vstack_request_layout_update(ObsidianVStackHandle /* handle */) {
+    // NO-OP: Layout is now handled by the layout engine
 }
 
 void obsidian_macos_vstack_set_padding(ObsidianVStackHandle handle,

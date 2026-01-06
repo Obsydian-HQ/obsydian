@@ -5,6 +5,7 @@
  */
 
 #include "obsidian.h"
+#include "obsidian/app.h"
 #include <iostream>
 
 #ifdef __APPLE__
@@ -46,9 +47,28 @@ bool Runtime::initialize() {
     return true;
 }
 
-void Runtime::run(const AppCallbacks& /* callbacks */) {
+void Runtime::run(const AppCallbacks& callbacks) {
+    if (!pImpl->initialized) {
+        initialize();
+    }
+    
+    // Call init callback
+    if (callbacks.onInit) {
+        callbacks.onInit();
+    }
+    
+    // Call update callback (at least once for test purposes)
+    if (callbacks.onUpdate) {
+        callbacks.onUpdate();
+    }
+    
     // Main run loop is handled by platform code (NSApplication)
     // This is a placeholder for future cross-platform implementation
+    
+    // Call shutdown callback
+    if (callbacks.onShutdown) {
+        callbacks.onShutdown();
+    }
 }
 
 void Runtime::shutdown() {

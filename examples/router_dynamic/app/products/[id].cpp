@@ -55,8 +55,10 @@ void renderProductRoute(RouteContext& ctx) {
     }
     
     // Back link
+    Button backButton;
+    backButton.create("Back to Products", 0, 0, 150, 30);
     Link backLink;
-    backLink.create("/products", "Back to Products", 0, 0, 150, 30);
+    backLink.create("/products", backButton);
     content.addChild(backLink);
     
     ctx.setContent(content);

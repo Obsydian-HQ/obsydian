@@ -57,12 +57,6 @@ public:
     // Note: ZStack support deferred until getNativeViewHandle() is added to ZStack API
     
     /**
-     * Legacy API: Create a link with text (creates a Button internally)
-     * @deprecated Use create(href, Button&) instead for better flexibility
-     */
-    bool create(const std::string& href, const std::string& text, int x, int y, int width, int height);
-    
-    /**
      * Set the href (route path) for navigation
      * @param href Route path to navigate to
      */
@@ -73,18 +67,6 @@ public:
      * @return Current href
      */
     std::string getHref() const;
-    
-    /**
-     * Set the link text (only works with legacy text-based API)
-     * @param text Text to display
-     */
-    void setText(const std::string& text);
-    
-    /**
-     * Get the link text (only works with legacy text-based API)
-     * @return Current text
-     */
-    std::string getText() const;
     
     /**
      * Set the click callback (optional, navigation happens automatically)
