@@ -39,6 +39,12 @@
 #include "obsidian/hstack.h"
 #include "obsidian/zstack.h"
 #include "obsidian/spacer.h"
+#include "obsidian/splitview.h"
+#include "obsidian/sidebar.h"
+#include "obsidian/router.h"
+#include "obsidian/link.h"
+#include "obsidian/screen_container.h"
+#include "obsidian/route_registry_helper.h"
 
 /**
  * @namespace obsidian

@@ -1,7 +1,8 @@
 /**
- * Layout Alignment Utilities
+ * Layout Alignment Types
  * 
- * Provides alignment enumeration and utilities for layout system
+ * Basic alignment enumerations for the layout system.
+ * This file is kept minimal - alignment concepts are universal.
  */
 
 #pragma once
@@ -10,7 +11,7 @@ namespace obsidian::layout {
 
 /**
  * Alignment enumeration
- * Supports horizontal, vertical, and combined alignments
+ * Used for positioning children within containers
  */
 enum class Alignment {
     // Horizontal

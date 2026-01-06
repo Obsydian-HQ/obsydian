@@ -106,6 +106,12 @@ void obsidian_macos_textview_remove_from_parent(ObsidianTextViewHandle handle);
 void obsidian_macos_destroy_textview(ObsidianTextViewHandle handle);
 
 /**
+ * Release the text view handle WITHOUT removing from parent.
+ * The text view stays in the view hierarchy (retained by superview).
+ */
+void obsidian_macos_release_textview_handle(ObsidianTextViewHandle handle);
+
+/**
  * Check if text view handle is valid
  */
 bool obsidian_macos_textview_is_valid(ObsidianTextViewHandle handle);
@@ -116,6 +122,65 @@ bool obsidian_macos_textview_is_valid(ObsidianTextViewHandle handle);
  * Returns the NSView handle, or NULL if invalid
  */
 void* obsidian_macos_textview_get_view_handle(ObsidianTextViewHandle handle);
+
+/**
+ * Font weight enumeration (matches C++ FontWeight enum)
+ */
+typedef enum {
+    ObsidianFontWeightRegular = 0,
+    ObsidianFontWeightBold = 1,
+    ObsidianFontWeightSemibold = 2,
+    ObsidianFontWeightMedium = 3,
+    ObsidianFontWeightLight = 4,
+    ObsidianFontWeightThin = 5
+} ObsidianFontWeight;
+
+/**
+ * Set font size
+ * @param handle Text view handle
+ * @param size Font size in points
+ */
+void obsidian_macos_textview_set_font_size(ObsidianTextViewHandle handle, double size);
+
+/**
+ * Get font size
+ * @param handle Text view handle
+ * @return Font size in points, or 0.0 if invalid
+ */
+double obsidian_macos_textview_get_font_size(ObsidianTextViewHandle handle);
+
+/**
+ * Set font weight
+ * @param handle Text view handle
+ * @param weight Font weight
+ */
+void obsidian_macos_textview_set_font_weight(ObsidianTextViewHandle handle, ObsidianFontWeight weight);
+
+/**
+ * Get font weight
+ * @param handle Text view handle
+ * @return Font weight, or Regular if invalid
+ */
+ObsidianFontWeight obsidian_macos_textview_get_font_weight(ObsidianTextViewHandle handle);
+
+/**
+ * Text size structure for measurement results
+ */
+typedef struct {
+    double width;
+    double height;
+} ObsidianTextSize;
+
+/**
+ * Measure the intrinsic content size of the text view
+ * This calculates the size needed to display the current text with current font settings.
+ * Like React Native's TextLayoutManager, this uses the native text system to measure.
+ * 
+ * @param handle Text view handle
+ * @param maxWidth Maximum width constraint (use INFINITY or very large value for unconstrained)
+ * @return The measured size
+ */
+ObsidianTextSize obsidian_macos_textview_measure(ObsidianTextViewHandle handle, double maxWidth);
 
 #ifdef __cplusplus
 }

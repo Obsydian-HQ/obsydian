@@ -84,6 +84,13 @@ public:
      */
     bool isValid() const;
     
+    /**
+     * Get the native view handle for this ScrollView
+     * Returns an opaque pointer to the underlying NSView (NSScrollView), or nullptr if invalid
+     * This is useful for integrating with other components that need direct view access (e.g., SplitView)
+     */
+    void* getNativeViewHandle() const;
+    
     // Non-copyable
     ScrollView(const ScrollView&) = delete;
     ScrollView& operator=(const ScrollView&) = delete;

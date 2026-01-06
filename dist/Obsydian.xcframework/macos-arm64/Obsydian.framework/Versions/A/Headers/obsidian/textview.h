@@ -17,6 +17,18 @@ namespace obsidian {
 class Window;
 
 /**
+ * Font weight enumeration
+ */
+enum class FontWeight {
+    Regular = 0,
+    Bold = 1,
+    Semibold = 2,
+    Medium = 3,
+    Light = 4,
+    Thin = 5
+};
+
+/**
  * TextView class - Platform-agnostic text view management
  * 
  * This class provides a clean, high-level interface for creating and managing
@@ -38,6 +50,17 @@ public:
     
     /**
      * Create a text view with the given parameters
+     * @param text Initial text content (optional, can be empty)
+     * @param x X position in pixels
+     * @param y Y position in pixels
+     * @param width Text view width in pixels
+     * @param height Text view height in pixels
+     * @return true if text view was created successfully
+     */
+    bool create(const std::string& text, int x, int y, int width, int height);
+    
+    /**
+     * Create a text view with the given parameters (backward compatibility)
      * @param x X position in pixels
      * @param y Y position in pixels
      * @param width Text view width in pixels
@@ -55,6 +78,30 @@ public:
      * Get the text view text
      */
     std::string getString() const;
+    
+    /**
+     * Set font size
+     * @param size Font size in points
+     */
+    void setFontSize(double size);
+    
+    /**
+     * Get font size
+     * @return Font size in points
+     */
+    double getFontSize() const;
+    
+    /**
+     * Set font weight
+     * @param weight Font weight
+     */
+    void setFontWeight(FontWeight weight);
+    
+    /**
+     * Get font weight
+     * @return Font weight
+     */
+    FontWeight getFontWeight() const;
     
     /**
      * Set text view editable state
@@ -116,6 +163,12 @@ public:
      * @return Platform-specific native handle, or nullptr if invalid
      */
     void* getNativeHandle() const;
+    
+    /**
+     * Get the native view handle (for use with layout containers)
+     * @return Platform-specific native view handle (NSTextView* on macOS), or nullptr if invalid
+     */
+    void* getNativeViewHandle() const;
     
     // Non-copyable
     TextView(const TextView&) = delete;

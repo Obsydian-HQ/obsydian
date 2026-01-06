@@ -1,8 +1,8 @@
 /**
  * macOS VStack FFI - C Interface
  * 
- * Provides C interface for creating and managing VStack container views
- * from C++ code. This header is C-compatible and can be included from C++.
+ * DUMB CONTAINER: This view does NOT compute layout.
+ * The Layout Engine sets frames directly on this view and its children.
  */
 
 #pragma once
@@ -24,34 +24,21 @@ typedef void* ObsidianVStackHandle;
  * VStack creation parameters
  */
 typedef struct {
-    // No parameters needed - container view is created empty
-    // Add dummy field to avoid empty struct warning
-    int _reserved;
+    int _reserved;  // Placeholder
 } ObsidianVStackParams;
 
 /**
  * Create a new VStack container view
- * Returns a handle to the VStack, or NULL on failure
  */
 ObsidianVStackHandle obsidian_macos_create_vstack(ObsidianVStackParams params);
 
 /**
  * Get the underlying NSView from a VStack handle
- * This is the container view that holds child views
  */
 void* obsidian_macos_vstack_get_view(ObsidianVStackHandle handle);
 
 /**
- * Get the padding view from a VStack handle
- * This is the nested view that visualizes the padding area
- * Child views should be added to this view, not the container
- */
-void* obsidian_macos_vstack_get_padding_view(ObsidianVStackHandle handle);
-
-/**
  * Add a child view to the VStack container
- * @param vstackHandle VStack container handle
- * @param childViewHandle Child view handle (must be an NSView*)
  */
 void obsidian_macos_vstack_add_child_view(ObsidianVStackHandle vstackHandle,
                                           void* childViewHandle);
@@ -84,9 +71,14 @@ void obsidian_macos_vstack_add_to_window(ObsidianVStackHandle vstackHandle,
 void obsidian_macos_vstack_remove_from_parent(ObsidianVStackHandle handle);
 
 /**
- * Destroy the VStack container
+ * Destroy the VStack container and remove from parent
  */
 void obsidian_macos_destroy_vstack(ObsidianVStackHandle handle);
+
+/**
+ * Release the VStack handle WITHOUT removing from parent.
+ */
+void obsidian_macos_release_vstack_handle(ObsidianVStackHandle handle);
 
 /**
  * Check if VStack handle is valid
@@ -94,24 +86,50 @@ void obsidian_macos_destroy_vstack(ObsidianVStackHandle handle);
 bool obsidian_macos_vstack_is_valid(ObsidianVStackHandle handle);
 
 /**
- * Request immediate layout update for VStack container
- * This forces Auto Layout to apply constraints immediately
+ * Request layout update (NO-OP: layout is handled by layout engine)
  */
 void obsidian_macos_vstack_request_layout_update(ObsidianVStackHandle handle);
 
 /**
- * Set padding values for the VStack container
- * This updates the container's intrinsic content size calculation
+ * Set padding values (stored for layout engine to read)
  */
 void obsidian_macos_vstack_set_padding(ObsidianVStackHandle handle,
                                         double top, double bottom,
                                         double leading, double trailing);
 
 /**
- * Set spacing between children in the VStack
- * This updates the container's intrinsic content size calculation
+ * Set spacing between children (stored for layout engine to read)
  */
 void obsidian_macos_vstack_set_spacing(ObsidianVStackHandle handle, double spacing);
+
+/**
+ * Set frame directly - called by the layout engine
+ */
+void obsidian_macos_vstack_set_frame(ObsidianVStackHandle handle,
+                                      double x, double y,
+                                      double width, double height);
+
+/**
+ * Get layoutNode from VStack handle (opaque pointer to C++ layout::ViewNode)
+ */
+void* obsidian_macos_vstack_get_layout_node(ObsidianVStackHandle handle);
+
+/**
+ * Set layoutNode on VStack handle (opaque pointer to C++ layout::ViewNode)
+ */
+void obsidian_macos_vstack_set_layout_node(ObsidianVStackHandle handle, void* layoutNode);
+
+/**
+ * Get VStack handle from native view (if the view is a VStack container)
+ * Returns nullptr if the view is not a VStack container
+ */
+ObsidianVStackHandle obsidian_macos_vstack_get_handle_from_view(void* viewHandle);
+
+/**
+ * Associate VStack handle with its container view (called during creation)
+ * This enables reverse lookup from native view to VStack handle
+ */
+void obsidian_macos_vstack_associate_handle_with_view(ObsidianVStackHandle handle);
 
 #ifdef __cplusplus
 }

@@ -150,6 +150,12 @@ void obsidian_macos_destroy_list(ObsidianListHandle handle);
  */
 bool obsidian_macos_list_is_valid(ObsidianListHandle handle);
 
+/**
+ * Get the underlying NSView (NSScrollView) from a List handle
+ * This is the scroll view that wraps the table view
+ */
+void* obsidian_macos_list_get_view(ObsidianListHandle handle);
+
 #ifdef __cplusplus
 }
 #endif

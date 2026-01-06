@@ -40,6 +40,34 @@ void obsidian_macos_platform_stop();
  */
 void obsidian_macos_platform_cleanup();
 
+/**
+ * Set frame on any NSView
+ * Used by the Layout Engine to apply computed layouts
+ * 
+ * @param viewHandle NSView* pointer
+ * @param x X position relative to parent
+ * @param y Y position relative to parent
+ * @param width Width of the view
+ * @param height Height of the view
+ */
+void obsidian_macos_view_set_frame(void* viewHandle, 
+                                    double x, double y, 
+                                    double width, double height);
+
+/**
+ * Get bounds of any NSView
+ * Returns the view's bounds rectangle
+ * 
+ * @param viewHandle NSView* pointer
+ * @param outX Pointer to receive X (origin x, typically 0)
+ * @param outY Pointer to receive Y (origin y, typically 0)
+ * @param outWidth Pointer to receive width
+ * @param outHeight Pointer to receive height
+ */
+void obsidian_macos_view_get_bounds(void* viewHandle,
+                                     double* outX, double* outY,
+                                     double* outWidth, double* outHeight);
+
 #ifdef __cplusplus
 }
 #endif

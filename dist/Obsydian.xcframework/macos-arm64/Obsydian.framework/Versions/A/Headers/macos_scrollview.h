@@ -81,6 +81,11 @@ void obsidian_macos_destroy_scrollview(ObsidianScrollViewHandle handle);
  */
 bool obsidian_macos_scrollview_is_valid(ObsidianScrollViewHandle handle);
 
+/**
+ * Get the underlying NSView (NSScrollView) from a ScrollView handle
+ */
+void* obsidian_macos_scrollview_get_view(ObsidianScrollViewHandle handle);
+
 #ifdef __cplusplus
 }
 #endif

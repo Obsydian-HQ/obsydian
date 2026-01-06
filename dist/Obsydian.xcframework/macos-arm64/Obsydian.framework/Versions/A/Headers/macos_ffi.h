@@ -296,6 +296,26 @@ public:
     bool isEnabled() const;
     
     /**
+     * Set font size
+     */
+    void setFontSize(double size);
+    
+    /**
+     * Get font size
+     */
+    double getFontSize() const;
+    
+    /**
+     * Set font weight (0=Regular, 1=Bold, 2=Semibold, 3=Medium, 4=Light, 5=Thin)
+     */
+    void setFontWeight(int weight);
+    
+    /**
+     * Get font weight
+     */
+    int getFontWeight() const;
+    
+    /**
      * Add text view to a window's content view
      */
     void addToWindow(Window& window);
@@ -662,6 +682,462 @@ private:
     void* handle_;  // Opaque handle to native list
     std::function<void(int)> callback_;  // C++ callback
     static void onSelectionCallback(int itemIndex, void* userData);  // C callback bridge
+};
+
+/**
+ * SplitView handle (opaque pointer)
+ * Provides split view layout with collapse/expand and resizing capabilities
+ */
+class SplitView {
+public:
+    SplitView();
+    ~SplitView();
+    
+    /**
+     * Create a SplitView with the given parameters
+     * @param position Split position (leading or trailing)
+     * @param initialPrimaryPaneWidth Initial primary pane width in points (default: 200.0)
+     * @param minPrimaryPaneWidth Minimum primary pane width in points (default: 150.0)
+     * @param maxPrimaryPaneWidth Maximum primary pane width in points (default: 400.0)
+     */
+    bool create(int position, double initialPrimaryPaneWidth = 200.0, 
+                double minPrimaryPaneWidth = 150.0, double maxPrimaryPaneWidth = 400.0);
+    
+    /**
+     * Set the primary pane width (in points)
+     */
+    void setPrimaryPaneWidth(double width);
+    
+    /**
+     * Get the current primary pane width (in points)
+     */
+    double getPrimaryPaneWidth() const;
+    
+    /**
+     * Set minimum primary pane width (in points)
+     */
+    void setMinimumPrimaryPaneWidth(double width);
+    
+    /**
+     * Set maximum primary pane width (in points)
+     */
+    void setMaximumPrimaryPaneWidth(double width);
+    
+    /**
+     * Collapse the primary pane
+     */
+    void collapsePrimaryPane();
+    
+    /**
+     * Expand the primary pane
+     */
+    void expandPrimaryPane();
+    
+    /**
+     * Toggle primary pane collapse/expand state
+     */
+    void togglePrimaryPane();
+    
+    /**
+     * Check if primary pane is currently collapsed
+     */
+    bool isPrimaryPaneCollapsed() const;
+    
+    /**
+     * Set the primary pane content view
+     * @param viewHandle NSView handle to use as primary pane content
+     */
+    void setPrimaryPaneView(void* viewHandle);
+    
+    /**
+     * Set the secondary pane content view
+     * @param viewHandle NSView handle to use as secondary pane content
+     */
+    void setSecondaryPaneView(void* viewHandle);
+    
+    /**
+     * Add SplitView to a window's content view
+     */
+    void addToWindow(Window& window);
+    
+    /**
+     * Remove SplitView from its parent view
+     */
+    void removeFromParent();
+    
+    /**
+     * Check if SplitView is valid
+     */
+    bool isValid() const;
+    
+    /**
+     * Get the internal SplitView handle (for internal use)
+     */
+    void* getHandle() const { return handle_; }
+    
+    // Non-copyable
+    SplitView(const SplitView&) = delete;
+    SplitView& operator=(const SplitView&) = delete;
+    
+    // Movable
+    SplitView(SplitView&&) noexcept;
+    SplitView& operator=(SplitView&&) noexcept;
+
+private:
+    void* handle_;  // Opaque handle to native SplitView
+};
+
+/**
+ * ViewController handle (opaque pointer)
+ * Wraps NSViewController for managing view hierarchies
+ * Required for NSSplitViewController and NSSplitViewItem composition
+ */
+class ViewController {
+public:
+    ViewController();
+    ~ViewController();
+    
+    /**
+     * Create a ViewController
+     */
+    bool create();
+    
+    /**
+     * Set the view for the view controller
+     * @param viewHandle NSView handle (from VStack, HStack, List, etc.)
+     */
+    void setView(void* viewHandle);
+    
+    /**
+     * Get the view from the view controller
+     * @return NSView handle, or nullptr if not set
+     */
+    void* getView() const;
+    
+    /**
+     * Check if view controller is valid
+     */
+    bool isValid() const;
+    
+    /**
+     * Configure the view controller for use as a sidebar.
+     * This wraps the current view in an NSVisualEffectView with the sidebar
+     * material to get the native macOS sidebar appearance (translucent, vibrancy).
+     * 
+     * IMPORTANT: Call this AFTER setting the view via setView().
+     */
+    void configureForSidebar();
+    
+    /**
+     * Set the preferred content size for the view controller.
+     * This is CRITICAL for NSSplitViewController to properly size its child items.
+     * NSSplitView uses the preferredContentSize of child view controllers to determine
+     * the layout of split view items.
+     * 
+     * @param width Preferred width (use 0 for unconstrained)
+     * @param height Preferred height (use 0 for unconstrained)
+     */
+    void setPreferredContentSize(double width, double height);
+    
+    /**
+     * Get the preferred content size for the view controller.
+     * @param outWidth Pointer to receive width (can be nullptr)
+     * @param outHeight Pointer to receive height (can be nullptr)
+     */
+    void getPreferredContentSize(double* outWidth, double* outHeight) const;
+    
+    /**
+     * Get the internal view controller handle (for internal use)
+     */
+    void* getHandle() const { return handle_; }
+    
+    // Non-copyable
+    ViewController(const ViewController&) = delete;
+    ViewController& operator=(const ViewController&) = delete;
+    
+    // Movable
+    ViewController(ViewController&&) noexcept;
+    ViewController& operator=(ViewController&&) noexcept;
+
+private:
+    void* handle_;  // Opaque handle to native view controller
+};
+
+/**
+ * SplitViewController handle (opaque pointer)
+ * Wraps NSSplitViewController for managing split view items
+ */
+class SplitViewController {
+public:
+    SplitViewController();
+    ~SplitViewController();
+    
+    /**
+     * Create a SplitViewController
+     */
+    bool create();
+    
+    /**
+     * Get the view from the split view controller
+     * @return NSView handle, or nullptr if not set
+     */
+    void* getView() const;
+    
+    /**
+     * Add a split view item to the split view controller
+     * @param splitViewItemHandle NSSplitViewItem handle
+     */
+    void addSplitViewItem(void* splitViewItemHandle);
+    
+    /**
+     * Remove a split view item from the split view controller
+     * @param splitViewItemHandle NSSplitViewItem handle to remove
+     */
+    void removeSplitViewItem(void* splitViewItemHandle);
+    
+    /**
+     * Check if split view controller is valid
+     */
+    bool isValid() const;
+    
+    /**
+     * Set the NSSplitView's frame size.
+     * CRITICAL: This MUST be called BEFORE adding any split view items.
+     * Real macOS apps (like Watt editor) set the split view frame size before adding items.
+     * @param width Desired width
+     * @param height Desired height
+     */
+    void setViewFrameSize(double width, double height);
+    
+    /**
+     * Get the internal split view controller handle (for internal use)
+     */
+    void* getHandle() const { return handle_; }
+    
+    // Non-copyable
+    SplitViewController(const SplitViewController&) = delete;
+    SplitViewController& operator=(const SplitViewController&) = delete;
+    
+    // Movable
+    SplitViewController(SplitViewController&&) noexcept;
+    SplitViewController& operator=(SplitViewController&&) noexcept;
+
+private:
+    void* handle_;  // Opaque handle to native split view controller
+};
+
+/**
+ * SplitViewItem handle (opaque pointer)
+ * Wraps NSSplitViewItem for managing individual panes in a split view
+ */
+class SplitViewItem {
+public:
+    SplitViewItem();
+    ~SplitViewItem();
+    
+    /**
+     * Create a sidebar split view item with a view controller
+     * This provides native macOS sidebar behavior (material background, collapse button)
+     * @param viewControllerHandle NSViewController handle
+     */
+    bool createSidebarWithViewController(void* viewControllerHandle);
+    
+    /**
+     * Create a content list split view item with a view controller
+     * @param viewControllerHandle NSViewController handle
+     */
+    bool createContentListWithViewController(void* viewControllerHandle);
+    
+    /**
+     * Create an inspector split view item with a view controller
+     * @param viewControllerHandle NSViewController handle
+     */
+    bool createInspectorWithViewController(void* viewControllerHandle);
+    
+    /**
+     * Set minimum thickness for the split view item
+     */
+    void setMinimumThickness(double thickness);
+    
+    /**
+     * Get minimum thickness for the split view item
+     */
+    double getMinimumThickness() const;
+    
+    /**
+     * Set maximum thickness for the split view item
+     */
+    void setMaximumThickness(double thickness);
+    
+    /**
+     * Get maximum thickness for the split view item
+     */
+    double getMaximumThickness() const;
+    
+    /**
+     * Set whether the split view item is collapsed
+     */
+    void setCollapsed(bool collapsed);
+    
+    /**
+     * Get whether the split view item is collapsed
+     */
+    bool getCollapsed() const;
+    
+    /**
+     * Set whether the split view item allows full-height layout (macOS 11+)
+     * When true, the sidebar extends into the title bar area.
+     */
+    void setAllowsFullHeightLayout(bool allowed);
+    
+    /**
+     * Get whether the split view item allows full-height layout
+     */
+    bool getAllowsFullHeightLayout() const;
+    
+    /**
+     * Set whether the split view item can collapse
+     */
+    void setCanCollapse(bool canCollapse);
+    
+    /**
+     * Get whether the split view item can collapse
+     */
+    bool getCanCollapse() const;
+    
+    /**
+     * Set the holding priority for the split view item
+     * Higher priority items resist being resized.
+     */
+    void setHoldingPriority(float priority);
+    
+    /**
+     * Get the holding priority for the split view item
+     */
+    float getHoldingPriority() const;
+    
+    /**
+     * Check if split view item is valid
+     */
+    bool isValid() const;
+    
+    /**
+     * Get the internal split view item handle (for internal use)
+     */
+    void* getHandle() const { return handle_; }
+    
+    // Non-copyable
+    SplitViewItem(const SplitViewItem&) = delete;
+    SplitViewItem& operator=(const SplitViewItem&) = delete;
+    
+    // Movable
+    SplitViewItem(SplitViewItem&&) noexcept;
+    SplitViewItem& operator=(SplitViewItem&&) noexcept;
+
+private:
+    void* handle_;  // Opaque handle to native split view item
+};
+
+/**
+ * Toolbar display mode enumeration
+ */
+enum class ToolbarDisplayMode {
+    Default = 0,
+    IconAndLabel = 1,
+    IconOnly = 2,
+    LabelOnly = 3
+};
+
+/**
+ * Toolbar style enumeration (macOS 11+)
+ */
+enum class ToolbarStyle {
+    Automatic = 0,
+    Expanded = 1,
+    Preference = 2,
+    Unified = 3,
+    UnifiedCompact = 4
+};
+
+/**
+ * Toolbar handle (opaque pointer)
+ * Wraps NSToolbar for managing window toolbars
+ * 
+ * REQUIRED for native sidebar collapse button functionality.
+ * The collapse button is provided by NSToolbarToggleSidebarItemIdentifier.
+ */
+class Toolbar {
+public:
+    Toolbar();
+    ~Toolbar();
+    
+    /**
+     * Create a toolbar with the given identifier
+     * @param identifier Unique identifier for the toolbar
+     */
+    bool create(const std::string& identifier = "ObsidianMainToolbar");
+    
+    /**
+     * Set the toolbar's display mode
+     */
+    void setDisplayMode(ToolbarDisplayMode mode);
+    
+    /**
+     * Get the toolbar's display mode
+     */
+    ToolbarDisplayMode getDisplayMode() const;
+    
+    /**
+     * Insert the sidebar toggle button at the specified index
+     * This adds NSToolbarToggleSidebarItemIdentifier which provides
+     * the native collapse/expand button for sidebars.
+     * @param index Index where to insert the item
+     */
+    void insertSidebarToggleItem(int index = 0);
+    
+    /**
+     * Insert the sidebar tracking separator at the specified index (macOS 11+)
+     * This provides proper separator tracking when the sidebar is resized.
+     * @param index Index where to insert the separator
+     */
+    void insertSidebarTrackingSeparator(int index = 1);
+    
+    /**
+     * Insert a flexible space item at the specified index
+     * @param index Index where to insert the item
+     */
+    void insertFlexibleSpace(int index);
+    
+    /**
+     * Get the number of items in the toolbar
+     */
+    int getItemCount() const;
+    
+    /**
+     * Check if toolbar is valid
+     */
+    bool isValid() const;
+    
+    /**
+     * Get the internal toolbar handle (for internal use)
+     */
+    void* getHandle() const { return handle_; }
+    
+    /**
+     * Get the actual NSToolbar* handle (for internal use by Window)
+     */
+    void* getNSToolbarHandle() const;
+    
+    // Non-copyable
+    Toolbar(const Toolbar&) = delete;
+    Toolbar& operator=(const Toolbar&) = delete;
+    
+    // Movable
+    Toolbar(Toolbar&&) noexcept;
+    Toolbar& operator=(Toolbar&&) noexcept;
+
+private:
+    void* handle_;  // Opaque handle to native toolbar
 };
 
 /**
