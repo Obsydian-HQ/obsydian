@@ -90,10 +90,16 @@ void RouteRegistry::addRouteFile(const RouteFile& routeFile) {
         current = child;
     }
     
-    // Handle root layout (routePath == "/" or empty)
-    if (segments.empty() && routeFile.type == RouteFileType::Layout) {
-        current->hasLayout = true;
-        current->layoutFile = routeFile;
+    // Handle root route/layout (routePath == "/" or empty)
+    if (segments.empty()) {
+        if (routeFile.type == RouteFileType::Layout) {
+            current->hasLayout = true;
+            current->layoutFile = routeFile;
+        } else {
+            // Root index route (index.cpp at app/)
+            current->routeFile = routeFile;
+            current->fullPath = routeFile.routePath;
+        }
     }
 }
 

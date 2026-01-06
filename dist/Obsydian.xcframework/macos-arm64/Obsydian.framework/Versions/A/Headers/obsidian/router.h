@@ -101,10 +101,34 @@ public:
     int getHistorySize() const;
     
     /**
-     * Set the window for route rendering
+     * Set the window for route rendering (does NOT auto-attach)
+     * This only stores the window reference for route rendering.
+     * You must call attachToWindow() or attachToView() to attach the ScreenContainer.
      * @param window Window reference
      */
     void setWindow(Window& window);
+    
+    /**
+     * Attach the router's ScreenContainer to a window
+     * This is a convenience method equivalent to attachToView(window.getContentView()).
+     * Call this AFTER setWindow() or use the combined pattern with Sidebar.
+     * @param window Window to attach to
+     */
+    void attachToWindow(Window& window);
+    
+    /**
+     * Attach the router's ScreenContainer to a parent view
+     * Use this when the router's content should render inside another container,
+     * such as a Sidebar's main content area.
+     * @param parentView Native view handle (NSView* on macOS)
+     */
+    void attachToView(void* parentView);
+    
+    /**
+     * Get the ScreenContainer (creates one if needed)
+     * Returns nullptr if router is not valid.
+     */
+    ScreenContainer* getScreenContainer();
     
     /**
      * Set callback for navigation events

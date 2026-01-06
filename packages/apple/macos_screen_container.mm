@@ -226,6 +226,31 @@ void obsidian_macos_screen_container_attach_to_window(ObsidianScreenContainerHan
     }
 }
 
+void obsidian_macos_screen_container_attach_to_view(ObsidianScreenContainerHandle handle, void* parentView) {
+    if (!handle || !parentView) return;
+    @autoreleasepool {
+        ObsidianScreenContainerView* container = (__bridge ObsidianScreenContainerView*)handle;
+        NSView* parent = (__bridge NSView*)parentView;
+        
+        // Remove from current superview if attached elsewhere
+        if (container.superview) {
+            [container removeFromSuperview];
+        }
+        
+        // FRAME-BASED: Set frame to fill parent view and add autoresizing
+        container.frame = parent.bounds;
+        container.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+        [parent addSubview:container];
+        
+        // Trigger layout
+        [container setNeedsLayout:YES];
+        
+        NSLog(@"[ScreenContainer] Attached to parent view: %@ bounds: %@", 
+              NSStringFromClass([parent class]), 
+              NSStringFromRect(parent.bounds));
+    }
+}
+
 void* obsidian_macos_screen_container_get_view(ObsidianScreenContainerHandle handle) {
     if (!handle) return nullptr;
     @autoreleasepool {

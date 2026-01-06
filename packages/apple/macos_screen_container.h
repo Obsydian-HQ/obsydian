@@ -68,6 +68,15 @@ void obsidian_macos_destroy_screen_container(ObsidianScreenContainerHandle handl
 void obsidian_macos_screen_container_attach_to_window(ObsidianScreenContainerHandle handle, void* windowHandle);
 
 /**
+ * Attach container to an arbitrary parent view
+ * The container's view becomes a subview of the parent view.
+ * Use this when integrating with Sidebar or other container components.
+ * @param handle Screen container handle
+ * @param parentView NSView* to attach to
+ */
+void obsidian_macos_screen_container_attach_to_view(ObsidianScreenContainerHandle handle, void* parentView);
+
+/**
  * Get the container's NSView
  */
 void* obsidian_macos_screen_container_get_view(ObsidianScreenContainerHandle handle);

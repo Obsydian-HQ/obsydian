@@ -101,6 +101,14 @@ void ScreenContainer::attachToWindow(Window& window) {
 #endif
 }
 
+void ScreenContainer::attachToView(void* parentView) {
+#ifdef __APPLE__
+    if (pImpl->nativeHandle && parentView) {
+        obsidian_macos_screen_container_attach_to_view(pImpl->nativeHandle, parentView);
+    }
+#endif
+}
+
 Screen* ScreenContainer::getOrCreateScreen(const std::string& routePath) {
     // Check if exists
     auto it = pImpl->screens.find(routePath);

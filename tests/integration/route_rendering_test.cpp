@@ -71,6 +71,7 @@ TEST_F(RouteRenderingTest, RegisterRouteComponent) {
     // Initialize router first (scans the app directory)
     ASSERT_TRUE(router.initialize(testAppDirectory));
     router.setWindow(window);
+    router.attachToWindow(window);
     
     // Register a route component for an existing route from the test app directory
     router.registerRouteComponent("/about", [&](RouteContext& ctx) {
@@ -91,6 +92,7 @@ TEST_F(RouteRenderingTest, RouteContextProvidesWindow) {
     
     ASSERT_TRUE(router.initialize(testAppDirectory));
     router.setWindow(window);
+    router.attachToWindow(window);
     
     router.registerRouteComponent("/about", [&](RouteContext& ctx) {
         receivedWindow = &ctx.getWindow();
@@ -111,6 +113,7 @@ TEST_F(RouteRenderingTest, RouteContextProvidesParams) {
     
     ASSERT_TRUE(router.initialize(testAppDirectory));
     router.setWindow(window);
+    router.attachToWindow(window);
     router.navigate("/products/123");
     
     ASSERT_FALSE(receivedParams.empty()) << "RouteContext should provide params";
@@ -122,6 +125,7 @@ TEST_F(RouteRenderingTest, RouteContextProvidesQuery) {
     
     ASSERT_TRUE(router.initialize(testAppDirectory));
     router.setWindow(window);
+    router.attachToWindow(window);
     
     router.registerRouteComponent("/about", [&](RouteContext& ctx) {
         receivedQuery = ctx.getQuery();
@@ -140,6 +144,7 @@ TEST_F(RouteRenderingTest, RouteContextNavigation) {
     
     ASSERT_TRUE(router.initialize(testAppDirectory));
     router.setWindow(window);
+    router.attachToWindow(window);
     
     router.setOnNavigation([&](const std::string& path) {
         navigated = true;
@@ -161,6 +166,7 @@ TEST_F(RouteRenderingTest, LayoutNesting) {
     
     ASSERT_TRUE(router.initialize(testAppDirectory));
     router.setWindow(window);
+    router.attachToWindow(window);
     
     // Register root layout
     router.registerLayoutComponent("/", [&](RouteContext& /* ctx */, std::function<void()> renderChild) {
@@ -198,6 +204,7 @@ TEST_F(RouteRenderingTest, LayoutWithoutChild) {
     
     ASSERT_TRUE(router.initialize(testAppDirectory));
     router.setWindow(window);
+    router.attachToWindow(window);
     
     // Even without a route, layout registration should work
     ASSERT_TRUE(layoutCalled || true) << "Layout registration should work";
@@ -208,6 +215,7 @@ TEST_F(RouteRenderingTest, MultipleRouteRegistrations) {
     
     ASSERT_TRUE(router.initialize(testAppDirectory));
     router.setWindow(window);
+    router.attachToWindow(window);
     
     router.registerRouteComponent("/about", [&](RouteContext& /* ctx */) {
         callCount++;

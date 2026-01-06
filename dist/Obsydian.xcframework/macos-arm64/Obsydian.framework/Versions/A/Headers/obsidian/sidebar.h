@@ -21,6 +21,7 @@ class HStack;
 class List;
 class Button;
 class ScrollView;
+class Router;
 
 /**
  * Sidebar class - Native macOS sidebar
@@ -69,6 +70,35 @@ public:
     void setMainContent(List& list);
     void setMainContent(Button& button);
     void setMainContent(ScrollView& scrollView);
+    
+    /**
+     * Set the main content to a Router
+     * The Router's ScreenContainer will be attached to the sidebar's main content area.
+     * This is the proper way to integrate a Router with a Sidebar.
+     * 
+     * Usage:
+     * ```cpp
+     * Sidebar sidebar;
+     * Router router;
+     * sidebar.create();
+     * router.initialize();
+     * sidebar.setSidebarContent(navVStack);
+     * sidebar.setMainContent(router);  // Router content goes in sidebar's main area
+     * sidebar.addToWindow(window);
+     * router.navigate("/");
+     * ```
+     * 
+     * NOTE: Do NOT also call router.setWindow() when using this method.
+     * The sidebar handles attaching the router's ScreenContainer.
+     */
+    void setMainContent(Router& router);
+    
+    /**
+     * Get the native view handle of the main content area
+     * Useful for manually attaching views to the sidebar's main content.
+     * Returns nullptr if sidebar is not valid or main content area not created.
+     */
+    void* getMainContentView() const;
     
     /**
      * Set minimum sidebar width (in points)

@@ -5,20 +5,24 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleExecutable</key>
-    <string>Obsydian</string>
+    <string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleIdentifier</key>
-    <string>com.obsydian.Obsydian</string>
+    <string>com.obsidian.examples.sidebarwithrouter</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>Obsydian</string>
+    <string>Sidebar with Router</string>
     <key>CFBundlePackageType</key>
-    <string>FMWK</string>
+    <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>2.2.0</string>
+    <string>1.0</string>
     <key>CFBundleVersion</key>
-    <string>2.2.0</string>
-    <key>MinimumOSVersion</key>
-    <string>14.0</string>
+    <string>1</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>11.0</string>
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
 </dict>
 </plist>

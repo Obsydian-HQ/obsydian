@@ -1,0 +1,47 @@
+# Sidebar with Router Example Application
+# Demonstrates the proper way to integrate Sidebar with Router
+# This is the CANONICAL pattern for real-world applications
+
+load("@rules_apple//apple:macos.bzl", "macos_application")
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+
+# Route files library
+# alwayslink ensures static initializers in route files are not dead-stripped by the linker
+cc_library(
+    name = "routes",
+    srcs = glob(["app/**/*.cpp"]),
+    copts = ["-std=c++20"],
+    deps = ["//src:obsidian"],
+    alwayslink = 1,
+)
+
+# C++ library containing main function
+cc_library(
+    name = "sidebar_with_router_lib",
+    srcs = ["main.cpp"],
+    copts = ["-std=c++20"],
+    deps = [
+        "//src:obsidian",
+        ":routes",
+    ],
+)
+
+# macOS application bundle
+macos_application(
+    name = "sidebar_with_router_app",
+    bundle_id = "com.obsidian.examples.sidebarwithrouter",
+    infoplists = [":Info.plist"],
+    minimum_os_version = "11.0",
+    deps = [":sidebar_with_router_lib"],
+)
+
+# Also provide a simple binary for command-line testing
+cc_binary(
+    name = "sidebar_with_router",
+    srcs = ["main.cpp"],
+    copts = ["-std=c++20"],
+    deps = [
+        "//src:obsidian",
+        ":routes",
+    ],
+)

@@ -83,8 +83,9 @@ int main(int /* argc */, char* /* argv */[]) {
     }
     std::cout << "Router initialized successfully\n";
     
-    // Set window for router
+    // Set window and attach router to it
     router.setWindow(window);
+    router.attachToWindow(window);
     
     // Set up navigation callback
     router.setOnNavigation([](const std::string& path) {

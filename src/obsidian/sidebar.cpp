@@ -16,6 +16,8 @@
 #include "obsidian/list.h"
 #include "obsidian/button.h"
 #include "obsidian/scrollview.h"
+#include "obsidian/router.h"
+#include "obsidian/screen_container.h"
 
 #ifdef __APPLE__
 #include "macos_ffi.h"
@@ -45,6 +47,10 @@ public:
     // when the view controller's container view gets sized by the split view
     std::function<void()> mainContentLayoutUpdateCallback;
     std::function<void()> sidebarContentLayoutUpdateCallback;
+    
+    // Store Router pointer if sidebar owns a router (for setMainContent(Router&))
+    // We need to give the Router access to the Window when addToWindow is called
+    Router* routerContent = nullptr;
 #endif
     bool valid = false;
     double minSidebarWidth = 200.0;
@@ -337,6 +343,41 @@ void Sidebar::setMainContent(ScrollView& scrollView) {
 #endif
 }
 
+void Sidebar::setMainContent(Router& router) {
+#ifdef __APPLE__
+    if (!pImpl->valid) return;
+    
+    // Store router pointer - we handle attachment in addToWindow()
+    pImpl->routerContent = &router;
+    
+    // Create the main content view controller if needed
+    if (!pImpl->mainContentViewController.isValid()) {
+        if (!pImpl->mainContentViewController.create()) return;
+    }
+    
+    // Create the split view item if needed
+    if (!pImpl->mainContentItem.isValid()) {
+        void* vcHandle = pImpl->mainContentViewController.getHandle();
+        if (!pImpl->mainContentItem.createContentListWithViewController(vcHandle)) return;
+        pImpl->splitViewController.addSplitViewItem(pImpl->mainContentItem.getHandle());
+    }
+    
+    // Note: Router attachment happens in addToWindow() when we have the window reference
+    // and the view hierarchy is established
+#endif
+}
+
+void* Sidebar::getMainContentView() const {
+#ifdef __APPLE__
+    if (!pImpl->valid || !pImpl->mainContentViewController.isValid()) {
+        return nullptr;
+    }
+    return obsidian_macos_viewcontroller_get_view(pImpl->mainContentViewController.getHandle());
+#else
+    return nullptr;
+#endif
+}
+
 void Sidebar::setMinimumSidebarWidth(double width) {
     pImpl->minSidebarWidth = width;
 #ifdef __APPLE__
@@ -425,12 +466,19 @@ void Sidebar::addToWindow(Window& window) {
         obsidian_macos_splitviewcontroller_add_to_window(splitViewControllerHandle, windowHandle);
         
         // CRITICAL: After adding to window, the split view controller sizes its child views
-        // The view controller's container views now have proper bounds.
-        // This is when we MUST trigger layout updates - the views are actually sized now.
-        // 
-        // This matches the router pattern: ScreenContainer is attached to window (gets bounds),
-        // then components calculate layout. Here, the split view lays out, giving the view
-        // controller's container view bounds, so we trigger layout updates.
+        // Now attach the router to the main content area if one was set
+        if (pImpl->routerContent) {
+            // Give router access to window for rendering
+            pImpl->routerContent->setWindow(window);
+            
+            // Get the main content view and attach router to it
+            void* mainContentView = getMainContentView();
+            if (mainContentView) {
+                pImpl->routerContent->attachToView(mainContentView);
+            }
+        }
+        
+        // Trigger layout updates for VStack/HStack content
         if (pImpl->mainContentLayoutUpdateCallback) {
             pImpl->mainContentLayoutUpdateCallback();
         }

@@ -104,6 +104,14 @@ public:
      * Container's view becomes a child of window's content view
      */
     void attachToWindow(Window& window);
+    
+    /**
+     * Attach container to an arbitrary native view
+     * Use this when integrating with Sidebar or other container components.
+     * Container's view becomes a child of the provided parent view.
+     * @param parentView Native view handle (NSView* on macOS)
+     */
+    void attachToView(void* parentView);
 
     /**
      * Get or create a screen for a route path

@@ -85,8 +85,9 @@ TEST_F(MacOSRouterGUITest, RouterCreatesMacOSIntegration) {
     ASSERT_TRUE(router.initialize(testAppDirectory));
     ASSERT_TRUE(router.isValid());
     
-    // Set window - this should create macOS router integration
+    // Set window and attach - this should create macOS router integration
     router.setWindow(window);
+    router.attachToWindow(window);
     
     // Verify router is still valid
     ASSERT_TRUE(router.isValid());
@@ -105,6 +106,7 @@ TEST_F(MacOSRouterGUITest, RouterNavigationUpdatesMacOSViewControllers) {
     Router router;
     ASSERT_TRUE(router.initialize(testAppDirectory));
     router.setWindow(window);
+    router.attachToWindow(window);
     
     // Navigate to a route
     router.navigate("/about");
@@ -130,6 +132,7 @@ TEST_F(MacOSRouterGUITest, RouterBackForwardNavigation) {
     Router router;
     ASSERT_TRUE(router.initialize(testAppDirectory));
     router.setWindow(window);
+    router.attachToWindow(window);
     
     // Navigate to multiple routes
     router.navigate("/about");
@@ -162,6 +165,7 @@ TEST_F(MacOSRouterGUITest, RouterReplaceNavigation) {
     Router router;
     ASSERT_TRUE(router.initialize(testAppDirectory));
     router.setWindow(window);
+    router.attachToWindow(window);
     
     // Navigate to a route
     router.navigate("/about");
@@ -186,6 +190,7 @@ TEST_F(MacOSRouterGUITest, RouterNavigationCallback) {
     Router router;
     ASSERT_TRUE(router.initialize(testAppDirectory));
     router.setWindow(window);
+    router.attachToWindow(window);
     
     // Set up navigation callback
     bool callbackCalled = false;

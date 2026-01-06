@@ -286,10 +286,10 @@ int Router::getHistorySize() const {
 void Router::setWindow(Window& window) {
     pImpl->window = &window;
     
-    // Initialize ScreenContainer and attach to window
+    // Create ScreenContainer but DO NOT auto-attach
+    // User must call attachToWindow() or attachToView() explicitly
     if (!pImpl->screenContainer) {
         pImpl->screenContainer = std::make_unique<ScreenContainer>();
-        pImpl->screenContainer->attachToWindow(window);
     }
     
 #ifdef __APPLE__
@@ -307,6 +307,57 @@ void Router::setWindow(Window& window) {
         }
     }
 #endif
+}
+
+void Router::attachToWindow(Window& window) {
+    // Ensure we have window reference
+    if (!pImpl->window) {
+        pImpl->window = &window;
+    }
+    
+    // Create and attach ScreenContainer to window's content view
+    if (!pImpl->screenContainer) {
+        pImpl->screenContainer = std::make_unique<ScreenContainer>();
+    }
+    pImpl->screenContainer->attachToWindow(window);
+    
+#ifdef __APPLE__
+    // Initialize macOS router integration if not already done
+    if (!pImpl->macosRouterHandle && window.getNativeHandle()) {
+        ObsidianMacOSRouterParams params;
+        params.routerHandle = this;
+        params.windowHandle = window.getNativeHandle();
+        
+        pImpl->macosRouterHandle = obsidian_macos_router_create(params);
+        
+        if (pImpl->macosRouterHandle) {
+            obsidian_macos_router_setup_navigation_callbacks(pImpl->macosRouterHandle);
+        }
+    }
+#endif
+}
+
+void Router::attachToView(void* parentView) {
+    if (!parentView) return;
+    
+    // Create and attach ScreenContainer to the specified parent view
+    if (!pImpl->screenContainer) {
+        pImpl->screenContainer = std::make_unique<ScreenContainer>();
+    }
+    pImpl->screenContainer->attachToView(parentView);
+}
+
+ScreenContainer* Router::getScreenContainer() {
+    if (!pImpl->valid) {
+        return nullptr;
+    }
+    
+    // Create ScreenContainer if needed
+    if (!pImpl->screenContainer) {
+        pImpl->screenContainer = std::make_unique<ScreenContainer>();
+    }
+    
+    return pImpl->screenContainer.get();
 }
 
 void Router::setOnNavigation(std::function<void(const std::string& path)> callback) {
