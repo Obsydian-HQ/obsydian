@@ -52,6 +52,12 @@ for file in core/layout/*.cpp; do
     [ -f "$file" ] && SOURCES+=("$file")
 done
 
+for file in core/routing/*.cpp; do
+    # Exclude test files
+    [[ "$file" == *"_test.cpp" ]] && continue
+    [ -f "$file" ] && SOURCES+=("$file")
+done
+
 # Objective-C++ source files
 for file in packages/apple/*.mm; do
     [ -f "$file" ] && SOURCES+=("$file")
@@ -75,7 +81,7 @@ for file in include/obsidian/*.h; do
     [ -f "$file" ] && HEADERS+=("$file")
 done
 
-for file in core/runtime/*.h core/ffi/*.h core/layout/*.h; do
+for file in core/runtime/*.h core/ffi/*.h core/layout/*.h core/routing/*.h; do
     [ -f "$file" ] && HEADERS+=("$file")
 done
 
@@ -111,25 +117,39 @@ for src in "${SOURCES[@]}"; do
         OBJC_FLAGS=""
     fi
     
-    $COMPILER -c "$REPO_ROOT/$src" \
+    # Additional include paths for Fabric subdirectories
+    FABRIC_INCLUDES=""
+    if [[ "$src" == platform/apple/Fabric/* ]]; then
+        FABRIC_INCLUDES="-I\"$REPO_ROOT/platform/apple/Fabric/Mounting\" -I\"$REPO_ROOT/platform/apple/Fabric/Mounting/ComponentViews\""
+    fi
+    
+    # Use C++17 for Fabric files (as per BUILD file), C++20 for others
+    CXX_STD="-std=c++20"
+    if [[ "$src" == platform/apple/Fabric/* ]]; then
+        CXX_STD="-std=c++17"
+    fi
+    
+    if ! $COMPILER -c "$REPO_ROOT/$src" \
         -o "$obj_file" \
-        -std=c++20 \
+        $CXX_STD \
         -arch arm64 \
         -isysroot $(xcrun --show-sdk-path --sdk macosx) \
         -I"$REPO_ROOT/include" \
         -I"$REPO_ROOT/core/runtime" \
         -I"$REPO_ROOT/core/ffi" \
         -I"$REPO_ROOT/core/layout" \
+        -I"$REPO_ROOT/core/routing" \
         -I"$REPO_ROOT/packages/apple" \
         -I"$REPO_ROOT/platform/apple/Fabric" \
+        $FABRIC_INCLUDES \
         -I"$REPO_ROOT" \
         $OBJC_FLAGS \
         -fPIC \
         -O2 \
-        -Wall || {
-        echo "⚠️  Failed to compile $src for macOS arm64"
-        continue
-    }
+        -Wall 2>&1; then
+        echo "❌ Failed to compile $src for macOS arm64"
+        exit 1
+    fi
     OBJECT_FILES+=("$obj_file")
 done
 
@@ -244,6 +264,7 @@ for src in "${SOURCES[@]}"; do
         -I"$REPO_ROOT/core/runtime" \
         -I"$REPO_ROOT/core/ffi" \
         -I"$REPO_ROOT/core/layout" \
+        -I"$REPO_ROOT/core/routing" \
         -I"$REPO_ROOT/packages/apple" \
         -I"$REPO_ROOT/platform/apple/Fabric" \
         -I"$REPO_ROOT" \
@@ -321,6 +342,7 @@ for src in "${SOURCES[@]}"; do
         -I"$REPO_ROOT/core/runtime" \
         -I"$REPO_ROOT/core/ffi" \
         -I"$REPO_ROOT/core/layout" \
+        -I"$REPO_ROOT/core/routing" \
         -I"$REPO_ROOT/packages/apple" \
         -I"$REPO_ROOT/platform/apple/Fabric" \
         -I"$REPO_ROOT" \
