@@ -57,6 +57,14 @@ for file in packages/apple/*.mm; do
     [ -f "$file" ] && SOURCES+=("$file")
 done
 
+# Fabric source files (Objective-C++)
+# Use find with relative paths
+while IFS= read -r file; do
+    # Convert absolute path to relative path from repo root
+    rel_file="${file#$REPO_ROOT/}"
+    [ -f "$rel_file" ] && SOURCES+=("$rel_file")
+done < <(find "$REPO_ROOT/platform/apple/Fabric" -name "*.mm" -type f)
+
 # C++ FFI wrapper
 for file in packages/apple/*.cpp; do
     [ -f "$file" ] && SOURCES+=("$file")
