@@ -25,7 +25,7 @@ void renderDashboardSettingsRoute(RouteContext& ctx) {
     content.addChild(description);
     
     TextView note;
-    note.create("The sidebar navigation is provided by the dashboard layout, demonstrating nested layout functionality.", 0, 0, 0, 0);
+    note.create("The navigation links are provided by the dashboard layout, demonstrating nested layout functionality.", 0, 0, 0, 0);
     note.setFontSize(12.0);
     content.addChild(note);
     

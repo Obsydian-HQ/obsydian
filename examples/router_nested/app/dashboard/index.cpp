@@ -25,7 +25,7 @@ void renderDashboardRoute(RouteContext& ctx) {
     content.addChild(description);
     
     TextView note;
-    note.create("Notice how the dashboard layout provides sidebar navigation that persists across dashboard routes.", 0, 0, 0, 0);
+    note.create("Notice how the dashboard layout provides navigation that persists across dashboard routes.", 0, 0, 0, 0);
     note.setFontSize(12.0);
     content.addChild(note);
     

@@ -11,36 +11,28 @@
 using namespace obsidian;
 
 void renderDashboardLayout(RouteContext& ctx, std::function<void()> renderChild) {
-    // Horizontal layout: sidebar | content
-    HStack layout;
+    // Main layout container
+    VStack layout;
     layout.setSpacing(20.0);
     layout.setPadding(Padding::all(20.0));
     
-    // Sidebar navigation
-    VStack sidebar;
-    sidebar.setSpacing(10.0);
-    sidebar.setPadding(Padding::all(15.0));
-    
-    TextView sidebarTitle;
-    sidebarTitle.create("Dashboard", 0, 0, 0, 0);
-    sidebarTitle.setFontSize(18.0);
-    sidebarTitle.setFontWeight(FontWeight::Bold);
-    sidebar.addChild(sidebarTitle);
+    // Dashboard navigation links (horizontal)
+    HStack navLinks;
+    navLinks.setSpacing(10.0);
     
     Link overviewLink;
     overviewLink.create("/dashboard", "Overview", 0, 0, 120, 30);
-    sidebar.addChild(overviewLink);
+    navLinks.addChild(overviewLink);
     
     Link settingsLink;
     settingsLink.create("/dashboard/settings", "Settings", 0, 0, 120, 30);
-    sidebar.addChild(settingsLink);
+    navLinks.addChild(settingsLink);
     
-    layout.addChild(sidebar);
+    layout.addChild(navLinks);
     
-    // Content slot - where child routes will render
+    // Content slot for child routes
     VStack contentSlot;
-    contentSlot.setSpacing(15.0);
-    contentSlot.setPadding(Padding::all(15.0));
+    contentSlot.setSpacing(10.0);
     layout.addChild(contentSlot);
     
     // STEP 1: Add THIS layout to PARENT's content slot (via setContent)
