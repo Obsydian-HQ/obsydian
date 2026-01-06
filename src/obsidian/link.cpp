@@ -21,6 +21,18 @@
 
 namespace obsidian {
 
+// Forward declaration for the global navigation callback
+static void linkNavigationCallback(void* userData);
+
+// Link callback data - stored as a raw pointer managed by the native side
+// The native side retains this via NSValue with manual release tracking
+struct LinkCallbackData {
+    std::string href;
+    std::function<void()> onClickCallback;
+    
+    LinkCallbackData(const std::string& h) : href(h) {}
+};
+
 class Link::Impl {
 public:
     std::string href;
@@ -38,22 +50,14 @@ public:
     // For legacy text-based API
     Button internalButton;
     
+    // Callback data - allocated on heap, ownership transferred to native handler
+    // When native handler is released, we deallocate this
+    LinkCallbackData* callbackData = nullptr;
+    
     // macOS Link FFI handle
 #ifdef __APPLE__
     ObsidianLinkHandle macosLinkHandle = nullptr;
 #endif
-    
-    void handleClick() {
-        // Call user callback if set
-        if (onClickCallback) {
-            onClickCallback();
-        }
-        
-        // Navigate using router
-        if (router && router->isValid() && !href.empty()) {
-            router->navigate(href);
-        }
-    }
     
     void* getChildNativeViewHandle() const {
         if (buttonChild && buttonChild->isValid()) {
@@ -84,9 +88,29 @@ public:
             macosLinkHandle = nullptr;
         }
 #endif
+        // Note: callbackData is owned by the native side now (as long as the view exists)
+        // If we're cleaning up and the native handle is still valid, we need to clear the callback
+        // so the native side doesn't try to use freed memory
         valid = false;
     }
 };
+
+// Static navigation callback that uses the global router
+static void linkNavigationCallback(void* userData) {
+    if (!userData) return;
+    
+    LinkCallbackData* data = static_cast<LinkCallbackData*>(userData);
+    
+    // Call user callback if set
+    if (data->onClickCallback) {
+        data->onClickCallback();
+    }
+    
+    // Navigate using global router
+    if (g_router && g_router->isValid() && !data->href.empty()) {
+        g_router->navigate(data->href);
+    }
+}
 
 Link::Link() : pImpl(std::make_unique<Impl>()) {
     // Try to get global router instance
@@ -130,11 +154,12 @@ bool Link::create(const std::string& href, Button& child) {
         return false;
     }
     
-    // Set click handler
-    obsidian_macos_link_set_on_click(pImpl->macosLinkHandle, [](void* userData) {
-        Link::Impl* impl = static_cast<Link::Impl*>(userData);
-        impl->handleClick();
-    }, pImpl.get());
+    // Allocate callback data on heap - lives as long as the native handler
+    // The native handler stores this and we use it for navigation
+    pImpl->callbackData = new LinkCallbackData(href);
+    
+    // Set click handler using the heap-allocated callback data
+    obsidian_macos_link_set_on_click(pImpl->macosLinkHandle, linkNavigationCallback, pImpl->callbackData);
 #endif
     
     pImpl->valid = true;
@@ -169,10 +194,9 @@ bool Link::create(const std::string& href, TextView& child) {
         return false;
     }
     
-    obsidian_macos_link_set_on_click(pImpl->macosLinkHandle, [](void* userData) {
-        Link::Impl* impl = static_cast<Link::Impl*>(userData);
-        impl->handleClick();
-    }, pImpl.get());
+    // Allocate callback data on heap
+    pImpl->callbackData = new LinkCallbackData(href);
+    obsidian_macos_link_set_on_click(pImpl->macosLinkHandle, linkNavigationCallback, pImpl->callbackData);
 #endif
     
     pImpl->valid = true;
@@ -207,10 +231,9 @@ bool Link::create(const std::string& href, VStack& child) {
         return false;
     }
     
-    obsidian_macos_link_set_on_click(pImpl->macosLinkHandle, [](void* userData) {
-        Link::Impl* impl = static_cast<Link::Impl*>(userData);
-        impl->handleClick();
-    }, pImpl.get());
+    // Allocate callback data on heap
+    pImpl->callbackData = new LinkCallbackData(href);
+    obsidian_macos_link_set_on_click(pImpl->macosLinkHandle, linkNavigationCallback, pImpl->callbackData);
 #endif
     
     pImpl->valid = true;
@@ -245,10 +268,9 @@ bool Link::create(const std::string& href, HStack& child) {
         return false;
     }
     
-    obsidian_macos_link_set_on_click(pImpl->macosLinkHandle, [](void* userData) {
-        Link::Impl* impl = static_cast<Link::Impl*>(userData);
-        impl->handleClick();
-    }, pImpl.get());
+    // Allocate callback data on heap
+    pImpl->callbackData = new LinkCallbackData(href);
+    obsidian_macos_link_set_on_click(pImpl->macosLinkHandle, linkNavigationCallback, pImpl->callbackData);
 #endif
     
     pImpl->valid = true;
@@ -310,6 +332,10 @@ std::string Link::getText() const {
 
 void Link::setOnClick(std::function<void()> callback) {
     pImpl->onClickCallback = callback;
+    // Also update the callback data if it exists
+    if (pImpl->callbackData) {
+        pImpl->callbackData->onClickCallback = callback;
+    }
 }
 
 void Link::addToWindow(Window& window) {

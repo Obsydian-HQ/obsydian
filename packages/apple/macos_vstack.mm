@@ -203,13 +203,9 @@
 - (void)removeFromParent {
     if (!_containerView) return;
     
-    // Remove all child views first
-    NSArray<NSView*>* subviews = [_containerView.subviews copy];
-    for (NSView* subview in subviews) {
-        [subview removeFromSuperview];
-    }
-    
-    // Remove from superview
+    // IMPORTANT: Only remove the container from its parent superview.
+    // Do NOT remove the container's children - they should stay attached.
+    // This allows the container to be moved to a new parent without losing its contents.
     if ([_containerView superview]) {
         [_containerView removeFromSuperview];
     }
