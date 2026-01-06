@@ -20,6 +20,7 @@ cc_library(
 
 cc_test(
     name = "shadow_test",
+    size = "small",  # Fast unit test, runs in <1s
     srcs = ["shadow_test.cpp"],
     deps = [
         ":shadow",

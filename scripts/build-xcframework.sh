@@ -109,9 +109,11 @@ for src in "${SOURCES[@]}"; do
     obj_name=$(echo "$src" | sed 's|/|_|g' | sed 's/\.[^.]*$/.o/')
     obj_file="$MACOS_ARM64_DIR/$obj_name"
     # Determine compiler based on file extension
+    # Note: .mm files are automatically recognized as Objective-C++ by clang++
+    # No need for -x objective-c++ flag when extension is .mm
     if [[ "$src" == *.mm ]]; then
         COMPILER="clang++"
-        OBJC_FLAGS="-fobjc-arc -x objective-c++"
+        OBJC_FLAGS="-fobjc-arc"
     else
         COMPILER="clang++"
         OBJC_FLAGS=""
