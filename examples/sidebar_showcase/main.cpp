@@ -71,10 +71,40 @@ int main(int /* argc */, char* /* argv */[]) {
     // Set sidebar content
     sidebar.setSidebarContent(sidebarList);
     
-    // Create a simple main content area (required by NSSplitViewController)
-    // Just an empty VStack - the focus is on the sidebar
+    // Create main content area with proper layout
+    // This demonstrates sidebar integration with the layout engine
     VStack mainContent;
+    mainContent.setSpacing(20.0);
+    mainContent.setAlignment(layout::Alignment::TopLeading);
+    mainContent.setPadding(Padding::all(30.0));
+    
+    // Add some content to verify layout works
+    TextView titleText;
+    titleText.create("Main Content Area", 0, 0, 400, 40);
+    titleText.setFontSize(24.0);
+    titleText.setFontWeight(FontWeight::Bold);
+    
+    TextView descriptionText;
+    descriptionText.create("This is the main content area. The sidebar is on the left.", 0, 0, 500, 30);
+    descriptionText.setFontSize(14.0);
+    
+    Button actionButton;
+    actionButton.create("Click Me", 0, 0, 200, 40);
+    actionButton.setOnClick([]() {
+        std::cout << "Main content button clicked!\n";
+    });
+    
+    mainContent.addChild(titleText);
+    mainContent.addChild(descriptionText);
+    mainContent.addChild(actionButton);
+    // Note: We don't call updateLayout() here because the VStack doesn't have
+    // a parent view yet, so it has no bounds. Layout will be calculated when
+    // addToParentView is called in sidebar.setMainContent()
+    
     sidebar.setMainContent(mainContent);
+    
+    // After sidebar is added to window, the view controller's view will be sized
+    // and we can trigger a final layout update. This happens in addToWindow().
     
     // Add Sidebar to window
     sidebar.addToWindow(window);

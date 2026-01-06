@@ -39,6 +39,12 @@ public:
     obsidian::ffi::macos::ViewController sidebarViewController;
     obsidian::ffi::macos::ViewController mainContentViewController;
     std::function<void(bool)> onSidebarToggleCallback;
+    
+    // Store callbacks to trigger layout updates after window is added
+    // This is needed because VStack/HStack need to recalculate layout
+    // when the view controller's container view gets sized by the split view
+    std::function<void()> mainContentLayoutUpdateCallback;
+    std::function<void()> sidebarContentLayoutUpdateCallback;
 #endif
     bool valid = false;
     double minSidebarWidth = 200.0;
@@ -68,14 +74,24 @@ void Sidebar::setSidebarContent(VStack& vstack) {
 #ifdef __APPLE__
     if (!pImpl->valid || !vstack.isValid()) return;
     
-    void* viewHandle = vstack.getNativeViewHandle();
-    if (!viewHandle) return;
-    
     if (!pImpl->sidebarViewController.isValid()) {
         if (!pImpl->sidebarViewController.create()) return;
     }
     
-    pImpl->sidebarViewController.setView(viewHandle);
+    // Get the view controller's container view (this will be the parent for layout)
+    void* vcContainerView = obsidian_macos_viewcontroller_get_view(pImpl->sidebarViewController.getHandle());
+    if (!vcContainerView) return;
+    
+    // Add VStack to the view controller's container view (this sets up layout properly)
+    // This integrates with the layout engine - VStack will create a layout node and calculate layout
+    vstack.addToParentView(vcContainerView);
+    
+    // Store callback to trigger layout update after window is added
+    pImpl->sidebarContentLayoutUpdateCallback = [&vstack]() {
+        vstack.updateLayout();
+    };
+    
+    // Configure view controller for sidebar (adds vibrancy effect)
     pImpl->sidebarViewController.configureForSidebar();
     
     if (!pImpl->sidebarItem.isValid()) {
@@ -92,14 +108,19 @@ void Sidebar::setSidebarContent(HStack& hstack) {
 #ifdef __APPLE__
     if (!pImpl->valid || !hstack.isValid()) return;
     
-    void* viewHandle = hstack.getNativeViewHandle();
-    if (!viewHandle) return;
-    
     if (!pImpl->sidebarViewController.isValid()) {
         if (!pImpl->sidebarViewController.create()) return;
     }
     
-    pImpl->sidebarViewController.setView(viewHandle);
+    // Get the view controller's container view (this will be the parent for layout)
+    void* vcContainerView = obsidian_macos_viewcontroller_get_view(pImpl->sidebarViewController.getHandle());
+    if (!vcContainerView) return;
+    
+    // Add HStack to the view controller's container view (this sets up layout properly)
+    // This integrates with the layout engine - HStack will create a layout node and calculate layout
+    hstack.addToParentView(vcContainerView);
+    
+    // Configure view controller for sidebar (adds vibrancy effect)
     pImpl->sidebarViewController.configureForSidebar();
     
     if (!pImpl->sidebarItem.isValid()) {
@@ -108,6 +129,10 @@ void Sidebar::setSidebarContent(HStack& hstack) {
         pImpl->sidebarItem.setMinimumThickness(pImpl->minSidebarWidth);
         pImpl->sidebarItem.setMaximumThickness(pImpl->maxSidebarWidth);
         pImpl->splitViewController.addSplitViewItem(pImpl->sidebarItem.getHandle());
+        
+        // CRITICAL: After adding to split view, trigger layout update
+        // The view controller's view now has proper bounds, so we need to recalculate layout
+        hstack.updateLayout();
     }
 #endif
 }
@@ -116,12 +141,13 @@ void Sidebar::setSidebarContent(List& list) {
 #ifdef __APPLE__
     if (!pImpl->valid || !list.isValid()) return;
     
-    void* viewHandle = list.getNativeViewHandle();
-    if (!viewHandle) return;
-    
     if (!pImpl->sidebarViewController.isValid()) {
         if (!pImpl->sidebarViewController.create()) return;
     }
+    
+    // For List, we use setView directly (List doesn't use layout engine the same way)
+    void* viewHandle = list.getNativeViewHandle();
+    if (!viewHandle) return;
     
     pImpl->sidebarViewController.setView(viewHandle);
     pImpl->sidebarViewController.configureForSidebar();
@@ -188,14 +214,25 @@ void Sidebar::setMainContent(VStack& vstack) {
 #ifdef __APPLE__
     if (!pImpl->valid || !vstack.isValid()) return;
     
-    void* viewHandle = vstack.getNativeViewHandle();
-    if (!viewHandle) return;
-    
     if (!pImpl->mainContentViewController.isValid()) {
         if (!pImpl->mainContentViewController.create()) return;
     }
     
-    pImpl->mainContentViewController.setView(viewHandle);
+    // Get the view controller's container view (this will be the parent for layout)
+    void* vcContainerView = obsidian_macos_viewcontroller_get_view(pImpl->mainContentViewController.getHandle());
+    if (!vcContainerView) return;
+    
+    // Add VStack to the view controller's container view (this sets up layout properly)
+    // This integrates with the layout engine - VStack will create a layout node and calculate layout
+    // NOTE: At this point, the container view may have zero bounds, so layout will be calculated with w=0
+    vstack.addToParentView(vcContainerView);
+    
+    // Store callback to trigger layout update after window is added
+    // This is critical: the view controller's container view only gets sized
+    // when the split view controller is added to the window and lays out
+    pImpl->mainContentLayoutUpdateCallback = [&vstack]() {
+        vstack.updateLayout();
+    };
     
     if (!pImpl->mainContentItem.isValid()) {
         void* vcHandle = pImpl->mainContentViewController.getHandle();
@@ -209,14 +246,22 @@ void Sidebar::setMainContent(HStack& hstack) {
 #ifdef __APPLE__
     if (!pImpl->valid || !hstack.isValid()) return;
     
-    void* viewHandle = hstack.getNativeViewHandle();
-    if (!viewHandle) return;
-    
     if (!pImpl->mainContentViewController.isValid()) {
         if (!pImpl->mainContentViewController.create()) return;
     }
     
-    pImpl->mainContentViewController.setView(viewHandle);
+    // Get the view controller's container view (this will be the parent for layout)
+    void* vcContainerView = obsidian_macos_viewcontroller_get_view(pImpl->mainContentViewController.getHandle());
+    if (!vcContainerView) return;
+    
+    // Add HStack to the view controller's container view (this sets up layout properly)
+    // This integrates with the layout engine - HStack will create a layout node and calculate layout
+    hstack.addToParentView(vcContainerView);
+    
+    // Store callback to trigger layout update after window is added
+    pImpl->mainContentLayoutUpdateCallback = [&hstack]() {
+        hstack.updateLayout();
+    };
     
     if (!pImpl->mainContentItem.isValid()) {
         void* vcHandle = pImpl->mainContentViewController.getHandle();
@@ -230,6 +275,7 @@ void Sidebar::setMainContent(List& list) {
 #ifdef __APPLE__
     if (!pImpl->valid || !list.isValid()) return;
     
+    // For List, we use setView directly (List doesn't use layout engine the same way)
     void* viewHandle = list.getNativeViewHandle();
     if (!viewHandle) return;
     
@@ -251,6 +297,7 @@ void Sidebar::setMainContent(Button& button) {
 #ifdef __APPLE__
     if (!pImpl->valid || !button.isValid()) return;
     
+    // For Button, we use setView directly (Button doesn't use layout engine the same way)
     void* viewHandle = button.getNativeViewHandle();
     if (!viewHandle) return;
     
@@ -272,6 +319,7 @@ void Sidebar::setMainContent(ScrollView& scrollView) {
 #ifdef __APPLE__
     if (!pImpl->valid || !scrollView.isValid()) return;
     
+    // For ScrollView, we use setView directly (ScrollView doesn't use layout engine the same way)
     void* viewHandle = scrollView.getNativeViewHandle();
     if (!viewHandle) return;
     
@@ -367,18 +415,28 @@ void Sidebar::addToWindow(Window& window) {
     
     // KEY INSIGHT from real apps (Watt editor):
     // Set the split view's frame size BEFORE adding to window
-    // Get window's content size and use that
     void* contentViewPtr = obsidian_macos_window_get_content_view(windowHandle);
     if (contentViewPtr) {
-        // Get the window's content view frame to know the size
-        // This will be used to set the split view's initial frame
-        // Real apps set: view.frame.size = CGSize(width: 800, height: 600)
-        pImpl->splitViewController.setViewFrameSize(1200, 800); // Use window's actual size
+        pImpl->splitViewController.setViewFrameSize(1200, 800);
     }
     
     ObsidianSplitViewControllerHandle splitViewControllerHandle = pImpl->splitViewController.getHandle();
     if (splitViewControllerHandle) {
         obsidian_macos_splitviewcontroller_add_to_window(splitViewControllerHandle, windowHandle);
+        
+        // CRITICAL: After adding to window, the split view controller sizes its child views
+        // The view controller's container views now have proper bounds.
+        // This is when we MUST trigger layout updates - the views are actually sized now.
+        // 
+        // This matches the router pattern: ScreenContainer is attached to window (gets bounds),
+        // then components calculate layout. Here, the split view lays out, giving the view
+        // controller's container view bounds, so we trigger layout updates.
+        if (pImpl->mainContentLayoutUpdateCallback) {
+            pImpl->mainContentLayoutUpdateCallback();
+        }
+        if (pImpl->sidebarContentLayoutUpdateCallback) {
+            pImpl->sidebarContentLayoutUpdateCallback();
+        }
     }
 #endif
 }

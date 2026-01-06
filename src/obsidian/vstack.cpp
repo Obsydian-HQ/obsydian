@@ -101,6 +101,67 @@ public:
             static_cast<float>(padding.leading),
             static_cast<float>(padding.trailing)
         );
+        
+        // CRITICAL: VStack should fill its parent view
+        // Set width and height to fill parent (100% or auto with flexGrow)
+        auto& style = layoutNode->getStyle();
+        style.width = layout::LayoutValue::percent(100.0f);  // Fill parent width
+        style.height = layout::LayoutValue::percent(100.0f);  // Fill parent height
+        
+        // Apply alignment to layout node
+        // For VStack (Column direction):
+        // - TopLeading = FlexStart (main axis) + FlexStart (cross axis)
+        // - TopCenter = FlexStart (main axis) + Center (cross axis)
+        // - TopTrailing = FlexStart (main axis) + FlexEnd (cross axis)
+        // - MiddleLeading = Center (main axis) + FlexStart (cross axis)
+        // - MiddleCenter = Center (main axis) + Center (cross axis)
+        // - MiddleTrailing = Center (main axis) + FlexEnd (cross axis)
+        // - BottomLeading = FlexEnd (main axis) + FlexStart (cross axis)
+        // - BottomCenter = FlexEnd (main axis) + Center (cross axis)
+        // - BottomTrailing = FlexEnd (main axis) + FlexEnd (cross axis)
+        switch (alignment) {
+            case layout::Alignment::TopLeading:
+            case layout::Alignment::TopCenter:
+            case layout::Alignment::TopTrailing:
+                style.justifyContent = layout::JustifyContent::FlexStart;  // Top
+                break;
+            case layout::Alignment::MiddleLeading:
+            case layout::Alignment::MiddleCenter:
+            case layout::Alignment::MiddleTrailing:
+                style.justifyContent = layout::JustifyContent::Center;  // Middle
+                break;
+            case layout::Alignment::BottomLeading:
+            case layout::Alignment::BottomCenter:
+            case layout::Alignment::BottomTrailing:
+                style.justifyContent = layout::JustifyContent::FlexEnd;  // Bottom
+                break;
+            default:
+                style.justifyContent = layout::JustifyContent::FlexStart;  // Default to top
+                break;
+        }
+        
+        switch (alignment) {
+            case layout::Alignment::TopLeading:
+            case layout::Alignment::MiddleLeading:
+            case layout::Alignment::BottomLeading:
+                style.alignItems = layout::AlignItems::FlexStart;  // Leading (left)
+                break;
+            case layout::Alignment::TopCenter:
+            case layout::Alignment::MiddleCenter:
+            case layout::Alignment::BottomCenter:
+                style.alignItems = layout::AlignItems::Center;  // Center
+                break;
+            case layout::Alignment::TopTrailing:
+            case layout::Alignment::MiddleTrailing:
+            case layout::Alignment::BottomTrailing:
+                style.alignItems = layout::AlignItems::FlexEnd;  // Trailing (right)
+                break;
+            default:
+                style.alignItems = layout::AlignItems::FlexStart;  // Default to leading
+                break;
+        }
+        
+        layoutNode->markDirty();
     }
     
     layout::LayoutNode* findRootLayoutNode() {
@@ -183,6 +244,14 @@ double VStack::getSpacing() const {
 void VStack::setAlignment(layout::Alignment alignment) {
     if (pImpl) {
         pImpl->alignment = alignment;
+        // Update layout node if it exists
+        if (pImpl->layoutNode) {
+            pImpl->configureLayoutNode();
+            // Trigger layout recalculation if parent view exists
+            if (pImpl->parentView) {
+                updateLayout();  // Call VStack::updateLayout(), not pImpl->updateLayout()
+            }
+        }
     }
 }
 
@@ -568,7 +637,11 @@ void VStack::addToParentView(void* parentView) {
     float width, height;
     pImpl->getViewBounds(parentView, width, height);
     
-    if (pImpl->layoutNode) {
+    // Only calculate layout if parent has non-zero bounds
+    // If bounds are zero (e.g., view controller not yet sized by split view),
+    // layout will be calculated later via updateLayout() when the view is actually sized
+    // This matches the pattern used in router examples where ScreenContainer is sized first
+    if (pImpl->layoutNode && width > 0 && height > 0) {
         pImpl->layoutNode->layoutAndApply(width, height);
     }
 #endif
