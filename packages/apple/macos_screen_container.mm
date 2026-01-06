@@ -31,6 +31,11 @@
     return self;
 }
 
+// Use top-left coordinate system (matches layout engine)
+- (BOOL)isFlipped {
+    return YES;
+}
+
 - (void)clearContent {
     NSArray* subviews = [self.subviews copy];
     for (NSView* subview in subviews) {
@@ -72,6 +77,25 @@
         [self setWantsLayer:YES];
     }
     return self;
+}
+
+// Use top-left coordinate system (matches layout engine)
+- (BOOL)isFlipped {
+    return YES;
+}
+
+// Debug: Print view hierarchy
+- (void)dumpViewHierarchy:(NSView*)view indent:(NSString*)indent {
+    NSLog(@"%@%@ frame:%@ hidden:%d alpha:%.1f subviews:%lu", 
+          indent, 
+          NSStringFromClass([view class]),
+          NSStringFromRect(view.frame),
+          view.isHidden,
+          view.alphaValue,
+          (unsigned long)view.subviews.count);
+    for (NSView* subview in view.subviews) {
+        [self dumpViewHierarchy:subview indent:[indent stringByAppendingString:@"  "]];
+    }
 }
 
 - (ObsidianScreenView*)createScreenForPath:(NSString*)routePath {
@@ -245,6 +269,10 @@ void obsidian_macos_screen_container_set_active_screen(
         
         // Force layout
         [container layoutSubtreeIfNeeded];
+        
+        // DEBUG: Dump view hierarchy
+        NSLog(@"[DEBUG] === VIEW HIERARCHY AFTER setActiveScreen ===");
+        [container dumpViewHierarchy:container indent:@""];
     }
 }
 

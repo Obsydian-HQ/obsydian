@@ -1,196 +1,93 @@
 /**
  * macOS Button FFI - Objective-C++ Implementation
  * 
- * Frame-based button component
- * NO AUTO LAYOUT - Pure frame-based positioning
+ * REFACTORED: No wrapper object. The NSButton IS the component.
+ * Following React Native's pattern where UIView IS the component view.
+ * 
+ * Callbacks are stored using associated objects on the NSButton itself.
  */
 
 #import "macos_button.h"
 #import "macos_window.h"
 #import <AppKit/AppKit.h>
 #import <objc/runtime.h>
-#import <memory>
 
-// Internal button wrapper class
-@interface ObsidianButtonWrapper : NSObject {
-    NSButton* _button;
-    ObsidianButtonClickCallback _callback;
-    void* _userData;
-}
+// Associated object keys for storing callback data
+static const void* kCallbackKey = &kCallbackKey;
+static const void* kUserDataKey = &kUserDataKey;
+static const void* kTargetKey = &kTargetKey;
 
-@property (nonatomic, strong) NSButton* button;
+// Target object for handling button clicks (stored as associated object)
+@interface ObsidianButtonTarget : NSObject
 @property (nonatomic, assign) ObsidianButtonClickCallback callback;
 @property (nonatomic, assign) void* userData;
-
-- (instancetype)initWithParams:(ObsidianButtonParams)params;
-- (void)setTitle:(const char*)title;
-- (const char*)getTitle;
-- (void)setOnClick:(ObsidianButtonClickCallback)callback userData:(void*)userData;
-- (void)setVisible:(bool)visible;
-- (bool)isVisible;
-- (void)setEnabled:(bool)enabled;
-- (bool)isEnabled;
-- (void)addToWindow:(void*)windowHandle;
-- (void)removeFromParent;
 - (void)handleClick:(id)sender;
-
 @end
 
-@implementation ObsidianButtonWrapper
+@implementation ObsidianButtonTarget
+- (void)handleClick:(id)sender {
+    (void)sender;
+    if (self.callback) {
+        self.callback(self.userData);
+    }
+}
+@end
 
-- (instancetype)initWithParams:(ObsidianButtonParams)params {
-    self = [super init];
-    if (self) {
-        // Create NSButton
-        _button = [[NSButton alloc] init];
-        
-        // FRAME-BASED: Leave translatesAutoresizingMaskIntoConstraints = YES (default)
-        // The button will be positioned by its parent container via setFrame
+// Helper to get/create target for a button
+static ObsidianButtonTarget* getOrCreateTarget(NSButton* button) {
+    ObsidianButtonTarget* target = objc_getAssociatedObject(button, kTargetKey);
+    if (!target) {
+        target = [[ObsidianButtonTarget alloc] init];
+        objc_setAssociatedObject(button, kTargetKey, target, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        [button setTarget:target];
+        [button setAction:@selector(handleClick:)];
+    }
+    return target;
+}
+
+// C interface implementation
+extern "C" {
+
+/**
+ * Create a button. Returns NSButton* directly (NO WRAPPER).
+ */
+ObsidianButtonHandle obsidian_macos_create_button(ObsidianButtonParams params) {
+    @autoreleasepool {
+        NSButton* button = [[NSButton alloc] init];
         
         // Set button style
-        [_button setButtonType:NSButtonTypeMomentaryPushIn];
-        [_button setBezelStyle:NSBezelStyleRounded];
+        [button setButtonType:NSButtonTypeMomentaryPushIn];
+        [button setBezelStyle:NSBezelStyleRounded];
         
         // Set initial frame
         NSRect frame = NSMakeRect(params.x, params.y, params.width, params.height);
-        [_button setFrame:frame];
+        [button setFrame:frame];
         
         // Size to fit content if no explicit size given
         if (params.width == 0 || params.height == 0) {
-            [_button sizeToFit];
+            [button sizeToFit];
         }
         
         // Set title if provided
         if (params.title) {
             NSString* titleStr = [NSString stringWithUTF8String:params.title];
-            [_button setTitle:titleStr];
-            // Re-size to fit the new title
-            [_button sizeToFit];
+            [button setTitle:titleStr];
+            [button sizeToFit];
         }
         
-        // Set target-action for click events
-        [_button setTarget:self];
-        [_button setAction:@selector(handleClick:)];
-        
-        // Retain the wrapper using associated object
-        objc_setAssociatedObject(_button, @selector(handleClick:), self, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-        
-        _callback = nullptr;
-        _userData = nullptr;
-    }
-    return self;
-}
-
-- (void)setTitle:(const char*)title {
-    if (_button && title) {
-        NSString* titleStr = [NSString stringWithUTF8String:title];
-        [_button setTitle:titleStr];
-        [_button sizeToFit];
-    }
-}
-
-- (const char*)getTitle {
-    if (_button) {
-        NSString* title = [_button title];
-        return [title UTF8String];
-    }
-    return nullptr;
-}
-
-- (void)setOnClick:(ObsidianButtonClickCallback)callback userData:(void*)userData {
-    _callback = callback;
-    _userData = userData;
-}
-
-- (void)setVisible:(bool)visible {
-    if (_button) {
-        [_button setHidden:!visible];
-    }
-}
-
-- (bool)isVisible {
-    if (_button) {
-        return ![_button isHidden];
-    }
-    return false;
-}
-
-- (void)setEnabled:(bool)enabled {
-    if (_button) {
-        [_button setEnabled:enabled];
-    }
-}
-
-- (bool)isEnabled {
-    if (_button) {
-        return [_button isEnabled];
-    }
-    return false;
-}
-
-- (void)addToWindow:(void*)windowHandle {
-    if (!_button || !windowHandle) {
-        return;
-    }
-    
-    void* contentViewPtr = obsidian_macos_window_get_content_view(windowHandle);
-    if (contentViewPtr) {
-        NSView* contentView = (__bridge NSView*)contentViewPtr;
-        [contentView addSubview:_button];
-    }
-}
-
-- (void)removeFromParent {
-    if (!_button) return;
-    
-    [_button setTarget:nil];
-    [_button setAction:nil];
-    objc_setAssociatedObject(_button, @selector(handleClick:), nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-    
-    if ([_button superview]) {
-        [_button removeFromSuperview];
-    }
-}
-
-- (void)handleClick:(id)sender {
-    if (_callback) {
-        _callback(_userData);
-    }
-}
-
-- (NSButton*)button {
-    return _button;
-}
-
-- (ObsidianButtonClickCallback)callback {
-    return _callback;
-}
-
-- (void*)userData {
-    return _userData;
-}
-
-@end
-
-// C interface implementation
-extern "C" {
-
-ObsidianButtonHandle obsidian_macos_create_button(ObsidianButtonParams params) {
-    @autoreleasepool {
-        ObsidianButtonWrapper* wrapper = [[ObsidianButtonWrapper alloc] initWithParams:params];
-        if (wrapper && wrapper.button) {
-            return (__bridge_retained void*)wrapper;
-        }
-        return nullptr;
+        // Return NSButton directly - it IS the handle
+        return (__bridge_retained void*)button;
     }
 }
 
 void obsidian_macos_button_set_title(ObsidianButtonHandle handle, const char* title) {
-    if (!handle) return;
+    if (!handle || !title) return;
     
     @autoreleasepool {
-        ObsidianButtonWrapper* wrapper = (__bridge ObsidianButtonWrapper*)handle;
-        [wrapper setTitle:title];
+        NSButton* button = (__bridge NSButton*)handle;
+        NSString* titleStr = [NSString stringWithUTF8String:title];
+        [button setTitle:titleStr];
+        [button sizeToFit];
     }
 }
 
@@ -198,8 +95,8 @@ const char* obsidian_macos_button_get_title(ObsidianButtonHandle handle) {
     if (!handle) return nullptr;
     
     @autoreleasepool {
-        ObsidianButtonWrapper* wrapper = (__bridge ObsidianButtonWrapper*)handle;
-        return [wrapper getTitle];
+        NSButton* button = (__bridge NSButton*)handle;
+        return [[button title] UTF8String];
     }
 }
 
@@ -209,8 +106,10 @@ void obsidian_macos_button_set_on_click(ObsidianButtonHandle handle,
     if (!handle) return;
     
     @autoreleasepool {
-        ObsidianButtonWrapper* wrapper = (__bridge ObsidianButtonWrapper*)handle;
-        [wrapper setOnClick:callback userData:userData];
+        NSButton* button = (__bridge NSButton*)handle;
+        ObsidianButtonTarget* target = getOrCreateTarget(button);
+        target.callback = callback;
+        target.userData = userData;
     }
 }
 
@@ -218,8 +117,8 @@ void obsidian_macos_button_set_visible(ObsidianButtonHandle handle, bool visible
     if (!handle) return;
     
     @autoreleasepool {
-        ObsidianButtonWrapper* wrapper = (__bridge ObsidianButtonWrapper*)handle;
-        [wrapper setVisible:visible];
+        NSButton* button = (__bridge NSButton*)handle;
+        [button setHidden:!visible];
     }
 }
 
@@ -227,8 +126,8 @@ bool obsidian_macos_button_is_visible(ObsidianButtonHandle handle) {
     if (!handle) return false;
     
     @autoreleasepool {
-        ObsidianButtonWrapper* wrapper = (__bridge ObsidianButtonWrapper*)handle;
-        return [wrapper isVisible];
+        NSButton* button = (__bridge NSButton*)handle;
+        return ![button isHidden];
     }
 }
 
@@ -236,8 +135,8 @@ void obsidian_macos_button_set_enabled(ObsidianButtonHandle handle, bool enabled
     if (!handle) return;
     
     @autoreleasepool {
-        ObsidianButtonWrapper* wrapper = (__bridge ObsidianButtonWrapper*)handle;
-        [wrapper setEnabled:enabled];
+        NSButton* button = (__bridge NSButton*)handle;
+        [button setEnabled:enabled];
     }
 }
 
@@ -245,8 +144,8 @@ bool obsidian_macos_button_is_enabled(ObsidianButtonHandle handle) {
     if (!handle) return false;
     
     @autoreleasepool {
-        ObsidianButtonWrapper* wrapper = (__bridge ObsidianButtonWrapper*)handle;
-        return [wrapper isEnabled];
+        NSButton* button = (__bridge NSButton*)handle;
+        return [button isEnabled];
     }
 }
 
@@ -255,8 +154,12 @@ void obsidian_macos_button_add_to_window(ObsidianButtonHandle buttonHandle,
     if (!buttonHandle || !windowHandle) return;
     
     @autoreleasepool {
-        ObsidianButtonWrapper* buttonWrapper = (__bridge ObsidianButtonWrapper*)buttonHandle;
-        [buttonWrapper addToWindow:windowHandle];
+        NSButton* button = (__bridge NSButton*)buttonHandle;
+        void* contentViewPtr = obsidian_macos_window_get_content_view(windowHandle);
+        if (contentViewPtr) {
+            NSView* contentView = (__bridge NSView*)contentViewPtr;
+            [contentView addSubview:button];
+        }
     }
 }
 
@@ -264,8 +167,10 @@ void obsidian_macos_button_remove_from_parent(ObsidianButtonHandle handle) {
     if (!handle) return;
     
     @autoreleasepool {
-        ObsidianButtonWrapper* wrapper = (__bridge ObsidianButtonWrapper*)handle;
-        [wrapper removeFromParent];
+        NSButton* button = (__bridge NSButton*)handle;
+        if ([button superview]) {
+            [button removeFromSuperview];
+        }
     }
 }
 
@@ -273,11 +178,22 @@ void obsidian_macos_destroy_button(ObsidianButtonHandle handle) {
     if (!handle) return;
     
     @autoreleasepool {
-        ObsidianButtonWrapper* wrapper = (__bridge_transfer ObsidianButtonWrapper*)handle;
-        [wrapper removeFromParent];
-        wrapper.callback = nullptr;
-        wrapper.userData = nullptr;
-        wrapper.button = nil;
+        // Transfer ownership back and let ARC release
+        NSButton* button = (__bridge_transfer NSButton*)handle;
+        
+        // Clear target/action
+        [button setTarget:nil];
+        [button setAction:nil];
+        
+        // Clear associated objects
+        objc_setAssociatedObject(button, kTargetKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        
+        // Remove from superview
+        if ([button superview]) {
+            [button removeFromSuperview];
+        }
+        
+        // button will be released by ARC when this scope ends
     }
 }
 
@@ -285,21 +201,17 @@ bool obsidian_macos_button_is_valid(ObsidianButtonHandle handle) {
     if (!handle) return false;
     
     @autoreleasepool {
-        ObsidianButtonWrapper* wrapper = (__bridge ObsidianButtonWrapper*)handle;
-        return wrapper != nil && wrapper.button != nil;
+        NSButton* button = (__bridge NSButton*)handle;
+        return button != nil;
     }
 }
 
+/**
+ * Get the NSButton view. Since handle IS the NSButton, just return it.
+ */
 void* obsidian_macos_button_get_view(ObsidianButtonHandle handle) {
-    if (!handle) return nullptr;
-    
-    @autoreleasepool {
-        ObsidianButtonWrapper* wrapper = (__bridge ObsidianButtonWrapper*)handle;
-        if (wrapper && wrapper.button) {
-            return (__bridge void*)wrapper.button;
-        }
-    }
-    return nullptr;
+    // Handle IS the NSButton - no wrapper indirection
+    return handle;
 }
 
 } // extern "C"

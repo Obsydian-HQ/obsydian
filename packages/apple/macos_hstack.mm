@@ -65,6 +65,11 @@
 - (CGFloat)paddingTrailing { return _paddingTrailing; }
 - (CGFloat)spacing { return _spacing; }
 
+// Use top-left coordinate system (matches layout engine)
+- (BOOL)isFlipped {
+    return YES;
+}
+
 // Override layout to be a no-op
 - (void)layout {
     [super layout];
@@ -124,15 +129,27 @@
 
 - (void)addChildView:(void*)childViewHandle {
     if (!_containerView || !childViewHandle) {
+        NSLog(@"[HStack DEBUG] addChildView FAILED: containerView=%p childViewHandle=%p", _containerView, childViewHandle);
         return;
     }
     
     NSView* childView = (__bridge NSView*)childViewHandle;
     if (!childView) {
+        NSLog(@"[HStack DEBUG] addChildView FAILED: childView bridge failed");
         return;
     }
     
+    NSLog(@"[HStack DEBUG] Adding child %@ frame:%@ to container (subview count before: %lu)", 
+          NSStringFromClass([childView class]),
+          NSStringFromRect(childView.frame),
+          (unsigned long)_containerView.subviews.count);
+    
     [_containerView addSubview:childView];
+    
+    NSLog(@"[HStack DEBUG] After add: subview count = %lu, child superview = %@, container = %@", 
+          (unsigned long)_containerView.subviews.count,
+          NSStringFromClass([childView.superview class]),
+          NSStringFromClass([_containerView class]));
 }
 
 - (void)removeChildView:(void*)childViewHandle {

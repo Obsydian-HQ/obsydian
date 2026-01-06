@@ -7,6 +7,10 @@
 #include "obsidian/app.h"
 #include <iostream>
 
+#ifdef __APPLE__
+#include "macos_mounting.h"  // For obsidian_macos_mounting_initialize
+#endif
+
 namespace obsidian {
 
 class Runtime::Impl {
@@ -23,6 +27,11 @@ bool Runtime::initialize() {
     if (pImpl->initialized) {
         return true;
     }
+    
+#ifdef __APPLE__
+    // Initialize the mounting system (ComponentViewRegistry and factories)
+    obsidian_macos_mounting_initialize();
+#endif
     
     pImpl->initialized = true;
     std::cout << "[Obsidian] Runtime initialized\n";
@@ -58,6 +67,11 @@ void Runtime::run(const AppCallbacks& callbacks) {
 }
 
 void Runtime::shutdown() {
+#ifdef __APPLE__
+    // Shutdown the mounting system
+    obsidian_macos_mounting_shutdown();
+#endif
+    
     pImpl->initialized = false;
     std::cout << "[Obsidian] Runtime shutdown\n";
 }

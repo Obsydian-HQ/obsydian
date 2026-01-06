@@ -1,8 +1,8 @@
 /**
  * macOS Link FFI - Objective-C++ Implementation
  * 
- * Frame-based clickable wrapper component
- * NO AUTO LAYOUT - Pure frame-based positioning
+ * Simple navigation component - attaches click handler to child view
+ * NO wrapper view - directly uses the child view
  */
 
 #import "macos_link.h"
@@ -10,17 +10,15 @@
 #import <AppKit/AppKit.h>
 #import <objc/runtime.h>
 
-// Internal link wrapper class - wraps any view and makes it clickable
-@interface ObsidianLinkWrapper : NSObject {
-    NSView* _wrapperView;          // Container view that wraps the child
-    NSView* _childView;            // The child view being wrapped
+// Internal link handler - attaches click behavior to any view
+@interface ObsidianLinkHandler : NSObject {
+    NSView* _childView;            // The child view (we don't wrap it, just use it directly)
     NSString* _href;               // Route path for navigation
     ObsidianLinkClickCallback _callback;
     void* _userData;
     NSClickGestureRecognizer* _clickRecognizer;
 }
 
-@property (nonatomic, strong) NSView* wrapperView;
 @property (nonatomic, strong) NSView* childView;
 @property (nonatomic, assign) ObsidianLinkClickCallback callback;
 @property (nonatomic, assign) void* userData;
@@ -35,43 +33,30 @@
 - (bool)isEnabled;
 - (void)addToWindow:(void*)windowHandle;
 - (void)removeFromParent;
+- (void)cleanup;
 - (void)handleClick:(id)sender;
 
 @end
 
-@implementation ObsidianLinkWrapper
+@implementation ObsidianLinkHandler
 
 - (instancetype)initWithParams:(ObsidianLinkParams)params {
     self = [super init];
     if (self) {
         if (!params.childView) {
+            NSLog(@"[Link DEBUG] ERROR: childView is NULL!");
             return nil;
         }
         
-        // Get the child view
+        // Get the child view - NO WRAPPER, use it directly
         _childView = (__bridge NSView*)params.childView;
+        NSLog(@"[Link DEBUG] Created link with childView: %@ frame: %@", 
+              NSStringFromClass([_childView class]),
+              NSStringFromRect(_childView.frame));
         
-        // Create a wrapper view that will contain the child
-        // FRAME-BASED: Use the child's frame as the wrapper's frame
-        NSRect childFrame = _childView.frame;
-        if (childFrame.size.width == 0) childFrame.size.width = 80;
-        if (childFrame.size.height == 0) childFrame.size.height = 24;
-        
-        _wrapperView = [[NSView alloc] initWithFrame:childFrame];
-        _wrapperView.wantsLayer = YES;
-        
-        // FRAME-BASED: Leave translatesAutoresizingMaskIntoConstraints = YES (default)
-        // The wrapper will be positioned by its parent container via setFrame
-        
-        // Add child view to wrapper
-        [_wrapperView addSubview:_childView];
-        
-        // Set child frame to fill wrapper (no autoresizingMask - layout engine handles sizing)
-        _childView.frame = _wrapperView.bounds;
-        
-        // Create click gesture recognizer
+        // Attach click gesture recognizer directly to the child view
         _clickRecognizer = [[NSClickGestureRecognizer alloc] initWithTarget:self action:@selector(handleClick:)];
-        [_wrapperView addGestureRecognizer:_clickRecognizer];
+        [_childView addGestureRecognizer:_clickRecognizer];
         
         // Store href
         if (params.href) {
@@ -82,6 +67,9 @@
         
         _callback = nullptr;
         _userData = nullptr;
+        
+        // Retain self via associated object on child view
+        objc_setAssociatedObject(_childView, @selector(handleClick:), self, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
     return self;
 }
@@ -107,14 +95,14 @@
 }
 
 - (void)setVisible:(bool)visible {
-    if (_wrapperView) {
-        [_wrapperView setHidden:!visible];
+    if (_childView) {
+        [_childView setHidden:!visible];
     }
 }
 
 - (bool)isVisible {
-    if (_wrapperView) {
-        return ![_wrapperView isHidden];
+    if (_childView) {
+        return ![_childView isHidden];
     }
     return false;
 }
@@ -136,27 +124,37 @@
 }
 
 - (void)addToWindow:(void*)windowHandle {
-    if (!_wrapperView || !windowHandle) {
+    if (!_childView || !windowHandle) {
         return;
     }
     
     void* contentViewPtr = obsidian_macos_window_get_content_view(windowHandle);
     if (contentViewPtr) {
         NSView* contentView = (__bridge NSView*)contentViewPtr;
-        [contentView addSubview:_wrapperView];
+        [contentView addSubview:_childView];
     }
 }
 
 - (void)removeFromParent {
-    if (!_wrapperView) return;
+    if (!_childView) return;
+    
+    // Just remove from superview - keep click gesture intact
+    if ([_childView superview]) {
+        [_childView removeFromSuperview];
+    }
+}
+
+- (void)cleanup {
+    // Full cleanup - remove gesture and from superview
+    if (!_childView) return;
     
     if (_clickRecognizer) {
-        [_wrapperView removeGestureRecognizer:_clickRecognizer];
+        [_childView removeGestureRecognizer:_clickRecognizer];
         _clickRecognizer = nil;
     }
     
-    if ([_wrapperView superview]) {
-        [_wrapperView removeFromSuperview];
+    if ([_childView superview]) {
+        [_childView removeFromSuperview];
     }
 }
 
@@ -166,24 +164,8 @@
     }
 }
 
-- (NSView*)wrapperView {
-    return _wrapperView;
-}
-
-- (NSView*)childView {
-    return _childView;
-}
-
 - (NSString*)hrefString {
     return _href;
-}
-
-- (ObsidianLinkClickCallback)callback {
-    return _callback;
-}
-
-- (void*)userData {
-    return _userData;
 }
 
 @end
@@ -193,9 +175,9 @@ extern "C" {
 
 ObsidianLinkHandle obsidian_macos_create_link(ObsidianLinkParams params) {
     @autoreleasepool {
-        ObsidianLinkWrapper* wrapper = [[ObsidianLinkWrapper alloc] initWithParams:params];
-        if (wrapper && wrapper.wrapperView) {
-            return (__bridge_retained void*)wrapper;
+        ObsidianLinkHandler* handler = [[ObsidianLinkHandler alloc] initWithParams:params];
+        if (handler && handler.childView) {
+            return (__bridge_retained void*)handler;
         }
         return nullptr;
     }
@@ -205,8 +187,8 @@ void obsidian_macos_link_set_href(ObsidianLinkHandle handle, const char* href) {
     if (!handle) return;
     
     @autoreleasepool {
-        ObsidianLinkWrapper* wrapper = (__bridge ObsidianLinkWrapper*)handle;
-        [wrapper setHref:href];
+        ObsidianLinkHandler* handler = (__bridge ObsidianLinkHandler*)handle;
+        [handler setHref:href];
     }
 }
 
@@ -214,8 +196,8 @@ const char* obsidian_macos_link_get_href(ObsidianLinkHandle handle) {
     if (!handle) return nullptr;
     
     @autoreleasepool {
-        ObsidianLinkWrapper* wrapper = (__bridge ObsidianLinkWrapper*)handle;
-        return [wrapper getHref];
+        ObsidianLinkHandler* handler = (__bridge ObsidianLinkHandler*)handle;
+        return [handler getHref];
     }
 }
 
@@ -225,8 +207,8 @@ void obsidian_macos_link_set_on_click(ObsidianLinkHandle handle,
     if (!handle) return;
     
     @autoreleasepool {
-        ObsidianLinkWrapper* wrapper = (__bridge ObsidianLinkWrapper*)handle;
-        [wrapper setOnClick:callback userData:userData];
+        ObsidianLinkHandler* handler = (__bridge ObsidianLinkHandler*)handle;
+        [handler setOnClick:callback userData:userData];
     }
 }
 
@@ -234,8 +216,8 @@ void obsidian_macos_link_set_visible(ObsidianLinkHandle handle, bool visible) {
     if (!handle) return;
     
     @autoreleasepool {
-        ObsidianLinkWrapper* wrapper = (__bridge ObsidianLinkWrapper*)handle;
-        [wrapper setVisible:visible];
+        ObsidianLinkHandler* handler = (__bridge ObsidianLinkHandler*)handle;
+        [handler setVisible:visible];
     }
 }
 
@@ -243,8 +225,8 @@ bool obsidian_macos_link_is_visible(ObsidianLinkHandle handle) {
     if (!handle) return false;
     
     @autoreleasepool {
-        ObsidianLinkWrapper* wrapper = (__bridge ObsidianLinkWrapper*)handle;
-        return [wrapper isVisible];
+        ObsidianLinkHandler* handler = (__bridge ObsidianLinkHandler*)handle;
+        return [handler isVisible];
     }
 }
 
@@ -252,8 +234,8 @@ void obsidian_macos_link_set_enabled(ObsidianLinkHandle handle, bool enabled) {
     if (!handle) return;
     
     @autoreleasepool {
-        ObsidianLinkWrapper* wrapper = (__bridge ObsidianLinkWrapper*)handle;
-        [wrapper setEnabled:enabled];
+        ObsidianLinkHandler* handler = (__bridge ObsidianLinkHandler*)handle;
+        [handler setEnabled:enabled];
     }
 }
 
@@ -261,8 +243,8 @@ bool obsidian_macos_link_is_enabled(ObsidianLinkHandle handle) {
     if (!handle) return false;
     
     @autoreleasepool {
-        ObsidianLinkWrapper* wrapper = (__bridge ObsidianLinkWrapper*)handle;
-        return [wrapper isEnabled];
+        ObsidianLinkHandler* handler = (__bridge ObsidianLinkHandler*)handle;
+        return [handler isEnabled];
     }
 }
 
@@ -271,8 +253,8 @@ void obsidian_macos_link_add_to_window(ObsidianLinkHandle linkHandle,
     if (!linkHandle || !windowHandle) return;
     
     @autoreleasepool {
-        ObsidianLinkWrapper* wrapper = (__bridge ObsidianLinkWrapper*)linkHandle;
-        [wrapper addToWindow:windowHandle];
+        ObsidianLinkHandler* handler = (__bridge ObsidianLinkHandler*)linkHandle;
+        [handler addToWindow:windowHandle];
     }
 }
 
@@ -280,8 +262,8 @@ void obsidian_macos_link_remove_from_parent(ObsidianLinkHandle handle) {
     if (!handle) return;
     
     @autoreleasepool {
-        ObsidianLinkWrapper* wrapper = (__bridge ObsidianLinkWrapper*)handle;
-        [wrapper removeFromParent];
+        ObsidianLinkHandler* handler = (__bridge ObsidianLinkHandler*)handle;
+        [handler removeFromParent];
     }
 }
 
@@ -289,8 +271,8 @@ void obsidian_macos_destroy_link(ObsidianLinkHandle handle) {
     if (!handle) return;
     
     @autoreleasepool {
-        ObsidianLinkWrapper* wrapper = (__bridge_transfer ObsidianLinkWrapper*)handle;
-        [wrapper removeFromParent];
+        ObsidianLinkHandler* handler = (__bridge_transfer ObsidianLinkHandler*)handle;
+        [handler cleanup];
     }
 }
 
@@ -298,7 +280,7 @@ void obsidian_macos_release_link_handle(ObsidianLinkHandle handle) {
     if (!handle) return;
     
     @autoreleasepool {
-        (void)(__bridge_transfer ObsidianLinkWrapper*)handle;
+        (void)(__bridge_transfer ObsidianLinkHandler*)handle;
     }
 }
 
@@ -306,8 +288,8 @@ bool obsidian_macos_link_is_valid(ObsidianLinkHandle handle) {
     if (!handle) return false;
     
     @autoreleasepool {
-        ObsidianLinkWrapper* wrapper = (__bridge ObsidianLinkWrapper*)handle;
-        return wrapper != nil && wrapper.wrapperView != nil;
+        ObsidianLinkHandler* handler = (__bridge ObsidianLinkHandler*)handle;
+        return handler != nil && handler.childView != nil;
     }
 }
 
@@ -315,8 +297,9 @@ void* obsidian_macos_link_get_view(ObsidianLinkHandle handle) {
     if (!handle) return nullptr;
     
     @autoreleasepool {
-        ObsidianLinkWrapper* wrapper = (__bridge ObsidianLinkWrapper*)handle;
-        return (__bridge void*)wrapper.wrapperView;
+        ObsidianLinkHandler* handler = (__bridge ObsidianLinkHandler*)handle;
+        // Return the child view directly - NO WRAPPER
+        return (__bridge void*)handler.childView;
     }
 }
 

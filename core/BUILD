@@ -21,6 +21,7 @@ cc_library(
     deps = [
         ":ffi_base",
         "//include:obsidian_headers",  # For AppCallbacks definition
+        "//packages/apple:apple_objc_bridge",  # For macos_mounting.h
     ],
 )
 

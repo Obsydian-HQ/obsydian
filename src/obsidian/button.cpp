@@ -1,163 +1,211 @@
 /**
  * Obsidian Public API - Button Implementation
  * 
- * This file implements the public Button API by wrapping the internal
- * platform-specific implementations.
+ * REFACTORED: Uses Tag-based identification with ComponentViewRegistry.
+ * The handle IS the NSButton (no wrapper indirection).
+ * Native view lifecycle managed by registry, not RAII destructors.
  */
 
 #include "obsidian/button.h"
 #include "obsidian/window.h"
+#include <iostream>
 
-// Include internal headers (not exposed to users)
 #ifdef __APPLE__
-// Access through dependency: //packages/apple:apple_ffi exposes macos_ffi.h
 #include "macos_ffi.h"
-#include "macos_button.h"  // For C FFI function
+#include "macos_button.h"
 #endif
+
+#include "../../core/mounting/component_view_registry.h"
+#include "../../core/mounting/mounting_coordinator.h"
+#include "../../core/mounting/view_mutation.h"
 
 namespace obsidian {
 
+using namespace obsidian::mounting;
+
 class Button::Impl {
 public:
-#ifdef __APPLE__
-    obsidian::ffi::macos::Button macosButton;
-#endif
+    Tag tag = 0;
     bool valid = false;
+    std::function<void()> pendingCallback;
+    
+    void* getNativeView() const {
+        if (tag == 0) return nullptr;
+        return ComponentViewRegistry::getInstance().findNativeView(tag);
+    }
 };
 
 Button::Button() : pImpl(std::make_unique<Impl>()) {}
 
 Button::~Button() {
-    // RAII: Automatically clean up resources
-    // The FFI Button destructor will handle proper cleanup (remove from parent + destroy)
-    // pImpl will be destroyed automatically, which will destroy the FFI Button
-    // The FFI Button destructor calls obsidian_macos_destroy_button which handles all cleanup
-    if (pImpl && pImpl->valid) {
-        // Mark as invalid to prevent any further operations
-        pImpl->valid = false;
-    }
+    // Do NOT destroy native view - managed by ComponentViewRegistry
+    pImpl->valid = false;
 }
 
 bool Button::create(const std::string& title, int x, int y, int width, int height) {
     if (pImpl->valid) {
-        return false; // Already created
-    }
-    
-#ifdef __APPLE__
-    if (!pImpl->macosButton.create(title, x, y, width, height)) {
         return false;
     }
+    
+    auto& registry = ComponentViewRegistry::getInstance();
+    auto& coordinator = MountingCoordinator::getInstance();
+    
+    pImpl->tag = registry.generateTag();
+    
+    // Create the native button via registry
+    auto createMutation = ViewMutation::CreateMutation(pImpl->tag, ComponentHandles::Button);
+    coordinator.performMutation(createMutation);
+    
+    void* nativeView = pImpl->getNativeView();
+    if (!nativeView) {
+        pImpl->tag = 0;
+        return false;
+    }
+
+#ifdef __APPLE__
+    // Configure button - nativeView IS the NSButton handle
+    obsidian_macos_button_set_title(nativeView, title.c_str());
+    
+    // Set frame via mutation
+    LayoutMetrics metrics{
+        static_cast<float>(x), 
+        static_cast<float>(y), 
+        static_cast<float>(width), 
+        static_cast<float>(height)
+    };
+    auto updateMutation = ViewMutation::UpdateMutation(pImpl->tag, LayoutMetrics{}, metrics);
+    coordinator.performMutation(updateMutation);
+    
+    // Set callback if pending
+    if (pImpl->pendingCallback) {
+        auto* callbackPtr = new std::function<void()>(pImpl->pendingCallback);
+        obsidian_macos_button_set_on_click(
+            nativeView,
+            [](void* userData) {
+                auto* cb = static_cast<std::function<void()>*>(userData);
+                if (cb && *cb) (*cb)();
+            },
+            callbackPtr
+        );
+    }
+#endif
+    
     pImpl->valid = true;
     return true;
-#else
-    // Other platforms not yet implemented
-    return false;
-#endif
 }
 
 void Button::setTitle(const std::string& title) {
-    if (!pImpl->valid) {
-        return;
-    }
+    if (!pImpl->valid) return;
     
 #ifdef __APPLE__
-    pImpl->macosButton.setTitle(title);
+    void* view = pImpl->getNativeView();
+    if (view) {
+        obsidian_macos_button_set_title(view, title.c_str());
+    }
 #endif
 }
 
 std::string Button::getTitle() const {
-    if (!pImpl->valid) {
-        return std::string();
-    }
+    if (!pImpl->valid) return {};
     
 #ifdef __APPLE__
-    return pImpl->macosButton.getTitle();
-#else
-    return std::string();
+    void* view = pImpl->getNativeView();
+    if (view) {
+        const char* title = obsidian_macos_button_get_title(view);
+        return title ? std::string(title) : std::string();
+    }
 #endif
+    return {};
 }
 
 void Button::setOnClick(std::function<void()> callback) {
-    // Allow setting callbacks before create() - they will be registered when create() is called
-    // But we need the button to exist, so check if it's created
-    // Actually, we should allow setting callbacks even before create() - store them and register on create
+    pImpl->pendingCallback = callback;
+    
+    if (!pImpl->valid) return;
+    
 #ifdef __APPLE__
-    pImpl->macosButton.setOnClick(callback);
+    void* view = pImpl->getNativeView();
+    if (view) {
+        auto* callbackPtr = new std::function<void()>(callback);
+        obsidian_macos_button_set_on_click(
+            view,
+            [](void* userData) {
+                auto* cb = static_cast<std::function<void()>*>(userData);
+                if (cb && *cb) (*cb)();
+            },
+            callbackPtr
+        );
+    }
 #endif
 }
 
 void Button::setVisible(bool visible) {
-    if (!pImpl->valid) {
-        return;
-    }
+    if (!pImpl->valid) return;
     
 #ifdef __APPLE__
-    pImpl->macosButton.setVisible(visible);
+    void* view = pImpl->getNativeView();
+    if (view) {
+        obsidian_macos_button_set_visible(view, visible);
+    }
 #endif
 }
 
 bool Button::isVisible() const {
-    if (!pImpl->valid) {
-        return false;
-    }
+    if (!pImpl->valid) return false;
     
 #ifdef __APPLE__
-    return pImpl->macosButton.isVisible();
-#else
-    return false;
+    void* view = pImpl->getNativeView();
+    if (view) {
+        return obsidian_macos_button_is_visible(view);
+    }
 #endif
+    return false;
 }
 
 void Button::setEnabled(bool enabled) {
-    if (!pImpl->valid) {
-        return;
-    }
+    if (!pImpl->valid) return;
     
 #ifdef __APPLE__
-    pImpl->macosButton.setEnabled(enabled);
+    void* view = pImpl->getNativeView();
+    if (view) {
+        obsidian_macos_button_set_enabled(view, enabled);
+    }
 #endif
 }
 
 bool Button::isEnabled() const {
-    if (!pImpl->valid) {
-        return false;
-    }
+    if (!pImpl->valid) return false;
     
 #ifdef __APPLE__
-    return pImpl->macosButton.isEnabled();
-#else
-    return false;
+    void* view = pImpl->getNativeView();
+    if (view) {
+        return obsidian_macos_button_is_enabled(view);
+    }
 #endif
+    return false;
 }
 
 void Button::addToWindow(Window& window) {
-    if (!pImpl->valid || !window.isValid()) {
-        return;
-    }
+    if (!pImpl->valid || !window.isValid()) return;
     
 #ifdef __APPLE__
-    // Get the native handles from both button and window
-    void* buttonHandle = pImpl->macosButton.getHandle();
+    void* view = pImpl->getNativeView();
     void* windowHandle = window.getNativeHandle();
     
-    if (!buttonHandle || !windowHandle) {
-        return;
+    if (view && windowHandle) {
+        obsidian_macos_button_add_to_window(view, windowHandle);
     }
-    
-    // Call the C FFI function directly
-    obsidian_macos_button_add_to_window(buttonHandle, windowHandle);
 #endif
 }
 
 void Button::removeFromParent() {
-    if (!pImpl->valid) {
-        return;
-    }
+    if (!pImpl->valid) return;
     
 #ifdef __APPLE__
-    pImpl->macosButton.removeFromParent();
-    // Note: Button remains valid after removal - it's just not attached to a parent
-    // The button will be destroyed when the destructor runs
+    void* view = pImpl->getNativeView();
+    if (view) {
+        obsidian_macos_button_remove_from_parent(view);
+    }
 #endif
 }
 
@@ -166,23 +214,13 @@ bool Button::isValid() const {
 }
 
 void* Button::getNativeViewHandle() const {
-    if (!pImpl->valid) {
-        return nullptr;
-    }
+    if (!pImpl->valid) return nullptr;
     
-#ifdef __APPLE__
-    void* buttonHandle = pImpl->macosButton.getHandle();
-    if (!buttonHandle) {
-        return nullptr;
-    }
-    return obsidian_macos_button_get_view(buttonHandle);
-#else
-    return nullptr;
-#endif
+    // Handle IS the NSButton - no indirection
+    return pImpl->getNativeView();
 }
 
 Button::Button(Button&& other) noexcept = default;
 Button& Button::operator=(Button&& other) noexcept = default;
 
 } // namespace obsidian
-

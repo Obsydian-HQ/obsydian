@@ -1,8 +1,8 @@
 /**
  * Obsidian Public API - VStack Implementation
  * 
- * Frame-based layout container. The native Objective-C++ implementation
- * handles all layout in layoutSubviews - NO AUTO LAYOUT CONSTRAINTS.
+ * Uses the Layout Engine to calculate positions and sizes.
+ * The C++ Layout Engine computes frames, then applies them to native views.
  */
 
 #include "obsidian/vstack.h"
@@ -14,6 +14,11 @@
 #include "obsidian/textview.h"
 #include "obsidian/hstack.h"
 #include <iostream>
+
+// Layout Engine
+#include "core/layout/view_node.h"
+#include "core/layout/engine.h"
+#include "core/layout/manager.h"
 
 // Include internal headers (not exposed to users)
 #ifdef __APPLE__
@@ -30,6 +35,12 @@
 
 namespace obsidian {
 
+// Forward declare FFI functions for layout engine
+#ifdef __APPLE__
+extern "C" void obsidian_macos_view_set_frame(void* view, double x, double y, double width, double height);
+extern "C" void obsidian_macos_view_get_bounds(void* view, double* x, double* y, double* w, double* h);
+#endif
+
 class VStack::Impl {
 public:
 #ifdef __APPLE__
@@ -42,6 +53,15 @@ public:
     layout::Alignment alignment;
     Padding padding;
     
+    // Layout Engine integration
+    // IMPORTANT: layoutNode ownership model (inspired by React Native's Shadow Tree)
+    // - When a VStack is created, it owns its layoutNode
+    // - When a VStack is added as a child to another container, ownership transfers
+    // - This ensures layoutNodes persist even when component objects go out of scope
+    layout::ViewNode* layoutNode;
+    std::vector<layout::LayoutNode*> childLayoutNodes;  // Tracked for reference, not ownership
+    bool ownsLayoutNode;  // true if this VStack owns its layoutNode
+    
     Impl()
 #ifdef __APPLE__
         : vstackHandle(nullptr)
@@ -51,9 +71,18 @@ public:
         , spacing(0.0)
         , alignment(layout::Alignment::Leading)
         , padding{0.0, 0.0, 0.0, 0.0}
+        , layoutNode(nullptr)
+        , ownsLayoutNode(true)  // Initially owns its layoutNode
     {}
     
-    ~Impl() = default;
+    ~Impl() {
+        // Only delete layoutNode if we still own it
+        // If ownership was transferred (e.g., when added as child to parent container),
+        // the parent now owns it and will clean it up
+        if (ownsLayoutNode && layoutNode) {
+            delete layoutNode;
+        }
+    }
 };
 
 VStack::VStack() : pImpl(std::make_unique<Impl>()) {
@@ -63,6 +92,15 @@ VStack::VStack() : pImpl(std::make_unique<Impl>()) {
     pImpl->vstackHandle = obsidian_macos_create_vstack(params);
     if (pImpl->vstackHandle) {
         pImpl->valid = true;
+        
+        // Create LayoutNode for this VStack (Column direction)
+        void* nativeView = obsidian_macos_vstack_get_view(pImpl->vstackHandle);
+        pImpl->layoutNode = layout::ViewNode::createContainer(layout::FlexDirection::Column, nativeView);
+        
+        // Set up the frame setter callback for layout engine
+        layout::ViewNode::setSetFrameCallback([](void* view, float x, float y, float w, float h) {
+            obsidian_macos_view_set_frame(view, x, y, w, h);
+        });
     }
 #endif
 }
@@ -87,8 +125,12 @@ void VStack::setSpacing(double spacing) {
         if (pImpl->valid) {
 #ifdef __APPLE__
             obsidian_macos_vstack_set_spacing(pImpl->vstackHandle, spacing);
-            // Trigger layout update - native side handles positioning
-            obsidian_macos_vstack_request_layout_update(pImpl->vstackHandle);
+            
+            // Update layout node
+            if (pImpl->layoutNode) {
+                pImpl->layoutNode->getStyle().gap = static_cast<float>(spacing);
+                pImpl->layoutNode->markDirty();
+            }
 #endif
         }
     }
@@ -118,8 +160,16 @@ void VStack::setPadding(const Padding& padding) {
             obsidian_macos_vstack_set_padding(pImpl->vstackHandle,
                                                padding.top, padding.bottom,
                                                padding.leading, padding.trailing);
-            // Trigger layout update - native side handles positioning
-            obsidian_macos_vstack_request_layout_update(pImpl->vstackHandle);
+            
+            // Update layout node padding [left, top, right, bottom]
+            if (pImpl->layoutNode) {
+                auto& style = pImpl->layoutNode->getStyle();
+                style.padding[0] = layout::LayoutValue::points(static_cast<float>(padding.leading));
+                style.padding[1] = layout::LayoutValue::points(static_cast<float>(padding.top));
+                style.padding[2] = layout::LayoutValue::points(static_cast<float>(padding.trailing));
+                style.padding[3] = layout::LayoutValue::points(static_cast<float>(padding.bottom));
+                pImpl->layoutNode->markDirty();
+            }
 #endif
         }
     }
@@ -151,9 +201,18 @@ void VStack::addChild(Button& button) {
     
     button.removeFromParent();
     
-    // Add child - native side handles layout in layoutSubviews
+    // Add to native view hierarchy
     obsidian_macos_vstack_add_child_view(pImpl->vstackHandle, buttonView);
     pImpl->childViewHandles.push_back(buttonView);
+    
+    // Create LayoutNode for button (leaf node with fixed height)
+    if (pImpl->layoutNode) {
+        auto* childNode = layout::ViewNode::createLeaf(buttonView, nullptr);
+        // Buttons have a default height of 30
+        childNode->getStyle().height = layout::LayoutValue::points(30.0f);
+        pImpl->layoutNode->addChild(childNode);
+        pImpl->childLayoutNodes.push_back(childNode);
+    }
 #endif
 }
 
@@ -177,8 +236,16 @@ void VStack::addChild(Spacer& spacer) {
         return;
     }
     
+    // Add to native view hierarchy
     obsidian_macos_vstack_add_child_view(pImpl->vstackHandle, spacerView);
     pImpl->childViewHandles.push_back(spacerView);
+    
+    // Create LayoutNode for spacer (uses flexGrow to fill available space)
+    if (pImpl->layoutNode) {
+        auto* childNode = layout::ViewNode::createSpacer(spacerView);
+        pImpl->layoutNode->addChild(childNode);
+        pImpl->childLayoutNodes.push_back(childNode);
+    }
 #endif
 }
 
@@ -204,8 +271,17 @@ void VStack::addChild(Link& link) {
     
     link.removeFromParent();
     
+    // Add to native view hierarchy
     obsidian_macos_vstack_add_child_view(pImpl->vstackHandle, linkView);
     pImpl->childViewHandles.push_back(linkView);
+    
+    // Create LayoutNode for link (leaf node with fixed height)
+    if (pImpl->layoutNode) {
+        auto* childNode = layout::ViewNode::createLeaf(linkView, nullptr);
+        childNode->getStyle().height = layout::LayoutValue::points(30.0f);
+        pImpl->layoutNode->addChild(childNode);
+        pImpl->childLayoutNodes.push_back(childNode);
+    }
 #endif
 }
 
@@ -231,8 +307,17 @@ void VStack::addChild(TextView& textView) {
     
     textView.removeFromParent();
     
+    // Add to native view hierarchy
     obsidian_macos_vstack_add_child_view(pImpl->vstackHandle, textViewHandle);
     pImpl->childViewHandles.push_back(textViewHandle);
+    
+    // Create LayoutNode for text view (leaf node with fixed height)
+    if (pImpl->layoutNode) {
+        auto* childNode = layout::ViewNode::createLeaf(textViewHandle, nullptr);
+        childNode->getStyle().height = layout::LayoutValue::points(24.0f);  // Single line text height
+        pImpl->layoutNode->addChild(childNode);
+        pImpl->childLayoutNodes.push_back(childNode);
+    }
 #endif
 }
 
@@ -249,8 +334,23 @@ void VStack::addChild(VStack& vstack) {
     
     vstack.removeFromParent();
     
+    // Add to native view hierarchy
     obsidian_macos_vstack_add_child_view(pImpl->vstackHandle, nestedView);
     pImpl->childViewHandles.push_back(nestedView);
+    
+    // OWNERSHIP TRANSFER: Use the nested VStack's existing layoutNode (which has its children!)
+    // This is inspired by React Native's Shadow Tree architecture
+    if (pImpl->layoutNode) {
+        auto* childLayoutNode = static_cast<layout::LayoutNode*>(vstack.getLayoutNode());
+        if (childLayoutNode) {
+            // Transfer ownership: parent now owns the child's layoutNode
+            vstack.releaseLayoutNodeOwnership();
+            
+            // Add to layout tree
+            pImpl->layoutNode->addChild(childLayoutNode);
+            pImpl->childLayoutNodes.push_back(childLayoutNode);
+        }
+    }
 #endif
 }
 
@@ -276,8 +376,27 @@ void VStack::addChild(HStack& hstack) {
     
     hstack.removeFromParent();
     
+    // Add to native view hierarchy
     obsidian_macos_vstack_add_child_view(pImpl->vstackHandle, hstackView);
     pImpl->childViewHandles.push_back(hstackView);
+    
+    // OWNERSHIP TRANSFER: Use the HStack's existing layoutNode (which has its children!)
+    // This is inspired by React Native's Shadow Tree architecture:
+    // - HStack's layoutNode already contains its Link/Button children
+    // - We adopt that layoutNode into VStack's layout tree
+    // - HStack releases ownership so its destructor won't delete the node
+    // - This ensures layout persists even when HStack object goes out of scope
+    if (pImpl->layoutNode) {
+        auto* childLayoutNode = static_cast<layout::LayoutNode*>(hstack.getLayoutNode());
+        if (childLayoutNode) {
+            // Transfer ownership: parent now owns the child's layoutNode
+            hstack.releaseLayoutNodeOwnership();
+            
+            // Add to layout tree
+            pImpl->layoutNode->addChild(childLayoutNode);
+            pImpl->childLayoutNodes.push_back(childLayoutNode);
+        }
+    }
 #endif
 }
 
@@ -429,18 +548,32 @@ void VStack::addToWindow(Window& window) {
         return;
     }
     
-    // Add VStack to window - native side handles filling content view
+    // Add VStack to window
     obsidian_macos_vstack_add_to_window(pImpl->vstackHandle, windowHandle);
     pImpl->parentView = contentView;
     
-    // Set padding and spacing
-    obsidian_macos_vstack_set_padding(pImpl->vstackHandle,
-                                       pImpl->padding.top, pImpl->padding.bottom,
-                                       pImpl->padding.leading, pImpl->padding.trailing);
-    obsidian_macos_vstack_set_spacing(pImpl->vstackHandle, pImpl->spacing);
-    
-    // Force layout update
-    obsidian_macos_vstack_request_layout_update(pImpl->vstackHandle);
+    // Configure layoutNode with current settings
+    if (pImpl->layoutNode) {
+        pImpl->layoutNode->configureAsVStack(
+            static_cast<float>(pImpl->spacing),
+            static_cast<float>(pImpl->padding.top),
+            static_cast<float>(pImpl->padding.bottom),
+            static_cast<float>(pImpl->padding.leading),
+            static_cast<float>(pImpl->padding.trailing)
+        );
+        
+        // Get window dimensions from content view bounds
+        float width = 800.0f;   // Default fallback
+        float height = 600.0f;  // Default fallback
+        
+        double bx, by, bw, bh;
+        obsidian_macos_view_get_bounds(contentView, &bx, &by, &bw, &bh);
+        width = static_cast<float>(bw);
+        height = static_cast<float>(bh);
+        
+        // Calculate and apply layout
+        pImpl->layoutNode->layoutAndApply(width, height);
+    }
 #endif
 }
 
@@ -475,18 +608,29 @@ void VStack::addToParentView(void* parentView) {
         return;
     }
     
-    // Add VStack view to parent - native side sets frame to fill parent
+    // Add VStack view to parent
     obsidian_macos_screen_add_subview(parentView, vstackView);
     pImpl->parentView = parentView;
     
-    // Set padding and spacing
-    obsidian_macos_vstack_set_padding(pImpl->vstackHandle,
-                                       pImpl->padding.top, pImpl->padding.bottom,
-                                       pImpl->padding.leading, pImpl->padding.trailing);
-    obsidian_macos_vstack_set_spacing(pImpl->vstackHandle, pImpl->spacing);
-    
-    // Force layout update
-    obsidian_macos_vstack_request_layout_update(pImpl->vstackHandle);
+    // Configure layoutNode and apply layout
+    if (pImpl->layoutNode) {
+        pImpl->layoutNode->configureAsVStack(
+            static_cast<float>(pImpl->spacing),
+            static_cast<float>(pImpl->padding.top),
+            static_cast<float>(pImpl->padding.bottom),
+            static_cast<float>(pImpl->padding.leading),
+            static_cast<float>(pImpl->padding.trailing)
+        );
+        
+        // Get parent view bounds for layout calculation
+        double bx, by, bw, bh;
+        obsidian_macos_view_get_bounds(parentView, &bx, &by, &bw, &bh);
+        float width = static_cast<float>(bw);
+        float height = static_cast<float>(bh);
+        
+        // Calculate and apply layout
+        pImpl->layoutNode->layoutAndApply(width, height);
+    }
 #endif
 }
 
@@ -507,8 +651,15 @@ void VStack::updateLayout() {
     }
     
 #ifdef __APPLE__
-    // Just trigger native layout update - all positioning done in native layoutSubviews
-    obsidian_macos_vstack_request_layout_update(pImpl->vstackHandle);
+    // Recalculate layout with current parent bounds
+    if (pImpl->layoutNode && pImpl->parentView) {
+        double bx, by, bw, bh;
+        obsidian_macos_view_get_bounds(pImpl->parentView, &bx, &by, &bw, &bh);
+        float width = static_cast<float>(bw);
+        float height = static_cast<float>(bh);
+        
+        pImpl->layoutNode->layoutAndApply(width, height);
+    }
 #endif
 }
 
@@ -527,6 +678,19 @@ void* VStack::getNativeViewHandle() const {
     }
 #endif
     return nullptr;
+}
+
+void* VStack::getLayoutNode() const {
+    if (!pImpl) {
+        return nullptr;
+    }
+    return pImpl->layoutNode;
+}
+
+void VStack::releaseLayoutNodeOwnership() {
+    if (pImpl) {
+        pImpl->ownsLayoutNode = false;
+    }
 }
 
 VStack::VStack(VStack&&) noexcept = default;

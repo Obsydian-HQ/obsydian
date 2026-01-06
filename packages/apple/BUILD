@@ -38,6 +38,7 @@ cc_library(
         "macos_router.h",
         "macos_link.h",
         "macos_screen_container.h",
+        "macos_mounting.h",
     ],
     aspect_hints = [":apple_c_headers_interop"],
     copts = ["-std=c++20"],
@@ -71,6 +72,7 @@ objc_library(
         "macos_router.mm",
         "macos_link.mm",
         "macos_screen_container.mm",
+        "macos_mounting.mm",
     ],
     hdrs = [
         "macos_button.h",
@@ -95,6 +97,7 @@ objc_library(
         "macos_router.h",
         "macos_link.h",
         "macos_screen_container.h",
+        "macos_mounting.h",
     ],
     copts = [
         "-std=c++20",
@@ -108,6 +111,9 @@ objc_library(
     sdk_frameworks = [
         "AppKit",
         "Foundation",
+    ],
+    deps = [
+        "//core/mounting:mounting",
     ],
 )
 

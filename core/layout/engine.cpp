@@ -123,6 +123,10 @@ void LayoutEngine::layoutFlexContainer(LayoutNode* node,
     float mainAxisSize = isColumn ? contentHeight : contentWidth;
     float crossAxisSize = isColumn ? contentWidth : contentHeight;
     
+    // Determine if cross axis needs to be calculated from children
+    // (This is the KEY fix - like Yoga's SizingMode::MaxContent/FitContent)
+    bool crossAxisFromChildren = (crossAxisSize <= 0);
+    
     // Collect children that are in normal flow
     std::vector<LayoutNode*> flowChildren;
     for (auto* child : node->getChildren()) {
@@ -136,46 +140,100 @@ void LayoutEngine::layoutFlexContainer(LayoutNode* node,
     // Calculate total gap space
     float totalGap = style.gap * (flowChildren.size() - 1);
     
-    // First pass: measure children and calculate total flex
+    // ==========================================================================
+    // FIRST PASS: Measure children and calculate sizes (like Yoga's STEP 3 & 6)
+    // ==========================================================================
     float totalFlexGrow = 0.0f;
     float totalFixedSize = 0.0f;
+    float maxChildCrossSize = 0.0f;  // Track max cross dimension from children
     
-    for (auto* child : flowChildren) {
+    // Store measured sizes for second pass
+    struct ChildMeasurement {
+        float mainSize;
+        float crossSize;
+    };
+    std::vector<ChildMeasurement> childMeasurements(flowChildren.size());
+    
+    for (size_t i = 0; i < flowChildren.size(); ++i) {
+        auto* child = flowChildren[i];
         const Style& childStyle = child->getStyle();
         
         // Get child's base size on main axis
         float childMainSize = 0.0f;
+        float childCrossSize = 0.0f;
+        
         if (isColumn) {
+            // Main axis is height, cross axis is width
             if (childStyle.height.isDefined()) {
                 childMainSize = childStyle.height.resolve(contentHeight);
             }
+            if (childStyle.width.isDefined()) {
+                childCrossSize = childStyle.width.resolve(contentWidth);
+            }
         } else {
+            // Main axis is width, cross axis is height
             if (childStyle.width.isDefined()) {
                 childMainSize = childStyle.width.resolve(contentWidth);
+            }
+            if (childStyle.height.isDefined()) {
+                childCrossSize = childStyle.height.resolve(contentHeight);
             }
         }
         
         // If child has measure function, measure it
-        if (child->hasMeasureFunc() && childMainSize == 0.0f) {
+        if (child->hasMeasureFunc()) {
             Size measured = child->measure(
-                crossAxisSize, MeasureMode::AtMost,
-                mainAxisSize - totalFixedSize, MeasureMode::AtMost
+                contentWidth, MeasureMode::AtMost,
+                contentHeight, MeasureMode::AtMost
             );
-            childMainSize = isColumn ? measured.height : measured.width;
+            if (childMainSize == 0.0f) {
+                childMainSize = isColumn ? measured.height : measured.width;
+            }
+            if (childCrossSize == 0.0f) {
+                childCrossSize = isColumn ? measured.width : measured.height;
+            }
         }
         
-        // Accumulate
+        // Store measurements
+        childMeasurements[i].mainSize = childMainSize;
+        childMeasurements[i].crossSize = childCrossSize;
+        
+        // Track max cross size (like Yoga's justifyMainAxis)
+        if (childCrossSize > maxChildCrossSize) {
+            maxChildCrossSize = childCrossSize;
+        }
+        
+        // Accumulate for flex calculation
         totalFlexGrow += childStyle.flexGrow;
         totalFixedSize += childMainSize;
     }
     
-    // Calculate remaining space
+    // ==========================================================================
+    // KEY FIX: If cross axis size is undefined, use max child cross size
+    // (This is what Yoga does in STEP 9)
+    // ==========================================================================
+    if (crossAxisFromChildren && maxChildCrossSize > 0) {
+        crossAxisSize = maxChildCrossSize;
+        
+        // Update layout dimensions
+        if (isColumn) {
+            layout.width = crossAxisSize + layout.paddingLeft + layout.paddingRight;
+            contentWidth = crossAxisSize;
+        } else {
+            layout.height = crossAxisSize + layout.paddingTop + layout.paddingBottom;
+            contentHeight = crossAxisSize;
+        }
+    }
+    
+    // Calculate remaining space on main axis
     float remainingSpace = mainAxisSize - totalFixedSize - totalGap;
     float flexGrowUnit = (totalFlexGrow > 0 && remainingSpace > 0) 
                          ? remainingSpace / totalFlexGrow 
                          : 0.0f;
     
-    // Second pass: calculate final sizes and positions
+    // ==========================================================================
+    // SECOND PASS: Position children (like Yoga's STEP 7)
+    // ==========================================================================
     float mainOffset = isColumn ? layout.paddingTop : layout.paddingLeft;
     
     // Handle justifyContent start offset
@@ -222,6 +280,7 @@ void LayoutEngine::layoutFlexContainer(LayoutNode* node,
     // Reverse order if needed
     if (isReverse) {
         std::reverse(flowChildren.begin(), flowChildren.end());
+        std::reverse(childMeasurements.begin(), childMeasurements.end());
     }
     
     for (size_t i = 0; i < flowChildren.size(); ++i) {
@@ -229,36 +288,15 @@ void LayoutEngine::layoutFlexContainer(LayoutNode* node,
         const Style& childStyle = child->getStyle();
         LayoutResult& childLayout = child->getMutableLayout();
         
-        // Calculate child main axis size
-        float childMainSize = 0.0f;
-        if (isColumn) {
-            if (childStyle.height.isDefined()) {
-                childMainSize = childStyle.height.resolve(contentHeight);
-            }
-        } else {
-            if (childStyle.width.isDefined()) {
-                childMainSize = childStyle.width.resolve(contentWidth);
-            }
-        }
-        
-        // Measure if needed
-        if (child->hasMeasureFunc() && childMainSize == 0.0f) {
-            Size measured = child->measure(
-                crossAxisSize, MeasureMode::AtMost,
-                mainAxisSize, MeasureMode::AtMost
-            );
-            childMainSize = isColumn ? measured.height : measured.width;
-        }
+        float childMainSize = childMeasurements[i].mainSize;
+        float childCrossSize = childMeasurements[i].crossSize;
         
         // Add flex grow space
         if (childStyle.flexGrow > 0 && flexGrowUnit > 0) {
             childMainSize += childStyle.flexGrow * flexGrowUnit;
         }
         
-        // Calculate child cross axis size
-        float childCrossSize = crossAxisSize;  // Default: stretch
-        
-        // Handle alignItems/alignSelf
+        // Handle alignItems/alignSelf for cross axis
         AlignItems align = style.alignItems;
         if (childStyle.alignSelf != AlignSelf::Auto) {
             switch (childStyle.alignSelf) {
@@ -270,39 +308,24 @@ void LayoutEngine::layoutFlexContainer(LayoutNode* node,
             }
         }
         
-        // If not stretch, use child's specified size or measure
-        if (align != AlignItems::Stretch) {
-            if (isColumn) {
-                if (childStyle.width.isDefined()) {
-                    childCrossSize = childStyle.width.resolve(contentWidth);
-                } else if (child->hasMeasureFunc()) {
-                    Size measured = child->measure(
-                        contentWidth, MeasureMode::AtMost,
-                        childMainSize, MeasureMode::Exactly
-                    );
-                    childCrossSize = measured.width;
-                }
-            } else {
-                if (childStyle.height.isDefined()) {
-                    childCrossSize = childStyle.height.resolve(contentHeight);
-                } else if (child->hasMeasureFunc()) {
-                    Size measured = child->measure(
-                        childMainSize, MeasureMode::Exactly,
-                        contentHeight, MeasureMode::AtMost
-                    );
-                    childCrossSize = measured.height;
-                }
-            }
+        // Determine final cross size
+        float finalCrossSize = childCrossSize;
+        if (align == AlignItems::Stretch && childCrossSize == 0) {
+            // Stretch to fill container cross axis
+            finalCrossSize = crossAxisSize;
+        } else if (finalCrossSize == 0) {
+            // If no explicit size, use natural size or stretch
+            finalCrossSize = crossAxisSize;
         }
         
         // Calculate cross axis offset
         float crossOffset = isColumn ? layout.paddingLeft : layout.paddingTop;
         switch (align) {
             case AlignItems::FlexEnd:
-                crossOffset += crossAxisSize - childCrossSize;
+                crossOffset += crossAxisSize - finalCrossSize;
                 break;
             case AlignItems::Center:
-                crossOffset += (crossAxisSize - childCrossSize) / 2.0f;
+                crossOffset += (crossAxisSize - finalCrossSize) / 2.0f;
                 break;
             default:
                 break;
@@ -312,13 +335,13 @@ void LayoutEngine::layoutFlexContainer(LayoutNode* node,
         if (isColumn) {
             childLayout.left = crossOffset;
             childLayout.top = mainOffset;
-            childLayout.width = childCrossSize;
+            childLayout.width = finalCrossSize;
             childLayout.height = childMainSize;
         } else {
             childLayout.left = mainOffset;
             childLayout.top = crossOffset;
             childLayout.width = childMainSize;
-            childLayout.height = childCrossSize;
+            childLayout.height = finalCrossSize;
         }
         
         // Recursively layout child's children

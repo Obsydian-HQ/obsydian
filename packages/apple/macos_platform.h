@@ -54,6 +54,20 @@ void obsidian_macos_view_set_frame(void* viewHandle,
                                     double x, double y, 
                                     double width, double height);
 
+/**
+ * Get bounds of any NSView
+ * Returns the view's bounds rectangle
+ * 
+ * @param viewHandle NSView* pointer
+ * @param outX Pointer to receive X (origin x, typically 0)
+ * @param outY Pointer to receive Y (origin y, typically 0)
+ * @param outWidth Pointer to receive width
+ * @param outHeight Pointer to receive height
+ */
+void obsidian_macos_view_get_bounds(void* viewHandle,
+                                     double* outX, double* outY,
+                                     double* outWidth, double* outHeight);
+
 #ifdef __cplusplus
 }
 #endif

@@ -192,6 +192,25 @@ public:
      */
     void* getNativeViewHandle() const;
     
+    /**
+     * Get the internal layout node for this HStack.
+     * Used for layout tree construction when nesting containers.
+     * The returned pointer is valid until the HStack is destroyed or ownership is released.
+     */
+    void* getLayoutNode() const;
+    
+    /**
+     * Release ownership of the layout node.
+     * After calling this, the HStack will not delete its layout node when destroyed.
+     * This is used when the layout node is adopted by a parent container.
+     * 
+     * This implements the ownership transfer model inspired by React Native's Shadow Tree:
+     * - When HStack is added as child to VStack, VStack takes ownership of HStack's layoutNode
+     * - HStack's destructor won't delete the layoutNode (parent owns it now)
+     * - This ensures layout persists even when HStack object goes out of scope
+     */
+    void releaseLayoutNodeOwnership();
+    
     // Non-copyable
     HStack(const HStack&) = delete;
     HStack& operator=(const HStack&) = delete;

@@ -15,7 +15,8 @@ cc_library(
     deps = [
         "//core:ffi_base",
         "//core:runtime",
-        "//core/layout:layout",  # Layout engine (to be rebuilt with proper frame-based system)
+        "//core/layout:layout",  # Layout engine
+        "//core/mounting:mounting",  # ComponentViewRegistry and MountingCoordinator
         "//core/routing:routing",  # Routing system
         "//include:obsidian_headers",  # Need headers for implementation
         "//packages/apple:apple_ffi",

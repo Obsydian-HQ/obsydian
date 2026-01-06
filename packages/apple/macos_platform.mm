@@ -102,10 +102,32 @@ void obsidian_macos_view_set_frame(void* viewHandle,
     @autoreleasepool {
         NSView* view = (__bridge NSView*)viewHandle;
         if (view) {
-            // Note: macOS uses bottom-left origin, so Y may need adjustment
-            // depending on the parent view's coordinate system.
-            // For now, we set the frame directly as calculated by layout engine.
+            NSLog(@"[SetFrame] %@ -> x=%.0f y=%.0f w=%.0f h=%.0f", 
+                  NSStringFromClass([view class]), x, y, width, height);
             view.frame = NSMakeRect(x, y, width, height);
+        }
+    }
+}
+
+void obsidian_macos_view_get_bounds(void* viewHandle,
+                                     double* outX, double* outY,
+                                     double* outWidth, double* outHeight) {
+    if (!viewHandle) {
+        if (outX) *outX = 0;
+        if (outY) *outY = 0;
+        if (outWidth) *outWidth = 0;
+        if (outHeight) *outHeight = 0;
+        return;
+    }
+    
+    @autoreleasepool {
+        NSView* view = (__bridge NSView*)viewHandle;
+        if (view) {
+            NSRect bounds = view.bounds;
+            if (outX) *outX = bounds.origin.x;
+            if (outY) *outY = bounds.origin.y;
+            if (outWidth) *outWidth = bounds.size.width;
+            if (outHeight) *outHeight = bounds.size.height;
         }
     }
 }

@@ -73,6 +73,11 @@
 - (CGFloat)paddingTrailing { return _paddingTrailing; }
 - (CGFloat)spacing { return _spacing; }
 
+// Use top-left coordinate system (matches layout engine)
+- (BOOL)isFlipped {
+    return YES;
+}
+
 // Override layout to be a no-op - the layout engine sets frames
 - (void)layout {
     [super layout];
@@ -133,13 +138,20 @@
 
 - (void)addChildView:(void*)childViewHandle {
     if (!_containerView || !childViewHandle) {
+        NSLog(@"[VStack DEBUG] addChildView FAILED: containerView=%p childViewHandle=%p", _containerView, childViewHandle);
         return;
     }
     
     NSView* childView = (__bridge NSView*)childViewHandle;
     if (!childView) {
+        NSLog(@"[VStack DEBUG] addChildView FAILED: childView bridge failed");
         return;
     }
+    
+    NSLog(@"[VStack DEBUG] Adding child %@ frame:%@ to container (subview count before: %lu)", 
+          NSStringFromClass([childView class]),
+          NSStringFromRect(childView.frame),
+          (unsigned long)_containerView.subviews.count);
     
     // Simply add the child - the layout engine will set frames
     [_containerView addSubview:childView];
