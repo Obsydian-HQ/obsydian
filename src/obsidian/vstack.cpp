@@ -27,6 +27,7 @@
 #include "macos_window.h"
 #include "macos_vstack.h"
 #include "macos_screen_container.h"
+#include "macos_textview.h"  // For text measurement like React Native's TextLayoutManager
 #endif
 
 #include <vector>
@@ -311,10 +312,24 @@ void VStack::addChild(TextView& textView) {
     obsidian_macos_vstack_add_child_view(pImpl->vstackHandle, textViewHandle);
     pImpl->childViewHandles.push_back(textViewHandle);
     
-    // Create LayoutNode for text view (leaf node with fixed height)
+    // Create LayoutNode for text view
+    // Like React Native's TextLayoutManager, we measure the text to get its intrinsic height
     if (pImpl->layoutNode) {
+        // Get the FFI handle to measure the text
+        void* ffiHandle = textView.getNativeHandle();
+        float textHeight = 24.0f;  // Default fallback
+        
+        if (ffiHandle) {
+            // Measure text with unconstrained width to get natural height
+            // This is similar to React Native's text measurement approach
+            ObsidianTextSize measuredSize = obsidian_macos_textview_measure(ffiHandle, 10000.0);
+            if (measuredSize.height > 0) {
+                textHeight = static_cast<float>(measuredSize.height);
+            }
+        }
+        
         auto* childNode = layout::ViewNode::createLeaf(textViewHandle, nullptr);
-        childNode->getStyle().height = layout::LayoutValue::points(24.0f);  // Single line text height
+        childNode->getStyle().height = layout::LayoutValue::points(textHeight);
         pImpl->layoutNode->addChild(childNode);
         pImpl->childLayoutNodes.push_back(childNode);
     }

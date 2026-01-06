@@ -163,6 +163,25 @@ void obsidian_macos_textview_set_font_weight(ObsidianTextViewHandle handle, Obsi
  */
 ObsidianFontWeight obsidian_macos_textview_get_font_weight(ObsidianTextViewHandle handle);
 
+/**
+ * Text size structure for measurement results
+ */
+typedef struct {
+    double width;
+    double height;
+} ObsidianTextSize;
+
+/**
+ * Measure the intrinsic content size of the text view
+ * This calculates the size needed to display the current text with current font settings.
+ * Like React Native's TextLayoutManager, this uses the native text system to measure.
+ * 
+ * @param handle Text view handle
+ * @param maxWidth Maximum width constraint (use INFINITY or very large value for unconstrained)
+ * @return The measured size
+ */
+ObsidianTextSize obsidian_macos_textview_measure(ObsidianTextViewHandle handle, double maxWidth);
+
 #ifdef __cplusplus
 }
 #endif

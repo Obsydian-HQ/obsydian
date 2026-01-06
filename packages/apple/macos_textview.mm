@@ -440,4 +440,56 @@ ObsidianFontWeight obsidian_macos_textview_get_font_weight(ObsidianTextViewHandl
     }
 }
 
+ObsidianTextSize obsidian_macos_textview_measure(ObsidianTextViewHandle handle, double maxWidth) {
+    ObsidianTextSize result = {0, 0};
+    if (!handle) return result;
+    
+    @autoreleasepool {
+        ObsidianTextViewWrapper* wrapper = (__bridge ObsidianTextViewWrapper*)handle;
+        NSTextView* textView = wrapper.textView;
+        if (!textView) return result;
+        
+        // Get the text content
+        NSString* text = [textView string];
+        if (!text || text.length == 0) {
+            // Return minimum height based on font
+            NSFont* font = [textView font];
+            if (font) {
+                result.height = ceil(font.ascender - font.descender + font.leading);
+            } else {
+                result.height = 24.0;  // Default fallback
+            }
+            result.width = 0;
+            return result;
+        }
+        
+        // Use NSAttributedString and boundingRectWithSize for accurate measurement
+        // This is similar to how React Native's TextLayoutManager measures text
+        NSFont* font = [textView font] ?: [NSFont systemFontOfSize:13.0];
+        NSDictionary* attributes = @{
+            NSFontAttributeName: font
+        };
+        
+        NSAttributedString* attrString = [[NSAttributedString alloc] initWithString:text attributes:attributes];
+        
+        // Calculate bounding rect with the given max width constraint
+        CGFloat constraintWidth = (maxWidth > 0 && maxWidth < CGFLOAT_MAX) ? maxWidth : CGFLOAT_MAX;
+        NSRect boundingRect = [attrString boundingRectWithSize:NSMakeSize(constraintWidth, CGFLOAT_MAX)
+                                                       options:NSStringDrawingUsesLineFragmentOrigin | NSStringDrawingUsesFontLeading
+                                                       context:nil];
+        
+        // Add a small buffer for text rendering quirks (like React Native does)
+        result.width = ceil(boundingRect.size.width);
+        result.height = ceil(boundingRect.size.height);
+        
+        // Ensure minimum height based on font metrics
+        CGFloat minHeight = ceil(font.ascender - font.descender + font.leading);
+        if (result.height < minHeight) {
+            result.height = minHeight;
+        }
+        
+        return result;
+    }
+}
+
 } // extern "C"
