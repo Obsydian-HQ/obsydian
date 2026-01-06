@@ -55,24 +55,32 @@ void renderHomeRoute(RouteContext& ctx) {
     
     content.addChild(patterns);
     
+    // Navigation button to Page 1
+    Button toPage1Btn;
+    toPage1Btn.create("Go to Page 1", 0, 0, 150, 30);
+    toPage1Btn.setOnClick([&router = ctx.getRouter()]() {
+        router.navigate("/page1");
+    });
+    content.addChild(toPage1Btn);
+    
     // Navigation buttons
     HStack navButtons;
     navButtons.setSpacing(10.0);
     
     Button backBtn;
     backBtn.create("Back", 0, 0, 100, 30);
-    backBtn.setOnClick([&ctx]() {
-        if (ctx.canGoBack()) {
-            ctx.goBack();
+    backBtn.setOnClick([&router = ctx.getRouter()]() {
+        if (router.canGoBack()) {
+            router.goBack();
         }
     });
     navButtons.addChild(backBtn);
     
     Button forwardBtn;
     forwardBtn.create("Forward", 0, 0, 100, 30);
-    forwardBtn.setOnClick([&ctx]() {
-        if (ctx.canGoForward()) {
-            ctx.goForward();
+    forwardBtn.setOnClick([&router = ctx.getRouter()]() {
+        if (router.canGoForward()) {
+            router.goForward();
         }
     });
     navButtons.addChild(forwardBtn);

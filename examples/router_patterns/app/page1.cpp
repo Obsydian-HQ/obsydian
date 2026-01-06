@@ -21,22 +21,49 @@ void renderPage1Route(RouteContext& ctx) {
     content.addChild(title);
     
     TextView description;
-    description.create("This page demonstrates the replace() pattern. Use replace() to change the current route without adding to history.", 0, 0, 0, 0);
+    description.create("This page demonstrates navigation with history. Use navigate() to add routes to history.", 0, 0, 0, 0);
     description.setFontSize(14.0);
     content.addChild(description);
     
-    // Replace button
-    Button replaceBtn;
-    replaceBtn.create("Replace with Page 2", 0, 0, 180, 30);
-    replaceBtn.setOnClick([&ctx]() {
-        ctx.navigate("/page2");
+    // Navigate to Page 2 button
+    Button toPage2Btn;
+    toPage2Btn.create("Go to Page 2", 0, 0, 150, 30);
+    toPage2Btn.setOnClick([&router = ctx.getRouter()]() {
+        router.navigate("/page2");
     });
-    content.addChild(replaceBtn);
+    content.addChild(toPage2Btn);
     
-    TextView note;
-    note.create("Note: After replace, you won't be able to go back to Page 1", 0, 0, 0, 0);
-    note.setFontSize(12.0);
-    content.addChild(note);
+    // Navigation buttons
+    HStack navButtons;
+    navButtons.setSpacing(10.0);
+    
+    Button backBtn;
+    backBtn.create("Back (to Home)", 0, 0, 150, 30);
+    backBtn.setOnClick([&router = ctx.getRouter()]() {
+        if (router.canGoBack()) {
+            router.goBack();
+        }
+    });
+    navButtons.addChild(backBtn);
+    
+    Button forwardBtn;
+    forwardBtn.create("Forward (to Page 2)", 0, 0, 180, 30);
+    forwardBtn.setOnClick([&router = ctx.getRouter()]() {
+        if (router.canGoForward()) {
+            router.goForward();
+        }
+    });
+    navButtons.addChild(forwardBtn);
+    
+    content.addChild(navButtons);
+    
+    // History info
+    TextView historyInfo;
+    std::string info = "Can go back: " + std::string(ctx.canGoBack() ? "Yes (to Home)" : "No") + 
+                       " | Can go forward: " + std::string(ctx.canGoForward() ? "Yes (to Page 2)" : "No");
+    historyInfo.create(info.c_str(), 0, 0, 0, 0);
+    historyInfo.setFontSize(12.0);
+    content.addChild(historyInfo);
     
     ctx.setContent(content);
 }

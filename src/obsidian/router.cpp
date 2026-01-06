@@ -401,6 +401,10 @@ bool RouteContext::canGoForward() const {
     return router_.canGoForward();
 }
 
+Router& RouteContext::getRouter() const {
+    return router_;
+}
+
 void RouteContext::setContentSlot(void* slotViewHandle) {
     contentSlot_ = slotViewHandle;
 }

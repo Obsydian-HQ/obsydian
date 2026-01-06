@@ -21,22 +21,49 @@ void renderPage2Route(RouteContext& ctx) {
     content.addChild(title);
     
     TextView description;
-    description.create("This page demonstrates the push() pattern. Use push() to add a new route to the history stack.", 0, 0, 0, 0);
+    description.create("This page is in the middle of the navigation stack. You can go back to Page 1 or forward to Page 3.", 0, 0, 0, 0);
     description.setFontSize(14.0);
     content.addChild(description);
     
-    // Push button
-    Button pushBtn;
-    pushBtn.create("Push Page 3", 0, 0, 150, 30);
-    pushBtn.setOnClick([&ctx]() {
-        ctx.navigate("/page3");
+    // Navigate to Page 3 button
+    Button toPage3Btn;
+    toPage3Btn.create("Go to Page 3", 0, 0, 150, 30);
+    toPage3Btn.setOnClick([&router = ctx.getRouter()]() {
+        router.navigate("/page3");
     });
-    content.addChild(pushBtn);
+    content.addChild(toPage3Btn);
     
-    TextView note;
-    note.create("Note: After push, you can go back to Page 2", 0, 0, 0, 0);
-    note.setFontSize(12.0);
-    content.addChild(note);
+    // Navigation buttons
+    HStack navButtons;
+    navButtons.setSpacing(10.0);
+    
+    Button backBtn;
+    backBtn.create("Back (to Page 1)", 0, 0, 170, 30);
+    backBtn.setOnClick([&router = ctx.getRouter()]() {
+        if (router.canGoBack()) {
+            router.goBack();
+        }
+    });
+    navButtons.addChild(backBtn);
+    
+    Button forwardBtn;
+    forwardBtn.create("Forward (to Page 3)", 0, 0, 180, 30);
+    forwardBtn.setOnClick([&router = ctx.getRouter()]() {
+        if (router.canGoForward()) {
+            router.goForward();
+        }
+    });
+    navButtons.addChild(forwardBtn);
+    
+    content.addChild(navButtons);
+    
+    // History info
+    TextView historyInfo;
+    std::string info = "Can go back: " + std::string(ctx.canGoBack() ? "Yes (to Page 1)" : "No") + 
+                       " | Can go forward: " + std::string(ctx.canGoForward() ? "Yes (to Page 3)" : "No");
+    historyInfo.create(info.c_str(), 0, 0, 0, 0);
+    historyInfo.setFontSize(12.0);
+    content.addChild(historyInfo);
     
     ctx.setContent(content);
 }

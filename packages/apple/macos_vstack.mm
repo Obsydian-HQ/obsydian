@@ -16,6 +16,9 @@
 #import <objc/runtime.h>
 #import <memory>
 
+// Static key for associated object
+static char ObsidianVStackHandleKey;
+
 // Simple container view - does NOT compute layout
 // The Layout Engine sets frames directly on this and its children
 @interface ObsidianVStackContainerView : NSView {
@@ -97,9 +100,11 @@
 // Internal VStack wrapper class
 @interface ObsidianVStackWrapper : NSObject {
     ObsidianVStackContainerView* _containerView;
+    void* _layoutNode;  // Opaque pointer to C++ layout::ViewNode
 }
 
 @property (nonatomic, strong) ObsidianVStackContainerView* containerView;
+@property (nonatomic, assign) void* layoutNode;  // Opaque pointer to C++ layout::ViewNode
 
 - (instancetype)initWithParams:(ObsidianVStackParams)params;
 - (void*)getView;
@@ -120,6 +125,7 @@
         // Create container view - the layout engine will set the proper frame
         NSRect frame = NSMakeRect(0, 0, 0, 0);  // Start with zero frame
         _containerView = [[ObsidianVStackContainerView alloc] initWithFrame:frame];
+        _layoutNode = nullptr;
     }
     return self;
 }
@@ -138,20 +144,18 @@
 
 - (void)addChildView:(void*)childViewHandle {
     if (!_containerView || !childViewHandle) {
-        NSLog(@"[VStack DEBUG] addChildView FAILED: containerView=%p childViewHandle=%p", _containerView, childViewHandle);
         return;
     }
     
     NSView* childView = (__bridge NSView*)childViewHandle;
     if (!childView) {
-        NSLog(@"[VStack DEBUG] addChildView FAILED: childView bridge failed");
         return;
     }
     
-    NSLog(@"[VStack DEBUG] Adding child %@ frame:%@ to container (subview count before: %lu)", 
-          NSStringFromClass([childView class]),
-          NSStringFromRect(childView.frame),
-          (unsigned long)_containerView.subviews.count);
+    // Remove from previous parent if any
+    if ([childView superview]) {
+        [childView removeFromSuperview];
+    }
     
     // Simply add the child - the layout engine will set frames
     [_containerView addSubview:childView];
@@ -220,7 +224,10 @@ ObsidianVStackHandle obsidian_macos_create_vstack(ObsidianVStackParams params) {
     @autoreleasepool {
         ObsidianVStackWrapper* wrapper = [[ObsidianVStackWrapper alloc] initWithParams:params];
         if (wrapper && wrapper.containerView) {
-            return (__bridge_retained void*)wrapper;
+            ObsidianVStackHandle handle = (__bridge_retained void*)wrapper;
+            // Associate handle with view for reverse lookup
+            obsidian_macos_vstack_associate_handle_with_view(handle);
+            return handle;
         }
         return nullptr;
     }
@@ -354,6 +361,69 @@ void obsidian_macos_vstack_set_frame(ObsidianVStackHandle handle,
         ObsidianVStackWrapper* wrapper = (__bridge ObsidianVStackWrapper*)handle;
         if (wrapper && wrapper.containerView) {
             wrapper.containerView.frame = NSMakeRect(x, y, width, height);
+        }
+    }
+}
+
+// Get layoutNode from VStack handle
+void* obsidian_macos_vstack_get_layout_node(ObsidianVStackHandle handle) {
+    if (!handle) return nullptr;
+    
+    @autoreleasepool {
+        ObsidianVStackWrapper* wrapper = (__bridge ObsidianVStackWrapper*)handle;
+        return wrapper ? wrapper.layoutNode : nullptr;
+    }
+}
+
+// Set layoutNode on VStack handle
+void obsidian_macos_vstack_set_layout_node(ObsidianVStackHandle handle, void* layoutNode) {
+    if (!handle) return;
+    
+    @autoreleasepool {
+        ObsidianVStackWrapper* wrapper = (__bridge ObsidianVStackWrapper*)handle;
+        if (wrapper) {
+            wrapper.layoutNode = layoutNode;
+        }
+    }
+}
+
+// Get VStack handle from native view (if the view is a VStack container)
+ObsidianVStackHandle obsidian_macos_vstack_get_handle_from_view(void* viewHandle) {
+    if (!viewHandle) return nullptr;
+    
+    @autoreleasepool {
+        NSView* view = (__bridge NSView*)viewHandle;
+        if (!view) return nullptr;
+        
+        // Check if this is a VStack container view
+        if (![view isKindOfClass:[ObsidianVStackContainerView class]]) {
+            return nullptr;
+        }
+        
+        // Get the associated handle using Objective-C runtime
+        // The handle is stored as an associated object when the VStack is created
+        id associatedHandle = objc_getAssociatedObject(view, &ObsidianVStackHandleKey);
+        if (associatedHandle) {
+            return (__bridge ObsidianVStackHandle)associatedHandle;
+        }
+        
+        return nullptr;
+    }
+}
+
+// Associate VStack handle with its container view (called during creation)
+void obsidian_macos_vstack_associate_handle_with_view(ObsidianVStackHandle handle) {
+    if (!handle) return;
+    
+    @autoreleasepool {
+        ObsidianVStackWrapper* wrapper = (__bridge ObsidianVStackWrapper*)handle;
+        if (wrapper && wrapper.containerView) {
+            // Store the handle as an associated object on the view
+            // Use RETAIN_NONATOMIC to keep the handle alive while the view exists
+            objc_setAssociatedObject(wrapper.containerView, 
+                                   &ObsidianVStackHandleKey,
+                                   (__bridge id)handle,
+                                   OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         }
     }
 }

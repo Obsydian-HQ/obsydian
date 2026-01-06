@@ -21,7 +21,7 @@ void renderPage3Route(RouteContext& ctx) {
     content.addChild(title);
     
     TextView description;
-    description.create("This page demonstrates back/forward navigation. Use the buttons to navigate through history.", 0, 0, 0, 0);
+    description.create("This is the last page in the navigation stack. You can go back to Page 2, but cannot go forward (nothing ahead).", 0, 0, 0, 0);
     description.setFontSize(14.0);
     content.addChild(description);
     
@@ -30,29 +30,33 @@ void renderPage3Route(RouteContext& ctx) {
     navButtons.setSpacing(10.0);
     
     Button backBtn;
-    backBtn.create("Go Back", 0, 0, 100, 30);
-    backBtn.setOnClick([&ctx]() {
-        if (ctx.canGoBack()) {
-            ctx.goBack();
+    backBtn.create("Back (to Page 2)", 0, 0, 170, 30);
+    backBtn.setOnClick([&router = ctx.getRouter()]() {
+        if (router.canGoBack()) {
+            router.goBack();
         }
     });
     navButtons.addChild(backBtn);
     
     Button forwardBtn;
-    forwardBtn.create("Go Forward", 0, 0, 100, 30);
-    forwardBtn.setOnClick([&ctx]() {
-        if (ctx.canGoForward()) {
-            ctx.goForward();
+    forwardBtn.create("Forward", 0, 0, 100, 30);
+    forwardBtn.setOnClick([&router = ctx.getRouter()]() {
+        if (router.canGoForward()) {
+            router.goForward();
         }
     });
+    // Disable forward button if can't go forward
+    if (!ctx.canGoForward()) {
+        forwardBtn.setEnabled(false);
+    }
     navButtons.addChild(forwardBtn);
     
     content.addChild(navButtons);
     
     // History info
     TextView historyInfo;
-    std::string info = "Can go back: " + std::string(ctx.canGoBack() ? "Yes" : "No") + 
-                       " | Can go forward: " + std::string(ctx.canGoForward() ? "Yes" : "No");
+    std::string info = "Can go back: " + std::string(ctx.canGoBack() ? "Yes (to Page 2)" : "No") + 
+                       " | Can go forward: " + std::string(ctx.canGoForward() ? "Yes" : "No (end of history)");
     historyInfo.create(info.c_str(), 0, 0, 0, 0);
     historyInfo.setFontSize(12.0);
     content.addChild(historyInfo);

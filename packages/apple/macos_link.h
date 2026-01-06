@@ -35,6 +35,12 @@ typedef struct {
 typedef void (*ObsidianLinkClickCallback)(void* userData);
 
 /**
+ * Release callback for userData cleanup
+ * Called when the link handler is deallocated
+ */
+typedef void (*ObsidianLinkReleaseCallback)(void* userData);
+
+/**
  * Create a new macOS link wrapper around a child view
  * Returns a handle to the link, or NULL on failure
  */
@@ -53,12 +59,14 @@ void obsidian_macos_link_set_href(ObsidianLinkHandle handle, const char* href);
 const char* obsidian_macos_link_get_href(ObsidianLinkHandle handle);
 
 /**
- * Set the link click callback
+ * Set the link click callback with release callback
  * userData will be passed to the callback when link is clicked
+ * releaseCallback will be called when the handler is deallocated to free userData
  */
 void obsidian_macos_link_set_on_click(ObsidianLinkHandle handle,
                                        ObsidianLinkClickCallback callback,
-                                       void* userData);
+                                       void* userData,
+                                       ObsidianLinkReleaseCallback releaseCallback);
 
 /**
  * Set link visibility

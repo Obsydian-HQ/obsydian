@@ -234,6 +234,12 @@ public:
     bool canGoForward() const;
     
     /**
+     * Get the router reference (for capturing in lambdas)
+     * Use this when you need to capture the router in a lambda that outlives the RouteContext
+     */
+    Router& getRouter() const;
+    
+    /**
      * Set a content slot for nested rendering (called by layouts)
      * When a layout calls this, child routes will render into this VStack
      * instead of directly to the screen.

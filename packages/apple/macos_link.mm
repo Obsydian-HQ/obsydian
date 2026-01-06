@@ -26,6 +26,7 @@ static const void* kOriginalActionKey = &kOriginalActionKey;
     NSString* _href;               // Route path for navigation
     ObsidianLinkClickCallback _callback;
     void* _userData;
+    ObsidianLinkReleaseCallback _releaseCallback;  // Called on dealloc to free userData
     NSClickGestureRecognizer* _clickRecognizer;  // Used only for non-button views
     BOOL _usesButtonTargetAction;                // True if child is NSButton/NSControl
 }
@@ -33,11 +34,15 @@ static const void* kOriginalActionKey = &kOriginalActionKey;
 @property (nonatomic, strong) NSView* childView;
 @property (nonatomic, assign) ObsidianLinkClickCallback callback;
 @property (nonatomic, assign) void* userData;
+@property (nonatomic, assign) ObsidianLinkReleaseCallback releaseCallback;
 
 - (instancetype)initWithParams:(ObsidianLinkParams)params;
+- (void)dealloc;
 - (void)setHref:(const char*)href;
 - (const char*)getHref;
-- (void)setOnClick:(ObsidianLinkClickCallback)callback userData:(void*)userData;
+- (void)setOnClick:(ObsidianLinkClickCallback)callback 
+          userData:(void*)userData 
+   releaseCallback:(ObsidianLinkReleaseCallback)releaseCallback;
 - (void)setVisible:(bool)visible;
 - (bool)isVisible;
 - (void)setEnabled:(bool)enabled;
@@ -55,7 +60,6 @@ static const void* kOriginalActionKey = &kOriginalActionKey;
     self = [super init];
     if (self) {
         if (!params.childView) {
-            NSLog(@"[Link DEBUG] ERROR: childView is NULL!");
             return nil;
         }
         
@@ -64,15 +68,10 @@ static const void* kOriginalActionKey = &kOriginalActionKey;
         _usesButtonTargetAction = NO;
         _clickRecognizer = nil;
         
-        NSLog(@"[Link DEBUG] Created link with childView: %@ frame: %@", 
-              NSStringFromClass([_childView class]),
-              NSStringFromRect(_childView.frame));
-        
-        // CRITICAL FIX: Different handling for NSButton vs other views
+        // Different handling for NSButton vs other views
         // Following Apple's AppKit patterns - use native mechanisms for controls
         if ([_childView isKindOfClass:[NSButton class]]) {
             // For NSButton: Use native target/action mechanism
-            // This avoids gesture recognizer conflict with button's built-in click handling
             NSButton* button = (NSButton*)_childView;
             
             // Store original target/action (if any) to optionally chain calls
@@ -88,12 +87,10 @@ static const void* kOriginalActionKey = &kOriginalActionKey;
             [button setAction:@selector(handleClick:)];
             
             _usesButtonTargetAction = YES;
-            NSLog(@"[Link DEBUG] Using NSButton native target/action for click handling");
         } else {
             // For non-button views: Use gesture recognizer
             _clickRecognizer = [[NSClickGestureRecognizer alloc] initWithTarget:self action:@selector(handleClick:)];
             [_childView addGestureRecognizer:_clickRecognizer];
-            NSLog(@"[Link DEBUG] Using gesture recognizer for click handling");
         }
         
         // Store href
@@ -105,11 +102,22 @@ static const void* kOriginalActionKey = &kOriginalActionKey;
         
         _callback = nullptr;
         _userData = nullptr;
+        _releaseCallback = nullptr;
         
         // Retain self via associated object on child view
         objc_setAssociatedObject(_childView, @selector(handleClick:), self, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
     return self;
+}
+
+- (void)dealloc {
+    // Call release callback to free userData if set
+    if (_releaseCallback && _userData) {
+        _releaseCallback(_userData);
+        _userData = nullptr;
+    }
+    _callback = nullptr;
+    _releaseCallback = nullptr;
 }
 
 - (void)setHref:(const char*)href {
@@ -127,9 +135,17 @@ static const void* kOriginalActionKey = &kOriginalActionKey;
     return nullptr;
 }
 
-- (void)setOnClick:(ObsidianLinkClickCallback)callback userData:(void*)userData {
+- (void)setOnClick:(ObsidianLinkClickCallback)callback 
+          userData:(void*)userData 
+   releaseCallback:(ObsidianLinkReleaseCallback)releaseCallback {
+    // Clean up old userData if we had a release callback
+    if (_releaseCallback && _userData) {
+        _releaseCallback(_userData);
+    }
+    
     _callback = callback;
     _userData = userData;
+    _releaseCallback = releaseCallback;
 }
 
 - (void)setVisible:(bool)visible {
@@ -225,13 +241,12 @@ static const void* kOriginalActionKey = &kOriginalActionKey;
 }
 
 - (void)handleClick:(id)sender {
-    // First, call the Link's navigation callback
+    // Call the Link's navigation callback
     if (_callback) {
         _callback(_userData);
     }
     
-    // Then, chain to the original button callback if this is an NSButton
-    // This ensures the Button's Fabric callback still works when wrapped in Link
+    // Chain to the original button callback if this is an NSButton
     if (_usesButtonTargetAction && [_childView isKindOfClass:[NSButton class]]) {
         NSButton* button = (NSButton*)_childView;
         
@@ -241,7 +256,6 @@ static const void* kOriginalActionKey = &kOriginalActionKey;
         if (originalTarget && actionValue) {
             SEL originalAction = (SEL)[actionValue pointerValue];
             if ([originalTarget respondsToSelector:originalAction]) {
-                // Suppress clang warning for performSelector with SEL from variable
                 #pragma clang diagnostic push
                 #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
                 [originalTarget performSelector:originalAction withObject:sender];
@@ -290,12 +304,13 @@ const char* obsidian_macos_link_get_href(ObsidianLinkHandle handle) {
 
 void obsidian_macos_link_set_on_click(ObsidianLinkHandle handle,
                                       ObsidianLinkClickCallback callback,
-                                      void* userData) {
+                                      void* userData,
+                                      ObsidianLinkReleaseCallback releaseCallback) {
     if (!handle) return;
     
     @autoreleasepool {
         ObsidianLinkHandler* handler = (__bridge ObsidianLinkHandler*)handle;
-        [handler setOnClick:callback userData:userData];
+        [handler setOnClick:callback userData:userData releaseCallback:releaseCallback];
     }
 }
 

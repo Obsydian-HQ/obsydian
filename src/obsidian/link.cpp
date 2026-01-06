@@ -24,14 +24,26 @@ namespace obsidian {
 // Forward declaration for the global navigation callback
 static void linkNavigationCallback(void* userData);
 
-// Link callback data - stored as a raw pointer managed by the native side
-// The native side retains this via NSValue with manual release tracking
+/**
+ * Link callback data - heap allocated, owned by native handler
+ * 
+ * Following React Native's pattern: callback data lives as long as the
+ * native handler. Ownership is transferred to native side, which deletes
+ * it when the handler is deallocated.
+ */
 struct LinkCallbackData {
     std::string href;
     std::function<void()> onClickCallback;
     
-    LinkCallbackData(const std::string& h) : href(h) {}
+    explicit LinkCallbackData(const std::string& h) : href(h) {}
 };
+
+// Release callback for native side to call when handler is deallocated
+static void releaseCallbackData(void* userData) {
+    if (userData) {
+        delete static_cast<LinkCallbackData*>(userData);
+    }
+}
 
 class Link::Impl {
 public:
@@ -45,19 +57,21 @@ public:
     TextView* textViewChild = nullptr;
     VStack* vstackChild = nullptr;
     HStack* hstackChild = nullptr;
-    // ZStack support deferred - needs getNativeViewHandle() method
     
     // For legacy text-based API
     Button internalButton;
     
-    // Callback data - allocated on heap, ownership transferred to native handler
-    // When native handler is released, we deallocate this
+    // Callback data - ownership transferred to native handler
+    // DO NOT delete here - native handler deletes it when deallocated
     LinkCallbackData* callbackData = nullptr;
     
-    // macOS Link FFI handle
 #ifdef __APPLE__
     ObsidianLinkHandle macosLinkHandle = nullptr;
 #endif
+    
+    ~Impl() {
+        releaseHandle();
+    }
     
     void* getChildNativeViewHandle() const {
         if (buttonChild && buttonChild->isValid()) {
@@ -72,32 +86,40 @@ public:
         if (hstackChild && hstackChild->isValid()) {
             return hstackChild->getNativeViewHandle();
         }
-        // ZStack support deferred
         if (internalButton.isValid()) {
             return internalButton.getNativeViewHandle();
         }
         return nullptr;
     }
     
-    void cleanup() {
+    /**
+     * Release handle reference (like VStack pattern)
+     * 
+     * The native view stays in the view hierarchy - superview retains it.
+     * The ObsidianLinkHandler is retained by the child view via associated object.
+     * When the child view is deallocated, the handler is deallocated,
+     * which then deletes the callbackData via releaseUserData callback.
+     */
+    void releaseHandle() {
 #ifdef __APPLE__
         if (macosLinkHandle) {
-            // Use release_handle instead of destroy to keep the view in hierarchy
-            // The view is removed when the window clears content
+            // Just release our reference - native handler lives on
+            // (retained by associated object on child view)
             obsidian_macos_release_link_handle(macosLinkHandle);
             macosLinkHandle = nullptr;
         }
 #endif
-        // Note: callbackData is owned by the native side now (as long as the view exists)
-        // If we're cleaning up and the native handle is still valid, we need to clear the callback
-        // so the native side doesn't try to use freed memory
+        // DO NOT delete callbackData - native handler owns it now
+        callbackData = nullptr;
         valid = false;
     }
 };
 
 // Static navigation callback that uses the global router
 static void linkNavigationCallback(void* userData) {
-    if (!userData) return;
+    if (!userData) {
+        return;
+    }
     
     LinkCallbackData* data = static_cast<LinkCallbackData*>(userData);
     
@@ -121,9 +143,7 @@ Link::Link(Link&&) noexcept = default;
 Link& Link::operator=(Link&&) noexcept = default;
 
 Link::~Link() {
-    if (pImpl) {
-        pImpl->cleanup();
-    }
+    // Impl's destructor handles cleanup
 }
 
 // Create with Button child
@@ -154,12 +174,10 @@ bool Link::create(const std::string& href, Button& child) {
         return false;
     }
     
-    // Allocate callback data on heap - lives as long as the native handler
-    // The native handler stores this and we use it for navigation
+    // Allocate callback data on heap - ownership transfers to native handler
     pImpl->callbackData = new LinkCallbackData(href);
-    
-    // Set click handler using the heap-allocated callback data
-    obsidian_macos_link_set_on_click(pImpl->macosLinkHandle, linkNavigationCallback, pImpl->callbackData);
+    obsidian_macos_link_set_on_click(pImpl->macosLinkHandle, linkNavigationCallback, 
+                                      pImpl->callbackData, releaseCallbackData);
 #endif
     
     pImpl->valid = true;
@@ -194,9 +212,10 @@ bool Link::create(const std::string& href, TextView& child) {
         return false;
     }
     
-    // Allocate callback data on heap
+    // Allocate callback data on heap - ownership transfers to native handler
     pImpl->callbackData = new LinkCallbackData(href);
-    obsidian_macos_link_set_on_click(pImpl->macosLinkHandle, linkNavigationCallback, pImpl->callbackData);
+    obsidian_macos_link_set_on_click(pImpl->macosLinkHandle, linkNavigationCallback,
+                                      pImpl->callbackData, releaseCallbackData);
 #endif
     
     pImpl->valid = true;
@@ -231,9 +250,10 @@ bool Link::create(const std::string& href, VStack& child) {
         return false;
     }
     
-    // Allocate callback data on heap
+    // Allocate callback data on heap - ownership transfers to native handler
     pImpl->callbackData = new LinkCallbackData(href);
-    obsidian_macos_link_set_on_click(pImpl->macosLinkHandle, linkNavigationCallback, pImpl->callbackData);
+    obsidian_macos_link_set_on_click(pImpl->macosLinkHandle, linkNavigationCallback,
+                                      pImpl->callbackData, releaseCallbackData);
 #endif
     
     pImpl->valid = true;
@@ -268,9 +288,10 @@ bool Link::create(const std::string& href, HStack& child) {
         return false;
     }
     
-    // Allocate callback data on heap
+    // Allocate callback data on heap - ownership transfers to native handler
     pImpl->callbackData = new LinkCallbackData(href);
-    obsidian_macos_link_set_on_click(pImpl->macosLinkHandle, linkNavigationCallback, pImpl->callbackData);
+    obsidian_macos_link_set_on_click(pImpl->macosLinkHandle, linkNavigationCallback,
+                                      pImpl->callbackData, releaseCallbackData);
 #endif
     
     pImpl->valid = true;

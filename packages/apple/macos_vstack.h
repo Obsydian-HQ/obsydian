@@ -109,6 +109,28 @@ void obsidian_macos_vstack_set_frame(ObsidianVStackHandle handle,
                                       double x, double y,
                                       double width, double height);
 
+/**
+ * Get layoutNode from VStack handle (opaque pointer to C++ layout::ViewNode)
+ */
+void* obsidian_macos_vstack_get_layout_node(ObsidianVStackHandle handle);
+
+/**
+ * Set layoutNode on VStack handle (opaque pointer to C++ layout::ViewNode)
+ */
+void obsidian_macos_vstack_set_layout_node(ObsidianVStackHandle handle, void* layoutNode);
+
+/**
+ * Get VStack handle from native view (if the view is a VStack container)
+ * Returns nullptr if the view is not a VStack container
+ */
+ObsidianVStackHandle obsidian_macos_vstack_get_handle_from_view(void* viewHandle);
+
+/**
+ * Associate VStack handle with its container view (called during creation)
+ * This enables reverse lookup from native view to VStack handle
+ */
+void obsidian_macos_vstack_associate_handle_with_view(ObsidianVStackHandle handle);
+
 #ifdef __cplusplus
 }
 #endif

@@ -351,8 +351,31 @@ void LayoutEngine::layoutFlexContainer(LayoutNode* node,
         if (child->getChildCount() > 0) {
             float childContentWidth = childLayout.width;
             float childContentHeight = childLayout.height;
-            layoutFlexContainer(child, childContentWidth, MeasureMode::Exactly,
-                               childContentHeight, MeasureMode::Exactly);
+            
+            // Following Yoga's pattern: when a child has no explicit size,
+            // use AtMost mode with parent's available space as constraint.
+            // This allows the child to size to fit its children.
+            MeasureMode childWidthMode = (childContentWidth > 0) ? MeasureMode::Exactly : MeasureMode::AtMost;
+            MeasureMode childHeightMode = (childContentHeight > 0) ? MeasureMode::Exactly : MeasureMode::AtMost;
+            
+            float childAvailableWidth = (childContentWidth > 0) ? childContentWidth : crossAxisSize;
+            float childAvailableHeight = (childContentHeight > 0) ? childContentHeight : mainAxisSize;
+            
+            layoutFlexContainer(child, childAvailableWidth, childWidthMode,
+                               childAvailableHeight, childHeightMode);
+            
+            // After recursively laying out child's children, the child's actual size may have changed.
+            // Update mainOffset to use the actual child size, not the initial estimate.
+            float actualChildMainSize = isColumn ? childLayout.height : childLayout.width;
+            if (actualChildMainSize != childMainSize) {
+                if (isColumn) {
+                    childLayout.height = actualChildMainSize;
+                } else {
+                    childLayout.width = actualChildMainSize;
+                }
+                mainOffset += (actualChildMainSize - childMainSize);
+                childMainSize = actualChildMainSize;
+            }
         }
         
         // Advance main offset
@@ -361,6 +384,20 @@ void LayoutEngine::layoutFlexContainer(LayoutNode* node,
         // Add justify spacing
         if (i < flowChildren.size() - 1) {
             mainOffset += interItemSpace;
+        }
+    }
+    
+    // Update container's main axis size based on children when not explicitly defined.
+    // Following Yoga's pattern: when container height/width is not explicitly defined,
+    // it should be calculated from children's total size.
+    float requiredMainSize = mainOffset - (isColumn ? layout.paddingTop : layout.paddingLeft);
+    
+    bool mainAxisNotDefined = isColumn ? !style.height.isDefined() : !style.width.isDefined();
+    if (mainAxisNotDefined && requiredMainSize > 0) {
+        if (isColumn) {
+            layout.height = requiredMainSize + layout.paddingTop + layout.paddingBottom;
+        } else {
+            layout.width = requiredMainSize + layout.paddingLeft + layout.paddingRight;
         }
     }
 }
