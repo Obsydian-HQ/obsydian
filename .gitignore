@@ -24,3 +24,4 @@ coverage/
 *.profraw
 *.profdata
 MODULE.bazel.lock
+.mcp.json
