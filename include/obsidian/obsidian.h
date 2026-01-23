@@ -34,6 +34,7 @@
 // UI Components
 // ============================================================================
 #include "obsidian/ui/button.h"
+#include "obsidian/ui/icon.h"
 #include "obsidian/ui/textfield.h"
 #include "obsidian/ui/textview.h"
 #include "obsidian/ui/scrollview.h"
@@ -76,6 +77,7 @@
  * 
  * UI Components:
  * - obsidian::Button - Clickable button
+ * - obsidian::Icon - SF Symbols icon (macOS 11+)
  * - obsidian::TextField - Text input field
  * - obsidian::TextView - Text display
  * - obsidian::ScrollView - Scrollable container

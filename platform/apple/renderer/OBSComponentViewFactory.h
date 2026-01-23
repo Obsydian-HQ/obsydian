@@ -18,6 +18,7 @@ extern NSString * const OBSComponentText;
 extern NSString * const OBSComponentSpacer;
 extern NSString * const OBSComponentScrollView;
 extern NSString * const OBSComponentRoot;
+extern NSString * const OBSComponentIcon;
 
 /**
  * Factory for creating and registering component views.

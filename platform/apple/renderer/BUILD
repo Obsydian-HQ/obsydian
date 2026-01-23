@@ -32,11 +32,13 @@ objc_library(
     name = "component_views",
     srcs = [
         "Mounting/ComponentViews/OBSButtonComponentView.mm",
+        "Mounting/ComponentViews/OBSIconComponentView.mm",
         "Mounting/ComponentViews/OBSTextComponentView.mm",
         "Mounting/ComponentViews/OBSViewComponentView.mm",
     ],
     hdrs = [
         "Mounting/ComponentViews/OBSButtonComponentView.h",
+        "Mounting/ComponentViews/OBSIconComponentView.h",
         "Mounting/ComponentViews/OBSTextComponentView.h",
         "Mounting/ComponentViews/OBSViewComponentView.h",
     ],
@@ -47,6 +49,7 @@ objc_library(
     sdk_frameworks = [
         "AppKit",
         "Foundation",
+        "Symbols",
     ],
     visibility = ["//visibility:public"],
     deps = [":fabric_mounting"],

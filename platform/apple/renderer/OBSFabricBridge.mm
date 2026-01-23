@@ -11,6 +11,7 @@
 #import "Mounting/OBSMountingManager.h"
 #import "Mounting/ComponentViews/OBSButtonComponentView.h"
 #import "Mounting/ComponentViews/OBSTextComponentView.h"
+#import "Mounting/ComponentViews/OBSIconComponentView.h"
 
 // Component type constants
 const char* OBS_COMPONENT_VSTACK = "VStack";
@@ -20,6 +21,7 @@ const char* OBS_COMPONENT_BUTTON = "Button";
 const char* OBS_COMPONENT_TEXT = "Text";
 const char* OBS_COMPONENT_SPACER = "Spacer";
 const char* OBS_COMPONENT_ROOT = "Root";
+const char* OBS_COMPONENT_ICON = "Icon";
 
 void obs_fabric_initialize(void) {
     // Register all component factories
@@ -141,7 +143,7 @@ void obs_fabric_button_set_callback(int32_t tag, OBSButtonCallback callback, voi
 
 void obs_fabric_text_set_content(int32_t tag, const char* text) {
     NSView<OBSComponentViewProtocol> *view = [[OBSComponentViewRegistry sharedRegistry] findComponentViewWithTag:tag];
-    
+
     if ([view isKindOfClass:[OBSTextComponentView class]]) {
         OBSTextComponentView *textView = (OBSTextComponentView *)view;
         NSString *nsText = text ? [NSString stringWithUTF8String:text] : @"";
@@ -149,15 +151,112 @@ void obs_fabric_text_set_content(int32_t tag, const char* text) {
     }
 }
 
+void obs_fabric_icon_set_symbol_name(int32_t tag, const char* name) {
+    NSView<OBSComponentViewProtocol> *view = [[OBSComponentViewRegistry sharedRegistry] findComponentViewWithTag:tag];
+
+    if ([view isKindOfClass:[OBSIconComponentView class]]) {
+        OBSIconComponentView *iconView = (OBSIconComponentView *)view;
+        NSString *nsName = name ? [NSString stringWithUTF8String:name] : @"";
+        [iconView setSymbolName:nsName];
+    }
+}
+
+void obs_fabric_icon_set_point_size(int32_t tag, double size) {
+    NSView<OBSComponentViewProtocol> *view = [[OBSComponentViewRegistry sharedRegistry] findComponentViewWithTag:tag];
+
+    if ([view isKindOfClass:[OBSIconComponentView class]]) {
+        OBSIconComponentView *iconView = (OBSIconComponentView *)view;
+        [iconView setPointSize:(CGFloat)size];
+    }
+}
+
+void obs_fabric_icon_set_weight(int32_t tag, int weight) {
+    NSView<OBSComponentViewProtocol> *view = [[OBSComponentViewRegistry sharedRegistry] findComponentViewWithTag:tag];
+
+    if ([view isKindOfClass:[OBSIconComponentView class]]) {
+        OBSIconComponentView *iconView = (OBSIconComponentView *)view;
+        [iconView setSymbolWeight:(OBSSymbolWeight)weight];
+    }
+}
+
+void obs_fabric_icon_set_tint_color(int32_t tag, uint32_t color) {
+    NSView<OBSComponentViewProtocol> *view = [[OBSComponentViewRegistry sharedRegistry] findComponentViewWithTag:tag];
+
+    if ([view isKindOfClass:[OBSIconComponentView class]]) {
+        OBSIconComponentView *iconView = (OBSIconComponentView *)view;
+
+        // Convert ARGB uint32 to NSColor
+        CGFloat a = ((color >> 24) & 0xFF) / 255.0;
+        CGFloat r = ((color >> 16) & 0xFF) / 255.0;
+        CGFloat g = ((color >> 8) & 0xFF) / 255.0;
+        CGFloat b = (color & 0xFF) / 255.0;
+
+        // If alpha is 0 and color is 0, treat as nil (no color)
+        if (color == 0) {
+            [iconView setTintColor:nil];
+        } else {
+            // If alpha is 0 but color has RGB values, default to full alpha
+            if (a == 0 && (r > 0 || g > 0 || b > 0)) {
+                a = 1.0;
+            }
+            NSColor *nsColor = [NSColor colorWithRed:r green:g blue:b alpha:a];
+            [iconView setTintColor:nsColor];
+        }
+    }
+}
+
+void obs_fabric_icon_set_rendering_mode(int32_t tag, int mode) {
+    NSView<OBSComponentViewProtocol> *view = [[OBSComponentViewRegistry sharedRegistry] findComponentViewWithTag:tag];
+
+    if ([view isKindOfClass:[OBSIconComponentView class]]) {
+        OBSIconComponentView *iconView = (OBSIconComponentView *)view;
+        [iconView setRenderingMode:(OBSSymbolRenderingMode)mode];
+    }
+}
+
+void obs_fabric_icon_add_effect(int32_t tag, int type, int repeatCount, bool byLayer, double speed) {
+    NSView<OBSComponentViewProtocol> *view = [[OBSComponentViewRegistry sharedRegistry] findComponentViewWithTag:tag];
+
+    if ([view isKindOfClass:[OBSIconComponentView class]]) {
+        OBSIconComponentView *iconView = (OBSIconComponentView *)view;
+        [iconView addSymbolEffectWithType:(OBSSymbolEffectType)type
+                              repeatCount:repeatCount
+                                  byLayer:byLayer
+                                    speed:speed];
+    }
+}
+
+void obs_fabric_icon_remove_all_effects(int32_t tag) {
+    NSView<OBSComponentViewProtocol> *view = [[OBSComponentViewRegistry sharedRegistry] findComponentViewWithTag:tag];
+
+    if ([view isKindOfClass:[OBSIconComponentView class]]) {
+        OBSIconComponentView *iconView = (OBSIconComponentView *)view;
+        [iconView removeAllSymbolEffects];
+    }
+}
+
 void obs_fabric_add_view_to_window(int32_t tag, void* windowHandle) {
     if (!windowHandle) return;
-    
+
     NSView<OBSComponentViewProtocol> *view = [[OBSComponentViewRegistry sharedRegistry] findComponentViewWithTag:tag];
     if (!view) return;
-    
-    NSWindow *window = (__bridge NSWindow *)windowHandle;
-    NSView *contentView = window.contentView;
-    
+
+    // The windowHandle could be either an NSWindow or an ObsidianWindowWrapper
+    // Try to get the contentView - if it fails, try to unwrap
+    id obj = (__bridge id)windowHandle;
+    NSView *contentView = nil;
+
+    if ([obj isKindOfClass:[NSWindow class]]) {
+        // Direct NSWindow
+        contentView = [(NSWindow *)obj contentView];
+    } else if ([obj respondsToSelector:@selector(window)]) {
+        // It's a wrapper object with a window property
+        NSWindow *window = [obj performSelector:@selector(window)];
+        if (window) {
+            contentView = window.contentView;
+        }
+    }
+
     if (contentView) {
         [contentView addSubview:view];
     }

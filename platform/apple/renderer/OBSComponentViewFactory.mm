@@ -9,6 +9,7 @@
 #import "Mounting/ComponentViews/OBSViewComponentView.h"
 #import "Mounting/ComponentViews/OBSButtonComponentView.h"
 #import "Mounting/ComponentViews/OBSTextComponentView.h"
+#import "Mounting/ComponentViews/OBSIconComponentView.h"
 
 // Component handle constants
 NSString * const OBSComponentVStack = @"VStack";
@@ -19,6 +20,7 @@ NSString * const OBSComponentText = @"Text";
 NSString * const OBSComponentSpacer = @"Spacer";
 NSString * const OBSComponentScrollView = @"ScrollView";
 NSString * const OBSComponentRoot = @"Root";
+NSString * const OBSComponentIcon = @"Icon";
 
 @implementation OBSComponentViewFactory
 
@@ -69,7 +71,12 @@ NSString * const OBSComponentRoot = @"Root";
             // TODO: Create proper OBSScrollViewComponentView
             return [[OBSViewComponentView alloc] initWithFrame:NSZeroRect];
         } forComponentHandle:OBSComponentScrollView.UTF8String];
-        
+
+        // Icon - SF Symbols support
+        [registry registerViewFactory:^NSView<OBSComponentViewProtocol> *{
+            return [[OBSIconComponentView alloc] initWithFrame:NSZeroRect];
+        } forComponentHandle:OBSComponentIcon.UTF8String];
+
         NSLog(@"[OBS] Registered all component factories");
     });
 }

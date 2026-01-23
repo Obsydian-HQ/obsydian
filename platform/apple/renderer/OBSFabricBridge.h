@@ -61,6 +61,7 @@ extern const char* OBS_COMPONENT_BUTTON;
 extern const char* OBS_COMPONENT_TEXT;
 extern const char* OBS_COMPONENT_SPACER;
 extern const char* OBS_COMPONENT_ROOT;
+extern const char* OBS_COMPONENT_ICON;
 
 /**
  * Initialize the Fabric platform layer.
@@ -113,6 +114,17 @@ void obs_fabric_button_set_callback(int32_t tag, OBSButtonCallback callback, voi
  * Text-specific property updates (called AFTER view is created via mutation).
  */
 void obs_fabric_text_set_content(int32_t tag, const char* text);
+
+/**
+ * Icon-specific property updates (called AFTER view is created via mutation).
+ */
+void obs_fabric_icon_set_symbol_name(int32_t tag, const char* name);
+void obs_fabric_icon_set_point_size(int32_t tag, double size);
+void obs_fabric_icon_set_weight(int32_t tag, int weight);
+void obs_fabric_icon_set_tint_color(int32_t tag, uint32_t color);
+void obs_fabric_icon_set_rendering_mode(int32_t tag, int mode);
+void obs_fabric_icon_add_effect(int32_t tag, int type, int repeatCount, bool byLayer, double speed);
+void obs_fabric_icon_remove_all_effects(int32_t tag);
 
 /**
  * Add a view to window's content view.
